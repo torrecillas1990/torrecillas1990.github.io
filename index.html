@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <meta property="og:title" content="¡Nos casamos! Gemma & Manuel">
+    <meta property="og:description" content="Te esperamos el 24 de abril de 2027. Haz scroll para ver nuestra historia.">
+    <meta property="og:image" content="recursos/scene00096.jpg"> 
+    <meta property="og:url" content="https://tudominio.com">
+    
+    <title>Gemma & Manuel - 24/04/2027</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cormorant+Garamond:wght@300;600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="recursos/favicon_2.ico">
+
+    <style>
+        body { margin: 0; height: 1000vh; background-color: #000; overflow-x: hidden; color: white; }
+        
+		#entrar-btn {
+            margin-top: 30px;
+            padding: 12px 35px;
+            background: transparent;
+            color: #d4af37;
+            border: 1px solid #d4af37;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.2rem;
+            letter-spacing: 3px;
+            cursor: pointer;
+            transition: all 0.5s ease;
+            opacity: 0; /* Empezamos invisible */
+            border-radius: 30px;
+        }
+
+        #entrar-btn:hover {
+            background: #990033;
+            color: white;
+            border-color: #990033;
+            box-shadow: 0 0 20px rgba(153, 0, 51, 0.4);
+        }
+
+        .show-btn {
+            display: block !important;
+            animation: fadeIn 1s forwards;
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+		
+        /* --- Ilustración de Fondo --- */
+        #bg-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100vh;
+            background-position: center; background-size: cover;
+            background-repeat: no-repeat; z-index: 1;
+            -webkit-transform: translateZ(0); will-change: background-image; transform: translateZ(0);
+        }
+
+        #watermark {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100vh;
+            background-image: url('recursos/watermark.jpg');
+            background-repeat: repeat; background-size: 150px;
+            opacity: 0.5; z-index: 2; pointer-events: none;
+        }
+
+        /* --- Header Gemma & Manuel (Fijo) --- */
+        .header-text {
+            position: fixed; top: 40px; left: 50px;
+            z-index: 10; pointer-events: none;
+            text-shadow: 0px 2px 15px rgba(0,0,0,0.6);
+        }
+        .header-text h1 { font-family: 'Great Vibes', cursive; font-size: 5rem; margin: 0; color: #990033; }
+        .header-text h2 { font-family: 'Cormorant Garamond', serif; font-size: 2rem; margin: 0; font-weight: bold; letter-spacing: 4px; color: #990033; }
+
+        /* --- NUEVO: Fotos Reales (Aparecen sobre el fondo) --- */
+        #fotos-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100vh;
+            z-index: 3; /* Por encima del fondo, por debajo de los textos */
+            display: flex; justify-content: center; align-items: center;
+            pointer-events: none;
+        }
+
+		/* --- 1. Ajuste de la Foto Real (Desktop) --- */
+		.foto-real {
+			position: absolute;
+			width: 350px; 
+			height: 350px;
+			object-fit: cover;
+			border-radius: 50%;
+			border: 5px solid #d4af37;
+			box-shadow: 0 15px 50px rgba(0,0,0,0.8);
+			transition: opacity 1s ease, transform 1s ease;
+			opacity: 0;
+			/* En escritorio la subimos un poco del centro exacto */
+			top: 50%; 
+			left: 70%;
+			transform: translate(-50%, -50%) scale(0.8);
+		}
+
+		.foto-real.active {
+			opacity: 1;
+			transform: translate(-50%, -50%) scale(1);
+		}
+
+		/* --- 2. Ajuste de la Caja de Texto (Desktop) --- */
+		.dynamic-section {
+            position: fixed;
+            bottom: 15vh; /* La bajamos más al borde inferior en PC */
+            left: 50%;
+            transform: translateX(-100%) translateY(20px);
+            z-index: 20;
+            width: 85%;
+            max-width: 450px;
+            background: rgba(0, 0, 0, 0.75);
+            padding: 25px 30px; /* Un poco más compacta en vertical */
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            text-align: center;
+            transition: opacity 0.8s ease, transform 0.8s ease;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .dynamic-section.active { opacity: 1; transform: translateX(-100%) translateY(0); pointer-events: auto; }
+        .dynamic-section h2 { font-family: 'Cormorant Garamond', serif; color: #fff; margin-bottom: 10px; }
+        .dynamic-section p { font-family: 'Cormorant Garamond', serif; margin: 5px 0; color: #eee; }
+        
+        .dynamic-section a {
+            display: inline-block; color: #fff; background-color: #990033;
+            text-decoration: none; font-weight: bold; font-family: 'Cormorant Garamond', serif;
+            font-size: 1rem; margin-top: 20px; padding: 12px 25px;
+            border-radius: 30px; transition: 0.3s;
+        }
+        .dynamic-section a:hover { background-color: #c40041; transform: scale(1.05); }
+
+        /* Botón Música */
+        #music-btn {
+            position: fixed;
+            bottom: 40px;
+            right: 20px;
+            width: 55px;
+            height: 55px;
+            background: rgba(0, 0, 0, 0.8); /* Fondo oscuro para que resalten las barras */
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 100;
+            border: 2px solid #990033;
+            transition: all 0.3s ease;
+        }
+
+        .bars-container {
+            display: flex;
+            align-items: flex-end;
+            gap: 3px;
+            height: 20px;
+        }
+
+        .bar {
+            width: 3px;
+            background: #990033;
+            height: 5px; /* Altura mínima cuando está en pausa */
+            transition: height 0.3s ease;
+        }
+
+        /* Animación de las barras cuando suena la música */
+        .playing .bar {
+            animation: soundWave 0.6s infinite ease-in-out;
+        }
+
+        /* Diferentes retardos para que el movimiento sea orgánico */
+        .playing .bar:nth-child(1) { animation-delay: 0.1s; }
+        .playing .bar:nth-child(2) { animation-delay: 0.3s; }
+        .playing .bar:nth-child(3) { animation-delay: 0.2s; }
+        .playing .bar:nth-child(4) { animation-delay: 0.4s; }
+
+        @keyframes soundWave {
+            0%, 100% { height: 5px; }
+            50% { height: 20px; }
+        }
+
+        #music-btn:hover {
+            transform: scale(1.1);
+            background: rgba(153, 0, 51, 0.2);
+        }
+		
+		/* --- Decoración Floral --- */
+        .decor-flor {
+            position: fixed;
+            z-index: 15; /* Por encima de todo, pero debajo de botones */
+            pointer-events: none; /* No estorban al tocar la pantalla */
+            object-fit: contain;
+        }
+
+		/* Animaciones de balanceo */
+		@keyframes brisaSuave {
+			0%, 100% { transform: rotate(0deg) scale(1); }
+			50% { transform: rotate(1.5deg) scale(1.02); }
+		}
+
+		@keyframes brisaLado {
+			0%, 100% { transform: translateY(-50%) rotate(0deg); }
+			50% { transform: translateY(-52%) rotate(-2deg); }
+		}
+
+		/* --- Decoración Floral --- */
+        .decor-flor {
+            position: fixed;
+            z-index: 15;
+            pointer-events: none;
+            object-fit: contain;
+            /* Eliminamos posibles transiciones que causen saltos */
+            transition: none; 
+        }
+
+        .flor-top { 
+            top: -5px; /* Un poco hacia arriba para que no se vea el borde */
+            left: 50%; 
+            transform: translateX(-50%); 
+            width: 100%; 
+            max-height: 150px; 
+        }
+
+        .flor-bottom { 
+            bottom: -5px; /* Un poco hacia abajo */
+            left: 50%; 
+            transform: translateX(-50%); 
+            width: 100%; 
+            max-height: 150px; 
+        }
+		
+		.flor-side-l, .flor-side-r {
+			animation: brisaLado 10s ease-in-out infinite;
+			transform-origin: center;
+		}
+
+        .flor-side-l { top: 50%; left: -20px; transform: translateY(-50%); height: 70vh; }
+        .flor-side-r { top: 50%; right: -20px; transform: translateY(-50%); height: 70vh; }
+		
+        /* --- Estilo de las Imágenes del Header --- */
+        .header-text {
+            position: fixed; top: 12%; left: 8%;
+            z-index: 20; display: flex; flex-direction: column; align-items: flex-start;
+        }
+        
+        .img-h1 { width: 450px; height: auto; } /* Ajusta el ancho según tu imagen */
+        .img-h2 { width: 250px; height: auto; margin-top: -10px; }
+		
+		/* --- Estilos del Contador --- */
+        .countdown-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .time-block {
+            text-align: center;
+            min-width: 60px;
+        }
+
+        .time-block span {
+            display: block;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 2.5rem;
+            font-weight: 600;
+            line-height: 1;
+            color: #d4af37; /* Dorado para destacar los números */
+        }
+
+        .time-block p {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 0.8rem !important;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 5px 0 0 0 !important;
+            color: rgba(255,255,255,0.6);
+        }
+		
+		/* --- 3. REGLAS ESPECÍFICAS PARA MÓVIL --- */
+        @media (max-width: 600px) {
+            .header-text { 
+                left: 0; right: 0; top: 40px; text-align: center; 
+                align-items: center; /* Centrar imágenes en móvil */
+            }
+			
+            .header-text h1 { font-size: 3.2rem; }
+            .header-text h2 { font-size: 1.5rem; letter-spacing: 2px; }
+			
+			.img-h1 { width: 100%; } /* En móvil se adaptan al ancho de pantalla */
+            .img-h2 { width: 50%; }
+			
+			/* En móvil quitamos o reducimos las flores laterales para que no saturen */
+            .flor-side-l, .flor-side-r { display: none; }
+            .flor-top, .flor-bottom { max-height: 80px; }
+			
+            /* En móvil, la foto se ve bien más arriba */
+            .foto-real { 
+                /* width: 250px; */
+                /* height: 250px; */
+                top: 24vh; 
+                left: 50%;
+                transform: translate(-50%, 0) scale(0.8);
+            }
+            .foto-real.active {
+                transform: translate(-50%, 0) scale(1);
+            }
+
+            .dynamic-section { 
+                bottom: 15vh; 
+                padding: 20px; 
+                transform: translateX(-50%) translateY(20px);
+                width: 90%; 
+            }
+
+            .dynamic-section.active { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+			
+			.time-block span { font-size: 1.8rem; }
+            .countdown-container { gap: 10px; }
+            .time-block { min-width: 45px; }
+        }
+
+        /* Loader */
+        #loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #0a0a0a; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 999;
+        }
+        .progress-bar { width: 180px; height: 4px; background: #222; margin-top: 20px; border-radius: 10px; overflow: hidden; }
+        #progress-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #990033, #d4af37); transition: width 0.2s; }
+        .helper-text { position: fixed; bottom: 15px; left: 15px; color: rgba(255,255,255,0.2); font-size: 0.6rem; z-index: 5; }
+			
+    </style>
+</head>
+<body>
+
+    <div id="loader">
+        <div id="loader-text" style="font-family: 'Cormorant Garamond', serif; letter-spacing: 2px;">Gemma & Manuel... 0%</div>
+        <div class="progress-bar"><div id="progress-fill"></div></div>
+        <button id="entrar-btn" onclick="startExperience()" style="display: none;">ENTRAR</button>
+    </div>
+
+    <img src="recursos/arriba.png" class="decor-flor flor-top" alt="">
+    <img src="recursos/abajo.png" class="decor-flor flor-bottom" alt="">
+    <img src="recursos/izquierda.png" class="decor-flor flor-side-l" alt="">
+    <img src="recursos/derecha.png" class="decor-flor flor-side-r" alt="">
+
+    <div class="header-text">
+        <img src="recursos/texto.png" class="img-h1" alt="Gemma & Manuel">
+    </div>
+	
+    <div id="fotos-container">
+        <img id="foto-real-1" class="foto-real" src="fotos/foto1.jpeg">
+        <img id="foto-real-2" class="foto-real" src="fotos/foto2.jpeg">
+        <img id="foto-real-3" class="foto-real" src="fotos/foto3.jpeg">
+        <img id="foto-real-4" class="foto-real" src="fotos/foto4.jpeg">
+        <img id="foto-real-5" class="foto-real" src="fotos/foto5.jpeg">
+    </div>
+
+    <div id="sec-intro" class="dynamic-section">
+        <p style="font-size: 1.7rem; font-style: italic;">Nuestra historia comienza...</p>
+        <p style="font-size: 1rem; opacity: 0.8; margin-top: 10px;">Desliza para descubrir nuestro camino</p>
+    </div>
+
+    <div id="sec-ceremonia" class="dynamic-section">
+        <h2 style="font-size: 1.6rem;">La Ceremonia</h2>
+        <p style="font-size: 1.1rem;">Parroquia Arciprestal de la Inmaculada Concepción</p>
+        <a href="https://www.google.com/maps/search/?api=1&query=Parroquia+Arciprestal+Inmaculada+Concepcion+Torrevieja" target="_blank">VER UBICACIÓN</a>
+    </div>
+    
+    <div id="sec-celebracion" class="dynamic-section">
+        <h2 style="font-size: 1.6rem;">La Celebración</h2>
+        <p style="font-size: 1.1rem;">Finca Victoria Garden</p>
+        <a href="https://www.google.com/maps/search/?api=1&query=Victoria+Garden+Torrevieja" target="_blank">VER UBICACIÓN</a>
+    </div>
+
+    <div id="sec-cuestionario" class="dynamic-section">
+        <h2 style="font-size: 1.8rem;">¿Nos acompañas?</h2>
+        <p style="font-size: 1rem;">Tu confirmación nos ayuda a organizar el día perfecto.</p>
+        <a href="https://docs.google.com/forms/d/e/1FAIpQLSfpXBEfxR94WtQaBAf2_7j6LHs19c3V35J_R2LHIJHamQQOkA/viewform?usp=dialog" target="_blank">RELLENAR CUESTIONARIO</a>
+    </div>
+
+	<div id="sec-final" class="dynamic-section">
+        <p style="font-size: 2.2rem; font-family: 'Great Vibes'; color: #990033; margin-bottom: 20px;">¡Nos vemos en el altar!</p>
+        
+        <div class="countdown-container">
+            <div class="time-block">
+                <span id="days">00</span>
+                <p>Días</p>
+            </div>
+            <div class="time-block">
+                <span id="hours">00</span>
+                <p>Horas</p>
+            </div>
+            <div class="time-block">
+                <span id="minutes">00</span>
+                <p>Min</p>
+            </div>
+            <div class="time-block">
+                <span id="seconds">00</span>
+                <p>Seg</p>
+            </div>
+        </div>
+    </div>
+
+    <audio id="miMusica" loop><source src="musica/0_siempre_la_esperanza.mp3" type="audio/mpeg"></audio>
+
+	<div id="music-btn" onclick="toggleMusic()">
+        <div class="bars-container">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </div>
+    </div>
+
+    <div id="watermark"></div>
+    <div id="bg-container"></div>
+    <div class="helper-text">Frame: <span id="frame-count">001</span></div>
+
+    <script>
+        const bgContainer = document.getElementById('bg-container');
+        const loader = document.getElementById('loader');
+        const progressFill = document.getElementById('progress-fill');
+        const frameDisplay = document.getElementById('frame-count');
+        const miMusica = document.getElementById('miMusica');
+        const musicBtn = document.getElementById('music-btn');
+		
+        const urlFrames = 'frames';
+        const nombreFrames = 'scene00'; 
+        const formatoFrame = '.jpg';
+        
+        // --- CONFIGURACIÓN ---
+        let totalFrames = 177; // Pon aquí el número real de frames de fondo
+        let totalFotosReales = 5; // Tienes 5 fotos reales en /fotos
+        // ----------------------
+
+        const images = []; // Ilustraciones de fondo
+        const fotosReales = []; // Fotos reales
+        let scrollStory = [];
+
+        async function iniciar() {
+            if (totalFrames > 0) {
+                iniciarLogicaSecciones();
+                precargarFotosReales(); // Empezamos precargando las fotos reales (son pocas)
+                precargarFramesFondo(); // Luego empezamos con los frames pesados
+            } else {
+                document.getElementById('loader-text').innerText = "Error en la configuración";
+            }
+        }
+
+        function iniciarLogicaSecciones() {
+            const size = Math.floor(totalFrames / 5);
+            scrollStory = [
+                // Añadimos 'fotoId' para saber qué foto real vincular
+                { start: 1, end: size, id: 'sec-intro', fotoId: 'foto-real-1' },
+                { start: size + 1, end: size * 2, id: 'sec-ceremonia', fotoId: 'foto-real-2' },
+                { start: (size * 2) + 1, end: size * 3, id: 'sec-celebracion', fotoId: 'foto-real-3' },
+                { start: (size * 3) + 1, end: size * 4, id: 'sec-cuestionario', fotoId: 'foto-real-4' },
+                { start: (size * 4) + 1, end: totalFrames, id: 'sec-final', fotoId: 'foto-real-5' }
+            ];
+        }
+
+        // --- NUEVA FUNCIÓN: Precargar tus 5 fotos reales ---
+        function precargarFotosReales() {
+            for (let i = 1; i <= totalFotosReales; i++) {
+                const img = document.getElementById(`foto-real-${i}`);
+                // Al estar ya en el HTML con 'src', el navegador ya las está cargando.
+                // Simplemente las añadimos al array para tenerlas controladas.
+                fotosReales.push(img);
+            }
+        }
+
+        // --- Precarga de frames de fondo (Igual que antes) ---
+        function precargarFramesFondo() {
+            let loadedCount = 0;
+            for (let i = 1; i <= totalFrames; i++) {
+                const img = new Image();
+                const idx = String(i).padStart(3, '0');
+                img.src = `${urlFrames}/${nombreFrames}${idx}${formatoFrame}`;
+                
+                img.onload = () => {
+                    loadedCount++;
+                    actualizarProgreso(loadedCount);
+                };
+                img.onerror = () => {
+                    loadedCount++;
+                    actualizarProgreso(loadedCount);
+                };
+                images.push(img);
+            }
+        }
+
+		// Cambia esto en tu script para que el botón de música y el inicio sean automáticos
+		function actualizarProgreso(count) {
+			let p = Math.floor((count / totalFrames) * 100);
+			document.getElementById('loader-text').innerText = `Gemma & Manuel... ${p}%`;
+			progressFill.style.width = `${p}%`;
+			
+			if (count === totalFrames) {
+				document.getElementById('loader-text').innerText = "Todo listo";
+				document.getElementById('entrar-btn').classList.add('show-btn'); // Muestra el botón de ENTRAR
+			}
+		}
+
+		function startExperience() {
+			loader.style.opacity = "0";
+			setTimeout(() => loader.style.display = "none", 800);
+
+			// DISPARO DE MÚSICA: Al ser una acción del usuario (click en entrar), 
+			// todos los móviles permitirán que suene la música.
+			miMusica.play();
+			musicBtn.classList.add('playing');
+			
+			updateContent(0);
+		}
+
+        function toggleMusic() {
+            if (miMusica.paused) {
+                miMusica.play();
+                musicBtn.classList.add('playing');
+                musicBtn.style.animation = "pulse 2s infinite"; 
+            } else {
+                miMusica.pause();
+                musicBtn.classList.remove('playing');
+                musicBtn.style.animation = "none";
+            }
+        }
+
+        window.addEventListener('scroll', () => {
+            if (totalFrames === 0) return;
+            const scrollTop = window.pageYOffset;
+            const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+            const fraction = scrollTop / maxScroll;
+            const frameIndex = Math.min(totalFrames - 1, Math.floor(fraction * totalFrames));
+            updateContent(frameIndex);
+
+            // --- LÓGICA DE FLORES CORREGIDA ---
+            const scrollPos = window.pageYOffset;
+            
+            // Las flores de arriba y abajo se quedan QUIETAS (eliminamos el margin)
+            // Solo dejamos las de los lados con un movimiento de inercia muy leve
+            const sideFlowers = document.querySelectorAll('.flor-side-l, .flor-side-r');
+            sideFlowers.forEach(flor => {
+                // Esto hace que se deslicen solo un poquito (0.01) para dar profundidad
+                flor.style.transform = `translateY(-50%) translateY(${scrollPos * 0.01}px)`;
+            });
+        });
+
+        function updateContent(index) {
+            // Actualizar Fondo (Acuarela)
+            if(images[index]) {
+                bgContainer.style.backgroundImage = `url('${images[index].src}')`;
+                frameDisplay.innerText = String(index + 1).padStart(3, '0');
+            }
+            const frameNum = index + 1;
+            
+            // --- ACTUALIZADO: Lógica dual (Texto + Foto Real) ---
+            scrollStory.forEach(seccion => {
+                const elTexto = document.getElementById(seccion.id);
+                const elFoto = document.getElementById(seccion.fotoId);
+                
+                // Si estamos dentro del rango de frames
+                if (frameNum >= seccion.start && frameNum <= seccion.end) {
+                    // Activamos texto y foto
+                    if (elTexto) elTexto.classList.add('active');
+                    if (elFoto) elFoto.classList.add('active');
+                } else {
+                    // Desactivamos texto y foto
+                    if (elTexto) elTexto.classList.remove('active');
+                    if (elFoto) elFoto.classList.remove('active');
+                }
+            });
+        }
+
+        // --- LÓGICA DE LA CUENTA ATRÁS ---
+        const targetDate = new Date("April 24, 2027 00:00:00").getTime();
+
+        function updateCountdown() {
+            const now = new Date().getTime();
+            const gap = targetDate - now;
+
+            if (gap <= 0) {
+                document.querySelector(".countdown-container").innerHTML = "<p>¡Es el gran día!</p>";
+                return;
+            }
+
+            // Cálculos de tiempo
+            const second = 1000;
+            const minute = second * 60;
+            const hour = minute * 60;
+            const day = hour * 24;
+
+            const d = Math.floor(gap / day);
+            const h = Math.floor((gap % day) / hour);
+            const m = Math.floor((gap % hour) / minute);
+            const s = Math.floor((gap % minute) / second);
+
+            // Actualizar el HTML
+            document.getElementById("days").innerText = d < 10 ? "0" + d : d;
+            document.getElementById("hours").innerText = h < 10 ? "0" + h : h;
+            document.getElementById("minutes").innerText = m < 10 ? "0" + m : m;
+            document.getElementById("seconds").innerText = s < 10 ? "0" + s : s;
+        }
+
+        // Ejecutar cada segundo
+        setInterval(updateCountdown, 1000);
+        updateCountdown(); // Ejecución inicial
+		
+        iniciar();
+    </script>
+</body>
+</html>
