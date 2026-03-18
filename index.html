@@ -53,7 +53,7 @@
         .flor-top { top: -1px; left: 50%; transform: translateX(-50%); width: 100%; max-height: 150px; animation: brisaSuave 8s infinite ease-in-out; }
         .flor-bottom { bottom: -1px; left: 50%; transform: translateX(-50%); width: 100%; max-height: 150px; animation: brisaSuave 8s infinite ease-in-out; }
         .flor-side-l { top: 50%; left: -20px; transform: translateY(-50%); height: 70vh; animation: brisaLado 10s infinite ease-in-out; }
-        .flor-side- Der { top: 50%; right: -20px; transform: translateY(-50%); height: 70vh; animation: brisaLado 10s infinite ease-in-out; }
+        .flor-side-r { top: 50%; right: -20px; transform: translateY(-50%); height: 70vh; animation: brisaLado 10s infinite ease-in-out; }
 
         @keyframes brisaSuave {
             0%, 100% { transform: translateX(-50%) rotate(0deg) scale(1); }
@@ -66,10 +66,10 @@
 
         /* --- Header Imágenes (Nombres Fijos) --- */
         .header-text {
-            position: fixed; top: 12%; left: 8%;
+            position: fixed; top: 20%; left: 8%;
             z-index: 20; display: flex; flex-direction: column; align-items: flex-start;
         }
-        .img-h1 { width: 450px; height: auto; pointer-events: none; }
+        .img-h1 { width: 500px; height: auto; pointer-events: none; }
 
         /* --- NUEVO: Botón de Menú (Hamburger) --- */
         #hamburger {
@@ -101,66 +101,15 @@
             transition: all 0.3s ease;
         }
 
-        /* --- NUEVO: Side Menu Navegación --- */
-        #side-menu {
-            position: fixed;
-            top: 0;
-            left: -100%; /* Oculto por defecto */
-            width: 300px;
-            height: 100dvh;
-            background-color: rgba(10, 10, 10, 0.98);
-            z-index: 120;
-            transition: left 0.5s ease-in-out;
-            display: flex;
-            flex-direction: column;
-            padding: 80px 40px;
-            box-sizing: border-box;
-            border-right: 1px solid rgba(212, 175, 55, 0.2); /* Borde dorado suave */
-        }
+        /* --- Menú Lateral --- */
+        #side-menu { position: fixed; top: 0; left: -100%; width: 300px; height: 100dvh; background: rgba(10, 10, 10, 0.98); z-index: 120; transition: left 0.5s ease-in-out; display: flex; flex-direction: column; padding: 80px 40px; box-sizing: border-box; border-right: 1px solid rgba(212, 175, 55, 0.2); }
         #side-menu.open { left: 0; }
-        
-        /* Monograma sutil en el menú */
-        #menu-header {
-            font-family: 'Great Vibes', cursive;
-            font-size: 2.5rem;
-            color: #d4af37;
-            text-align: center;
-            margin-bottom: 50px;
-            border-bottom: 1px solid rgba(212, 175, 55, 0.3);
-            padding-bottom: 20px;
-        }
-
-        #side-menu ul { list-style: none; padding: 0; margin: 0; }
+        #menu-header { font-family: 'Great Vibes', cursive; font-size: 2.5rem; color: #d4af37; text-align: center; margin-bottom: 40px; }
+        #side-menu ul { list-style: none; padding: 0; }
         #side-menu li { margin: 25px 0; }
-        
-        #side-menu p {
-            text-decoration: none;
-            color: #fff;
-            font-family: 'Cormorant Garamond', serif;
-            font-size: 0.6rem;
-            color: #d4af37;
-            letter-spacing: 2px;
-            transition: all 0.3s;
-            position: relative;
-            cursor: pointer;
-        }
-		
-		#side-menu a {
-            text-decoration: none;
-            color: #fff;
-            font-family: 'Cormorant Garamond', serif;
-            font-size: 1.3rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            transition: all 0.3s;
-            position: relative;
-            cursor: pointer;
-        }
+        #side-menu a { text-decoration: none; color: #fff; font-family: 'Cormorant Garamond', serif; font-size: 1.3rem; text-transform: uppercase; letter-spacing: 2px; cursor: pointer; transition: 0.3s; }
         #side-menu a:hover { color: #d4af37; padding-left: 10px; }
-        #side-menu a::before {
-            content: '•'; position: absolute; left: -20px; color: #990033; opacity: 0; transition: opacity 0.3s;
-        }
-        #side-menu a:hover::before { opacity: 1; }
+        #side-menu p { font-family: 'Cormorant Garamond', serif; font-size: 0.7rem; color: #d4af37; margin-top: auto; text-align: center; letter-spacing: 1px; }
 
         #close-menu {
             position: absolute; top: 20px; right: 20px;
@@ -183,9 +132,9 @@
             position: absolute; width: 280px; height: 280px; object-fit: cover; border-radius: 50%;
             border: 5px solid #d4af37; box-shadow: 0 15px 50px rgba(0,0,0,0.8);
             transition: opacity 1s ease, transform 1s ease; opacity: 0;
-            top: 50%; left: 72%; transform: translate(-50%, -50%) scale(0.8);
+            top: 50%; left: 72%; transform: translate(-50%, -90%) scale(0.8);
         }
-        .foto-real.active { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        .foto-real.active { opacity: 1; transform: translate(-50%, -90%) scale(1); }
 		
         /* --- PANEL INFERIOR (Fondo estático) --- */
         #bottom-panel {
@@ -193,7 +142,7 @@
             bottom: 0;
             left: 0;
             width: 100%;
-            height: 35dvh; /* Ocupa el último tercio */
+            height: 45dvh; /* Ocupa el último tercio */
             background: linear-gradient(transparent, rgba(0,0,0,0.5) 20%, rgba(0,0,0,0.5) 100%);
             z-index: 20;
             display: flex;
@@ -317,8 +266,8 @@
             <li><a onclick="jumpToDynamicSection('sec-celebracion')">La Celebración</a></li>
             <li><a onclick="jumpToDynamicSection('sec-cuestionario')">Confirmación</a></li>
             <li><a onclick="jumpToDynamicSection('sec-final')">Cuenta Atrás</a></li>
-            <li><p>Diseñado por Manuel Torrecillas - 2026</p></li>
         </ul>
+        <p>Diseñado por Manuel Torrecillas - 2026</p>
     </nav>
 
     <div id="hamburger" onclick="openNavMenu()">
