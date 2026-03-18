@@ -245,6 +245,30 @@
         .progress-bar { width: 180px; height: 4px; background: #222; margin-top: 20px; border-radius: 10px; overflow: hidden; }
         #progress-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #990033, #d4af37); transition: width 0.2s; }
         .helper-text { position: fixed; bottom: 15px; left: 15px; color: rgba(255,255,255,0.2); font-size: 0.6rem; z-index: 5; }
+				
+		/* Efecto de destello cuando llega a cero */
+		.gold-flash {
+			animation: flashAnim 1.5s ease-out forwards;
+		}
+
+		@keyframes flashAnim {
+			0% { background-color: rgba(212, 175, 55, 0); }
+			50% { background-color: rgba(212, 175, 55, 0.5); }
+			100% { background-color: rgba(212, 175, 55, 0); }
+		}
+
+		/* Partículas de confeti */
+		.confetti {
+			position: absolute;
+			width: 8px; height: 8px;
+			background-color: #d4af37;
+			border-radius: 2px;
+			animation: fall linear forwards;
+		}
+
+		@keyframes fall {
+			to { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+		}
     </style>
 </head>
 <body>
@@ -348,6 +372,7 @@
     </div>
 	
     <div id="watermark"></div>
+	<div id="celebration-overlay" style="position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:200; display:none; overflow:hidden;"></div>
     <div id="bg-container"></div>
     <div class="helper-text">Frame: <span id="frame-count">001</span></div>
 
@@ -573,8 +598,63 @@
         }
 
         // Ejecutar cada segundo
-        setInterval(updateCountdown, 1000);
-        updateCountdown(); // Ejecución inicial
+        let celebracionIniciada = false;
+
+		setInterval(() => {
+			const now = new Date().getTime();
+			const gap = targetDate - now;
+
+			// Constantes de tiempo
+			const d = 1000 * 60 * 60 * 24;
+			const h = d / 24;
+			const m = h / 60;
+			const s = m / 60;
+
+			if (gap <= 0) {
+				// --- LÓGICA DE CELEBRACIÓN ---
+				document.getElementById("days").innerText = "00";
+				document.getElementById("hours").innerText = "00";
+				document.getElementById("minutes").innerText = "00";
+				document.getElementById("seconds").innerText = "00";
+
+				if (!celebracionIniciada) {
+					lanzarCelebracion();
+					celebracionIniciada = true;
+				}
+			} else {
+				document.getElementById("days").innerText = Math.floor(gap / d);
+				document.getElementById("hours").innerText = Math.floor((gap % d) / h);
+				document.getElementById("minutes").innerText = Math.floor((gap % h) / m);
+				document.getElementById("seconds").innerText = Math.floor((gap % m) / s);
+			}
+		}, 1000);
+
+		function lanzarCelebracion() {
+			const overlay = document.getElementById('celebration-overlay');
+			overlay.style.display = 'block';
+			overlay.classList.add('gold-flash');
+
+			// Cambiar el mensaje final
+			const finalSec = document.getElementById('sec-final');
+			if(finalSec) finalSec.querySelector('p').innerText = "¡Es el gran día!";
+
+			// Generar partículas de confeti dorado
+			for (let i = 0; i < 50; i++) {
+				setTimeout(() => {
+					const confetti = document.createElement('div');
+					confetti.classList.add('confetti');
+					confetti.style.left = Math.random() * 100 + 'vw';
+					confetti.style.animationDuration = (Math.random() * 3 + 2) + 's';
+					confetti.style.opacity = Math.random();
+					overlay.appendChild(confetti);
+					
+					// Limpiar elemento después de la animación
+					setTimeout(() => confetti.remove(), 5000);
+				}, i * 100);
+			}
+		}
+		
+        //updateCountdown(); // Ejecución inicial
 		
         iniciar();
     </script>
