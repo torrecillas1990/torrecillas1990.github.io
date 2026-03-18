@@ -8,6 +8,7 @@
     <meta property="og:description" content="Te esperamos el 24 de abril de 2027. Haz scroll para ver nuestra historia.">
     <meta property="og:image" content="recursos/scene00096.jpg"> 
     <meta property="og:url" content="https://tudominio.com">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     
     <title>Gemma & Manuel - 24/04/2027</title>
     
@@ -18,23 +19,51 @@
 	
     <style>
         /* --- Base y Prevención de Rebote --- */
-        html { 
-            background-color: #000; 
-            overscroll-behavior-y: none; 
-            scroll-behavior: auto; /* El scroll suave se maneja por JS */
-            -webkit-tap-highlight-color: transparent; /* Mejora tacto botones móvil */
-        }
-        body { 
-            margin: 0; height: 1000vh; background-color: #000; 
-            overflow-x: hidden; color: white; -webkit-overflow-scrolling: touch; 
-        }
+		html {
+			background-color: #000;
+			overscroll-behavior-y: none; /* Bloquea el rebote elástico */
+			height: -webkit-fill-available; /* Ajuste especial para Safari */
+		}
 
+		body { 
+			margin: 0; 
+			height: 1000vh; 
+			background-color: #000; 
+			overflow-x: hidden;
+			color: white;
+			/* Evita que Safari intente "ayudar" con el scroll */
+			position: relative;
+			-webkit-overflow-scrolling: touch;
+		}
+		
         /* --- Contenedor de Ilustración (Fondo) --- */
-        #bg-container {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100dvh; 
+		#bg-container {
+			position: fixed; top: 0; left: 0; width: 100%; 
+			/* Usamos dvh y también min-height para asegurar cobertura total */
+			height: 100dvh; 
+			min-height: -webkit-fill-available;
             background-position: center; background-size: cover; background-repeat: no-repeat; 
-            z-index: 1; transform: translateZ(0); will-change: background-image;
-        }
+			z-index: 1;
+			/* Evita parpadeos en la transición de imágenes */
+			-webkit-transform: translateZ(0);
+			transform: translateZ(0); will-change: background-image;
+		}
+
+		#bottom-panel {
+			position: fixed;
+			bottom: 0;
+			left: 0;
+			width: 100%;
+			/* Usamos las 'safe-area' para que el notch de abajo no tape el texto */
+			height: calc(35dvh + env(safe-area-inset-bottom));
+			padding-bottom: env(safe-area-inset-bottom);
+			background: linear-gradient(transparent, rgba(0,0,0,0.8) 20%, rgba(0,0,0,0.95) 100%);
+			z-index: 20;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			pointer-events: none;
+		}
 
         #watermark {
             position: fixed; top: 0; left: 0; width: 100%; height: 100vh;
@@ -539,6 +568,12 @@
                 // Esto hace que se deslicen solo un poquito (0.01) para dar profundidad
                 flor.style.transform = `translateY(-50%) translateY(${scrollPos * 0.01}px)`;
             });
+			
+			// Truco para Safari: Fuerza el renderizado para evitar descuadres visuales
+			window.requestAnimationFrame(() => {
+				const scrollTop = window.pageYOffset;
+				// Aquí va el resto de tu lógica de frames...
+			});
         });
 
         function updateContent(index) {
