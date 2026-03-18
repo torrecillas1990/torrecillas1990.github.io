@@ -53,29 +53,61 @@
 
 		#entrar-btn {
             margin-top: 30px;
-            padding: 12px 35px;
+            padding: 15px 40px;
             background: transparent;
             color: #d4af37;
             border: 1px solid #d4af37;
             font-family: 'Cormorant Garamond', serif;
-            font-size: 1.2rem;
-            letter-spacing: 3px;
+            font-size: 1.3rem;
+            letter-spacing: 4px;
             cursor: pointer;
-            transition: all 0.5s ease;
-            opacity: 0; /* Empezamos invisible */
-            border-radius: 30px;
+            border-radius: 40px;
+            opacity: 0;
+            display: none;
+            position: relative;
+            overflow: hidden;
+            /* Animación de pulso constante */
+            animation: respirar 3s infinite ease-in-out;
+            transition: all 0.4s ease;
+        }
+
+        /* Efecto de brillo que cruza el botón */
+        #entrar-btn::after {
+            content: '';
+            position: absolute;
+            top: -50%; left: -60%;
+            width: 20%; height: 200%;
+            background: rgba(212, 175, 55, 0.4);
+            transform: rotate(30deg);
+            transition: none;
+        }
+
+        #entrar-btn.show-btn {
+            display: block !important;
+            animation: fadeIn 1s forwards, respirar 3s infinite ease-in-out;
+        }
+
+        /* El brillo cruza el botón cada 4 segundos */
+        #entrar-btn.show-btn::after {
+            animation: brilloFlash 4s infinite;
+        }
+
+        @keyframes respirar {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0px rgba(212, 175, 55, 0); }
+            50% { transform: scale(1.05); box-shadow: 0 0 20px rgba(212, 175, 55, 0.3); }
+        }
+
+        @keyframes brilloFlash {
+            0% { left: -60%; }
+            20% { left: 120%; }
+            100% { left: 120%; }
         }
 
         #entrar-btn:hover {
-            background: #990033;
-            color: white;
-            border-color: #990033;
-            box-shadow: 0 0 20px rgba(153, 0, 51, 0.4);
-        }
-
-        .show-btn {
-            display: block !important;
-            animation: fadeIn 1s forwards;
+            background: #d4af37;
+            color: #000;
+            transform: scale(1.1) !important;
+            box-shadow: 0 0 30px rgba(212, 175, 55, 0.6) !important;
         }
 
         @keyframes fadeIn {
@@ -468,7 +500,7 @@
         const formatoFrame = '.jpg';
         
         // --- CONFIGURACIÓN ---
-        let totalFrames = 177; // Pon aquí el número real de frames de fondo
+        let totalFrames = 89; // Pon aquí el número real de frames de fondo
         let totalFotosReales = 5; // Tienes 5 fotos reales en /fotos
         // ----------------------
 
