@@ -143,7 +143,7 @@
         #progress-fill { width: 0%; height: 100%; background: var(--color-oro); transition: width 0.3s; }
 
         /* --- MENU LATERAL --- */
-        #side-menu { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: rgba(0,0,0,0.95); z-index: 300; transition: 0.5s; padding: 80px 30px; }
+        #side-menu { position: fixed; top: 0; left: -320px;  height: 100%; background: rgba(0,0,0,0.95); z-index: 300; transition: 0.5s; padding: 80px 30px; }
         #side-menu.open { left: 0; }
         #menu-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 250; display: none; }
         
@@ -172,10 +172,13 @@
         <a href="#sec-intro" onclick="toggleMenu()" style="display:block; color:white; text-decoration:none; margin:20px 0;">Inicio</a>
         <a href="#sec-ceremonia" onclick="toggleMenu()" style="display:block; color:white; text-decoration:none; margin:20px 0;">La Ceremonia</a>
         <a href="#sec-celebracion" onclick="toggleMenu()" style="display:block; color:white; text-decoration:none; margin:20px 0;">La Celebración</a>
+		<a href="#sec-cuestionario" onclick="toggleMenu()" style="display:block; color:white; text-decoration:none; margin:20px 0;">Confirmación</a>
         <a href="#sec-regalo" onclick="toggleMenu()" style="display:block; color:white; text-decoration:none; margin:20px 0;">Regalo</a>
+		<a href="#sec-musica" onclick="toggleMenu()" style="display:block; color:white; text-decoration:none; margin:20px 0;">Temazos</a>
+		<a href="#sec-final" onclick="toggleMenu()" style="display:block; color:white; text-decoration:none; margin:20px 0;">Cuenta Atrás</a>
         <p style="margin-top:100px; font-size:0.8rem; opacity:0.5;">24 de Abril de 2027</p>
+        <p style="margin-top:100px; font-size:0.8rem; opacity:0.5;">Diseñado por Manuel Torrecillas - 2026</p>
     </nav>
-
     <div id="hamburger" onclick="toggleMenu()">
         <span class="ham-line"></span>
         <span class="ham-line"></span>
@@ -204,7 +207,7 @@
             <div class="dynamic-section">
                 <h2>La Ceremonia</h2>
                 <p>Parroquia Arciprestal de la Inmaculada Concepción</p>
-                <a href="#" class="btn-action">VER UBICACIÓN</a>
+                <a href="https://www.google.com/maps/search/?api=1&query=Parroquia+Arciprestal+Inmaculada+Concepcion+Torrevieja" class="btn-action">VER UBICACIÓN</a>
             </div>
         </div>
 
@@ -213,20 +216,54 @@
             <div class="dynamic-section">
                 <h2>La Celebración</h2>
                 <p>Finca Victoria Garden</p>
-                <a href="#" class="btn-action">VER UBICACIÓN</a>
+                <a href="https://www.google.com/maps/search/?api=1&query=Victoria+Garden+Torrevieja" class="btn-action">VER UBICACIÓN</a>
             </div>
         </div>
-
+		
+		<div class="section-container" id="sec-cuestionario">
+            <img src="fotos/foto3.jpeg" class="foto-real">
+            <div class="dynamic-section">
+				<h2>¿Nos acompañas?</h2>
+				<p>Tu confirmación nos ayuda a organizar el día perfecto.</p>
+				<a href="https://docs.google.com/forms/d/e/1FAIpQLSfpXBEfxR94WtQaBAf2_7j6LHs19c3V35J_R2LHIJHamQQOkA/viewform?usp=dialog" class="btn-action" target="_blank">RELLENAR CUESTIONARIO</a>
+			</div>
+		</div>
+		
         <div class="section-container" id="sec-regalo">
             <img src="fotos/foto4.jpeg" class="foto-real">
             <div class="dynamic-section">
                 <h2>¿Nos echas una mano?</h2>
                 <p>Si quieres tener un detalle con nosotros, te dejamos nuestra cuenta:</p>
-                <p id="iban" style="color:var(--color-oro); letter-spacing:1px;">ES00 1111 2222 3333 4444 5555</p>
+                <p id="iban" style="color:var(--color-oro); letter-spacing:1px;"><span>ES00 1111 2222 3333 4444 5555</span></p>
                 <button onclick="copiarIBAN()" style="background:var(--color-oro); border:none; padding:10px 20px; border-radius:20px; cursor:pointer;">COPIAR IBAN</button>
             </div>
         </div>
-
+		
+		<div class="section-container" id="sec-musica">
+            <img src="fotos/foto5.jpeg" class="foto-real">
+            <div class="dynamic-section">
+				<h2 style="font-size: 1.8rem;">¡Tú pones la música! 🎶</h2>
+				<p style="font-size: 1rem;">Queremos que la pista de baile eche humo. Añade tus canciones favoritas a nuestra lista oficial de Spotify.</p>
+				
+				<div style="margin-top: 25px;">
+					<a href="https://open.spotify.com/playlist/5U9WvTg9igE8aw6sJ8EPIz?si=pWUiLE4eQDilULusVOTsww" target="_blank" 
+						   style="background-color: #1DB954; color: white; padding: 15px 30px; border-radius: 50px; text-decoration: none; display: inline-flex; align-items: center; gap: 10px; font-weight: bold; font-family: sans-serif; transition: 0.3s; border: none;">
+						<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+							<path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.508 17.302c-.218.358-.684.474-1.042.255-2.883-1.762-6.513-2.161-10.787-1.184-.41.094-.82-.163-.914-.573-.094-.41.163-.82.573-.914 4.675-1.07 8.675-.615 11.915 1.365.358.218.474.684.255 1.051zm1.47-3.253c-.276.448-.865.589-1.313.313-3.298-2.027-8.324-2.613-12.217-1.432-.505.153-1.037-.134-1.19-.639-.153-.505.134-1.037.639-1.19 4.456-1.352 10.002-.686 13.766 1.628.448.276.589.865.315 1.32zm.127-3.386c-3.955-2.348-10.47-2.564-14.253-1.416-.606.184-1.242-.168-1.426-.774-.184-.606.168-1.242.774-1.426 4.343-1.318 11.536-1.063 16.088 1.638.544.323.722 1.025.399 1.569-.323.544-1.025.722-1.582.409z"/>
+						</svg>
+						ABRIR PLAYLIST BODA
+					</a>
+				</div>
+				<p style="font-size: 0.8rem; margin-top: 15px; opacity: 0.7; font-style: italic;">* Necesitas tener cuenta de Spotify para añadir temas.</p>
+				<div style="margin-top: 20px; border-radius: 12px; overflow: hidden;">
+					<iframe data-testid="embed-iframe" style="border-radius:12px" 
+						src="https://open.spotify.com/embed/playlist/5U9WvTg9igE8aw6sJ8EPIz?utm_source=generator" 
+						width="100%" height="352" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy">
+					</iframe>
+				</div>
+			</div>
+		</div>
+		
         <div class="section-container" id="sec-final">
             <div class="dynamic-section">
                 <h2 style="font-family:'Great Vibes'; font-size:2.5rem;">Faltan...</h2>
