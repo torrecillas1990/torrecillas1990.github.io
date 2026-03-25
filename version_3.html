@@ -74,6 +74,8 @@
 			/* Evita parpadeos en la transición de imágenes */
 			-webkit-transform: translateZ(0);
 			transform: translateZ(0); will-change: background-image;
+			backface-visibility: hidden;
+			-webkit-backface-visibility: hidden;
 		}
 
 		#bottom-panel {
