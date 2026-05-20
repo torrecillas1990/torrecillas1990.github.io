@@ -1712,10 +1712,20 @@ mapeoMovimiento.forEach(control => {
     const boton = document.getElementById(control.id);
     if(boton) {
         boton.addEventListener('touchstart', (e) => {
+			if (!juegoIniciado) {
+				juegoIniciado = true;
+				reproducirMusica('exploracion'); // Mueve la música aquí
+				return;
+			}
             e.preventDefault(); audioCtx.resume();
             teclas[control.tecla] = true;
         });
         boton.addEventListener('touchend', (e) => {
+			if (!juegoIniciado) {
+				juegoIniciado = true;
+				reproducirMusica('exploracion'); // Mueve la música aquí
+				return;
+			}
             e.preventDefault();
             teclas[control.tecla] = false;
         });
@@ -1724,6 +1734,11 @@ mapeoMovimiento.forEach(control => {
 
 if(document.getElementById('btnVA')) {
     document.getElementById('btnVA').addEventListener('touchstart', (e) => {
+		if (!juegoIniciado) {
+			juegoIniciado = true;
+			reproducirMusica('exploracion'); // Mueve la música aquí
+			return;
+		}
         e.preventDefault(); audioCtx.resume();
         playTone(400, 'sine', 0.05);
         
@@ -1734,6 +1749,11 @@ if(document.getElementById('btnVA')) {
 
 if(document.getElementById('btnVB')) {
     document.getElementById('btnVB').addEventListener('touchstart', (e) => {
+		if (!juegoIniciado) {
+			juegoIniciado = true;
+			reproducirMusica('exploracion'); // Mueve la música aquí
+			return;
+		}
         e.preventDefault(); audioCtx.resume();
         if (modo === 'ordenador') { cerrarMenuOrdenador(); return; }
         if (modo === 'pausa') {
@@ -1755,6 +1775,11 @@ if(document.getElementById('btnVB')) {
 
 if(document.getElementById('btnVStart')) {
     document.getElementById('btnVStart').addEventListener('touchstart', (e) => {
+		if (!juegoIniciado) {
+			juegoIniciado = true;
+			reproducirMusica('exploracion'); // Mueve la música aquí
+			return;
+		}
         e.preventDefault(); audioCtx.resume();
         if (modo === 'exploracion' || modo === 'pausa') alternarMenuPausa();
     });
@@ -1762,6 +1787,11 @@ if(document.getElementById('btnVStart')) {
 
 if(document.getElementById('btnVSelect')) {
     document.getElementById('btnVSelect').addEventListener('touchstart', (e) => {
+		if (!juegoIniciado) {
+			juegoIniciado = true;
+			reproducirMusica('exploracion'); // Mueve la música aquí
+			return;
+		}
         e.preventDefault(); playTone(450, 'triangle', 0.08);
     });
 }
