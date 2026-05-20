@@ -64,6 +64,17 @@
         <b>BLOQUES:</b> 21 Piedra Sólida | 32 Baldosa | 40 Suelo Cueva | 50 Agua (Entra por Orilla 60) | 70 Entrar | 71 Salir
     </div>
 	
+	<!-- Interfaz de la Tienda Pokémon (Mart) -->
+	<div id="contenedorTienda" class="overlay-sistema">
+		<div class="ordenador-box" style="height: auto; max-height: 380px;">
+			<div class="panel-header" id="tiendaTitulo">TIENDA POKÉMON (Saldo: $0)</div>
+			<div class="panel-contenido" id="listaProductosTienda" style="margin-bottom: 8px;">
+				<!-- Se llena dinámicamente con JS -->
+			</div>
+			<button class="btn-volver-pausa" onclick="cerrarTienda()">SALIR DE LA TIENDA</button>
+		</div>
+	</div>
+	
 	<!-- MENÚ DE PAUSA GENERAL Y SUBPANELES INTEGRADOS -->
 	<div id="contenedorPausa">
 		<!-- Menú Principal Lateral -->

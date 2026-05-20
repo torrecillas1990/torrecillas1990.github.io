@@ -62,6 +62,7 @@ const assets = {
     70: crearTile('#5d4037', '#3e2723', 'puerta'),
     71: crearTile('#ffb74d', '#e53935', 'alfombra_salida'),
     72: crearTile('#9e9e9e', '#2196f3', 'ordenador'),
+    73: crearTile('#43a047', '#ffe082', 'tienda'), // <--- Mostrador verde y caja registradora dorada
     80: crearTile('#e0f7fa', '#b2ebf2', 'hielo'),
     81: crearTile('#ffb300', '#ff8f00', 'cinta_derecha'),
     82: crearTile('#01579b', '#0091ea', 'remolino_agua'),
@@ -101,6 +102,11 @@ function crearTile(col1, col2, tipo) {
         cx.fillStyle = col2; cx.fillRect(7, 4, TILE_SIZE-14, 11);
         cx.fillStyle = '#fff'; cx.fillRect(9, 6, 2, 2);
     }
+	if(tipo==='tienda') {
+		cx.fillStyle = col1; cx.fillRect(0, 14, TILE_SIZE, 18); // Mostrador base
+		cx.fillStyle = col2; cx.fillRect(6, 4, 12, 10); // Caja registradora
+		cx.fillStyle = '#b71c1c'; cx.fillRect(14, 8, 4, 4); // Botón de la caja
+	}
     return c;
 }
 
@@ -149,7 +155,7 @@ const jugador = {
     anguloGiro: 0
 };
 
-const ESPECIES_POKEDEX = ['Charmander', 'Bulbasaur', 'Squirtle', 'Pidgey', 'Pikachu'];
+const ESPECIES_POKEDEX = ['Charmander', 'Charmeleon', 'Bulbasaur', 'Ivysaur', 'Squirtle', 'Wartortle', 'Pidgey', 'Pikachu'];
 let especiesAvistadas = { 'Charmander': true };
 
 // --- NUEVA TABLA DE EFECTIVIDADES ELEMENTALES ---
@@ -202,6 +208,24 @@ let inventario = {
     antiparaliz: 2,    // Cura el estado 'PARALIZADO'
     elixir: 1          // Restaura al máximo los PP de todos los ataques del activo
 };
+
+// --- NUEVO SISTEMA DE EVOLUCIONES DE ESPECIES ---
+const REGLAS_EVOLUCION = {
+    'Charmander': { nivel: 6, siguiente: 'Charmeleon', hpBonus: 15 },
+    'Bulbasaur':  { nivel: 6, siguiente: 'Ivysaur', hpBonus: 15 },
+    'Squirtle':   { nivel: 6, siguiente: 'Wartortle', hpBonus: 15 }
+};
+
+// --- ECONOMÍA Y CATÁLOGO DE LA TIENDA ---
+let monedero = 300; // Dinero inicial del jugador
+
+const CATALOGO_TIENDA = [
+    { id: 'pociones',      nombre: 'Poción',          precio: 200 },
+    { id: 'bolas',         nombre: 'Bola Captura',    precio: 200 },
+    { id: 'curaQuemadura', nombre: 'Cura Quemadura',  precio: 150 },
+    { id: 'antiparaliz',   nombre: 'Antiparálisis',   precio: 100 },
+    { id: 'elixir',        nombre: 'Elixir Máximo',   precio: 500 }
+];
 
 let enemigoActual = null; 
 let turnoBloqueado = false;
@@ -269,14 +293,15 @@ let indiceLineaDialogo = 0;
 // ============================================================================
 function obtenerPropiedadesBloque(id) {
     return {
-        esSolidoNonatural:  (id >= 10 && id <= 19),
+        esSolidoNonatural:   (id >= 10 && id <= 19),
         esSolidoNatural:     (id >= 20 && id <= 29),
         tieneEncuentros:     (id >= 01 && id <= 09),
         esAgua:              (id >= 50 && id <= 59) || id === 82,
         esTransicionAgua:    (id >= 60 && id <= 69),
         esInteractivo:       (id >= 70 && id <= 79),
         esOrdenador:         (id === 72),
-        esHielo:              (id === 80),
+        esTienda:            (id === 73),
+        esHielo:             (id === 80),
         esCintaDerecha:      (id === 81),
         esRemolinoAgua:      (id === 82),
         esRemolinoTierra:    (id === 83)
@@ -301,7 +326,7 @@ function comprobarColision(futuroX, futuroY) {
         if (!mapa[gridY] || mapa[gridY][gridX] === undefined) return true;
         
         let props = obtenerPropiedadesBloque(mapa[gridY][gridX]);
-        if (props.esSolidoNonatural || props.esSolidoNatural || props.esOrdenador) return true;
+		if (props.esSolidoNonatural || props.esSolidoNatural || props.esOrdenador || props.esTienda) return true;
         if (props.esAgua && jugador.estadoEstilo === 'normal') return true;
     }
 
@@ -418,40 +443,73 @@ function detenerFisicas() {
 
 function intentarInteractuar() {
     if (modo !== 'exploracion') return;
-    
     let mapa = MAPAS[mapaActual];
     let centroX = Math.floor((jugador.x + TILE_SIZE / 2) / TILE_SIZE);
     let centroY = Math.floor((jugador.y + TILE_SIZE / 2) / TILE_SIZE);
 
-    let vecinos = [
-        {x: centroX, y: centroY - 1}, // Arriba
-        {x: centroX, y: centroY + 1}, // Abajo
-        {x: centroX - 1, y: centroY}, // Izquierda
-        {x: centroX + 1, y: centroY}  // Derecha
-    ];
+    let vecinos = [{x: centroX, y: centroY - 1}, {x: centroX, y: centroY + 1}, {x: centroX - 1, y: centroY}, {x: centroX + 1, y: centroY}];
 
-    // 1. Verificar si hay un NPC en los azulejos vecinos
+    // 1. Verificar NPCs
     let npcsMapa = NPCS[mapaActual] || [];
     for (let npc of npcsMapa) {
         for (let v of vecinos) {
-            if (npc.gridX === v.x && npc.gridY === v.y) {
-                iniciarDialogo(npc.dialogo);
-                return;
-            }
+            if (npc.gridX === v.x && npc.gridY === v.y) { iniciarDialogo(npc.dialogo); return; }
         }
     }
 
-    // 2. Verificar si hay un Bloque Ordenador (Lógica anterior)
+    // 2. Verificar Bloques estructurales (PC y Tienda)
     for (let v of vecinos) {
         if (mapa[v.y] && mapa[v.y][v.x] !== undefined) {
             let idBloque = mapa[v.y][v.x];
             let props = obtenerPropiedadesBloque(idBloque);
-            if (props.esOrdenador) {
-                abrirMenuOrdenador();
-                return;
-            }
+            if (props.esOrdenador) { abrirMenuOrdenador(); return; }
+            if (props.esTienda) { abrirTienda(); return; } // <--- INYECTADO AQUÍ
         }
     }
+}
+
+// --- LOGICA DE TRANSACCIONES DE LA TIENDA ---
+function abrirTienda() {
+    modo = 'tienda';
+    detenerFisicas();
+    document.getElementById('contenedorTienda').style.display = 'flex';
+    renderizarTiendaUI();
+    playTone(440, 'sine', 0.08);
+}
+
+function cerrarTienda() {
+    modo = 'exploracion';
+    document.getElementById('contenedorTienda').style.display = 'none';
+    playTone(330, 'sine', 0.05);
+}
+
+function renderizarTiendaUI() {
+    document.getElementById('tiendaTitulo').innerText = `TIENDA POKÉMON (Tu Saldo: $${monedero})`;
+    const contenedor = document.getElementById('listaProductosTienda');
+    contenedor.innerHTML = '';
+
+    CATALOGO_TIENDA.forEach(prod => {
+        contenedor.innerHTML += `
+            <div class="fila-registro" style="align-items: center;">
+                <span>${prod.nombre.toUpperCase()} ($${prod.precio})</span>
+                <button onclick="comprarObjeto('${prod.id}', ${prod.precio})" style="width:70px; padding:3px; font-size:11px; text-align:center;">
+                    COMPRAR
+                </button>
+            </div>`;
+    });
+}
+
+function comprarObjeto(idItem, precio) {
+    if (monedero < precio) {
+        alert("¡No tienes suficiente dinero para comprar este artículo!");
+        playTone(150, 'sine', 0.15);
+        return;
+    }
+    
+    monedero -= precio;
+    inventario[idItem]++;
+    playTone(580, 'triangle', 0.1); // Sonido de caja registradora
+    renderizarTiendaUI();
 }
 
 // --- MAQUINA DE ESTADOS DEL SISTEMA DE DIÁLOGOS ---
@@ -836,6 +894,7 @@ function procesarFinDeTurnoEnemigo() {
 }
 
 // --- AUXILIARES REFACTORIZADOS DE FIN DE COMBATE ---
+// --- PROCESADOR DE VICTORIA CON MOTOR DE EVOLUCIÓN Y DINERO ---
 function procesarVictoria() {
     playTone(600, 'square', 0.4);
     document.getElementById('battleText').innerText = `¡El ${enemigoActual.nombre} enemigo se ha debilitado!`;
@@ -844,39 +903,56 @@ function procesarVictoria() {
         miPokemon.exp += 20;
         document.getElementById('battleText').innerText = `¡${miPokemon.nombre} ganó 20 Puntos de EXP!`;
         
+        // 1. Ciclo de subida de nivel estándar
         if(miPokemon.exp >= miPokemon.nivel * 15) {
             miPokemon.nivel++; miPokemon.hpMax += 5; miPokemon.hp = miPokemon.hpMax;
-            setTimeout(() => { document.getElementById('battleText').innerText = `¡Subiste al Nivel ${miPokemon.nivel}!`; }, 1000);
+            setTimeout(() => { 
+                document.getElementById('battleText').innerText = `¡Subiste al Nivel ${miPokemon.nivel}!`; 
+                
+                // INTERCEPTOR: Verificar si cumple requisitos de evolución
+                let regla = REGLAS_EVOLUCION[miPokemon.nombre];
+                if (regla && miPokemon.nivel >= regla.nivel) {
+                    setTimeout(() => {
+                        let nombreViejo = miPokemon.nombre;
+                        miPokemon.nombre = regla.siguiente; // Cambia el nombre de la especie
+                        miPokemon.hpMax += regla.hpBonus;   // Incremento masivo de stats
+                        miPokemon.hp = miPokemon.hpMax;
+                        especiesAvistadas[miPokemon.nombre] = true; // Desbloqueo en Pokédex
+                        
+                        // Efecto sonoro dramático de evolución crescendo
+                        playTone(300, 'square', 0.1);
+                        setTimeout(() => playTone(450, 'square', 0.1), 100);
+                        setTimeout(() => playTone(600, 'square', 0.3), 200);
+
+                        document.getElementById('battleText').innerText = `¡¿Qué?! ¡${nombreViejo} ha evolucionado en ${miPokemon.nombre}!`;
+                    }, 1500);
+                }
+            }, 1000);
         }
         
+        // 2. Fin de combate secuencial o cierre definitivo
         setTimeout(() => {
-            // VERIFICACIÓN TÁCTICA: ¿El entrenador tiene más Pokémon en su equipo?
             if (tipoBatalla === 'entrenador' && entrenadorActual && (indiceEnemigoActual + 1) < entrenadorActual.equipoRival.length) {
-                indiceEnemigoActual++; // Avanzamos al siguiente slot
-                
-                // Clonamos y cargamos el nuevo rival
+                indiceEnemigoActual++;
                 enemigoActual = JSON.parse(JSON.stringify(entrenadorActual.equipoRival[indiceEnemigoActual]));
-                
                 document.getElementById('battleText').innerText = `¡El Entrenador envía a ${enemigoActual.nombre} Nvl:${enemigoActual.nivel}!`;
                 playTone(400, 'square', 0.15);
-                
-                // Restablecer la interfaz de comandos para el jugador tras el despliegue
                 setTimeout(() => {
                     document.getElementById('battleText').innerText = `¿Qué debe hacer ${miPokemon.nombre}?`;
-                    turnoBloqueado = false; 
-                    cerrarAtaques();
+                    turnoBloqueado = false; cerrarAtaques();
                 }, 1500);
             } else {
-                // Cierre definitivo: El entrenador no tiene más criaturas
                 if (tipoBatalla === 'entrenador' && entrenadorActual) {
                     entrenadorActual.derrotado = true;
-                    document.getElementById('battleText').innerText = "¡Has derrotado al Entrenador!";
-                    setTimeout(finalizarBatalla, 2000);
+                    monedero += 400; // <--- RECOMPENSA ECONÓMICA TRAS REVENTAR AL RIVAL
+                    document.getElementById('battleText').innerText = "¡Has derrotado al Entrenador! Ganaste $400.";
+                    playTone(600, 'square', 0.1);
+                    setTimeout(finalizarBatalla, 2500);
                 } else {
                     finalizarBatalla();
                 }
             }
-        }, 1500);
+        }, 2000);
     }, 1500);
 }
 
@@ -1310,6 +1386,10 @@ window.addEventListener('keydown', e => {
     if ((e.key.toLowerCase() === 'b' || e.key === 'Escape') && modo === 'ordenador') {
         cerrarMenuOrdenador();
     }
+	
+	if ((e.key.toLowerCase() === 'b' || e.key === 'Escape') && modo === 'tienda') {
+        cerrarTienda();
+    }
 });
 
 window.addEventListener('keyup', e => teclas[e.key] = false);
@@ -1362,6 +1442,7 @@ if(document.getElementById('btnVB')) {
             playTone(250, 'sine', 0.05);
             cerrarAtaques(); cerrarInventario(); cerrarMenuPokemon();
         }
+		if (modo === 'tienda') { cerrarTienda(); return; }
     });
 }
 
