@@ -67,8 +67,11 @@ const assets = {
 	75: crearTile('#f8bbd0', '#e91e63', 'curacion'), // <--- Máquina rosa con cruz
     80: crearTile('#e0f7fa', '#b2ebf2', 'hielo'),
     81: crearTile('#ffb300', '#ff8f00', 'cinta_derecha'),
-    82: crearTile('#01579b', '#0091ea', 'remolino_agua'),
-    83: crearTile('#d7ccc8', '#a1887f', 'remolino_tierra'),
+    82: crearTile('#ffb300', '#ff8f00', 'cinta_izquierda'),
+    83: crearTile('#ffb300', '#ff8f00', 'cinta_arriba'),
+    84: crearTile('#ffb300', '#ff8f00', 'cinta_abajo'),
+    85: crearTile('#01579b', '#0091ea', 'remolino_agua'),
+    86: crearTile('#d7ccc8', '#a1887f', 'remolino_tierra'),
 
     player: crearSpriteJugador('#ffb74d', '#e53935'),
     playerSurf: crearSpriteSurf(),
@@ -96,6 +99,9 @@ function crearTile(col1, col2, tipo) {
     if(tipo==='alfombra_salida') { cx.fillRect(2, 16, TILE_SIZE-4, TILE_SIZE-16); }
     if(tipo==='hielo') { cx.strokeStyle = '#ffffff'; cx.beginPath(); cx.moveTo(4,4); cx.lineTo(28,28); cx.stroke(); }
     if(tipo==='cinta_derecha') { cx.beginPath(); cx.moveTo(8, 8); cx.lineTo(24, 16); cx.lineTo(8, 24); cx.fill(); }
+    if(tipo==='cinta_izquierda') { cx.beginPath(); cx.moveTo(24, 8); cx.lineTo(8, 16); cx.lineTo(24, 24); cx.fill(); }
+    if(tipo==='cinta_arriba') { cx.beginPath(); cx.moveTo(8, 24); cx.lineTo(16, 8); cx.lineTo(24, 24); cx.fill(); }
+    if(tipo==='cinta_abajo') { cx.beginPath(); cx.moveTo(8, 8); cx.lineTo(16, 24); cx.lineTo(24, 8); cx.fill(); }
     if(tipo==='remolino_agua') { cx.beginPath(); cx.arc(TILE_SIZE/2, TILE_SIZE/2, 10, 0, Math.PI, true); cx.stroke(); }
     if(tipo==='remolino_tierra') { cx.fillRect(6,6,4,4); cx.fillRect(20,18,5,5); }
     if(tipo==='ordenador') {
@@ -154,6 +160,11 @@ function crearSpritePokemon(color) {
     cx.fillStyle = color; cx.beginPath(); cx.arc(32, 32, 24, 0, Math.PI*2); cx.fill(); 
     cx.fillStyle = '#000'; cx.beginPath(); ctx.arc(24, 24, 4, 0, Math.PI*2); cx.arc(40, 24, 4, 0, Math.PI*2); cx.fill(); 
     return c;
+}
+
+function puedeSurfear() {
+    // Busca en todo el equipo si hay algún Pokémon de tipo AGUA
+    return equipo.some(pkmn => pkmn.tipo === 'AGUA');
 }
 
 // ============================================================================
@@ -217,6 +228,16 @@ let equipo = [
             {n:'Arañazo', d:12, tipo:'NORMAL', pp:35, ppMax:35},
             {n:'Gruñido', d:5,  tipo:'NORMAL', pp:40, ppMax:40},
             {n:'Ascuas',  d:18, tipo:'FUEGO',  pp:25, ppMax:25}
+        ] 
+    },
+	{ 
+        nombre: 'Squirtle', tipo: 'AGUA', estado: 'OK',
+        hpMax: 50, hp: 50, nivel: 5, exp: 0, 
+        ataques: [
+            {n:'Placaje', d:10, tipo:'NORMAL', pp:35, ppMax:35}, 
+            {n:'Arañazo', d:12, tipo:'NORMAL', pp:35, ppMax:35},
+            {n:'Gruñido', d:5,  tipo:'NORMAL', pp:40, ppMax:40},
+            {n:'Pistola Agua',  d:20, tipo:'AGUA',  pp:20, ppMax:20}
         ] 
     }
 ];
@@ -372,7 +393,7 @@ function obtenerPropiedadesBloque(id) {
         esSolidoNonatural:   (id >= 10 && id <= 19),
         esSolidoNatural:     (id >= 20 && id <= 29),
         tieneEncuentros:     (id >= 01 && id <= 09),
-        esAgua:              (id >= 50 && id <= 59) || id === 82,
+        esAgua:              (id >= 50 && id <= 59) || id === 85,
         esTransicionAgua:    (id >= 60 && id <= 69),
         esInteractivo:       (id >= 70 && id <= 79),
         esOrdenador:         (id === 72),
@@ -381,8 +402,11 @@ function obtenerPropiedadesBloque(id) {
 		esCuracion:          (id === 75),
         esHielo:             (id === 80),
         esCintaDerecha:      (id === 81),
-        esRemolinoAgua:      (id === 82),
-        esRemolinoTierra:    (id === 83)
+        esCintaIzquierda:    (id === 82),
+        esCintaArriba:       (id === 83),
+        esCintaAbajo:        (id === 84),
+        esRemolinoAgua:      (id === 85),
+        esRemolinoTierra:    (id === 86)
     };
 }
 
@@ -430,13 +454,14 @@ function actualizarMovimiento() {
     else if (teclas['ArrowDown'])  dirY = 1;
     else if (teclas['ArrowLeft'])  dirX = -1;
     else if (teclas['ArrowRight']) dirX = 1;
-
+	
+	// Bloqueo especial: Si estás en hielo, el motor de eventos es el que decide el movimiento
+    // A menos que estés parado (dirX/Y == 0)
     if (dirX !== 0 || dirY !== 0) {
         let proximaX = jugador.gridX + dirX;
         let proximaY = jugador.gridY + dirY;
 
-        // Comprobamos colisión usando coordenadas de grid
-        if (!comprobarColisionGrid(proximaX, proximaY)) {
+        if (comprobarColisionGrid(proximaX, proximaY) != true) {
             jugador.dirX = dirX;
             jugador.dirY = dirY;
             jugador.moviendo = true;
@@ -453,25 +478,65 @@ function comprobarColisionGrid(gx, gy) {
     
     let id = mapa[gy][gx];
     let props = obtenerPropiedadesBloque(id);
-    if (props.esSolidoNonatural || props.esSolidoNatural || props.esOrdenador || props.esTienda) return true;
-    
+	
+	// Si es agua, comprobamos si el jugador tiene un Pokémon de agua
+    if (props.esAgua) {
+        if (puedeSurfear()) {
+            jugador.estadoEstilo = 'surf'; // Cambiamos el sprite a surf
+            return false; // ¡Puedes pasar!
+        } else {
+            return true; // Es sólido, no tienes surf
+        }
+    }
+    if (props.esSolidoNonatural || props.esSolidoNatural || props.esOrdenador || props.esTienda || props.esCuracion) return true;
+    if (props.esAgua && jugador.estadoEstilo !== 'surf') return true; // Solo pasa si surfeas
+    if (props.esHielo) return false;
+    if (props.esCintaDerecha || props.esCintaIzquierda || props.esCintaArriba || props.esCintaAbajo) return false;
+    if (props.esRemolinoAgua) return false;
+    if (props.esRemolinoTierra) return false;
+	
+    // Si sales del agua, vuelves al estado normal
+    if (!props.esAgua && jugador.estadoEstilo === 'surf') {
+        jugador.estadoEstilo = 'normal';
+    }
+	
     // Colisión NPCs
     let npcs = NPCS[mapaActual] || [];
     if (npcs.some(n => n.gridX === gx && n.gridY === gy)) return true;
 
     return false;
 }
-
 function chequearEventosMapa() {
     let mapa = MAPAS[mapaActual];
     let bloqueActual = mapa[jugador.gridY][jugador.gridX];
     let props = obtenerPropiedadesBloque(bloqueActual);
 
-    // Eventos de terreno
+    // 1. Efectos de Terreno (Pisar bloque)
+    if (props.esHielo) {
+        jugador.estadoEstilo = 'hielo';
+        // Lógica de hielo: Deslizar automáticamente en la misma dirección
+        // Solo si tenemos dirección acumulada
+        if (jugador.dirX !== 0 || jugador.dirY !== 0) {
+            setTimeout(() => {
+                // Forzamos movimiento en la misma dirección sin esperar input
+                jugador.moviendo = true;
+                // La animación se ejecutará en el siguiente frame del loop
+            }, 50); 
+        }
+    } else {
+        jugador.estadoEstilo = 'normal';
+    }
+
+    if (props.esCintaDerecha) {jugador.dirX = 1; jugador.dirY = 0; jugador.moviendo = true; }
+    if (props.esCintaIzquierda) {jugador.dirX = -1; jugador.dirY = 0; jugador.moviendo = true; }
+	if (props.esCintaArriba) {jugador.dirX = 0; jugador.dirY = -1; jugador.moviendo = true; }
+	if (props.esCintaAbajo) {jugador.dirX = 0; jugador.dirY = 1; jugador.moviendo = true; }
+
+    // 2. Eventos estándar
     if (props.tieneEncuentros && bloqueActual === 1 && Math.random() < 0.1) iniciarBatalla();
     if (props.esObjetoSuelo) recogerObjetoSuelo(jugador.gridX, jugador.gridY);
     
-    // Portales
+    // 3. Portales
     if (props.esInteractivo) {
         if (bloqueActual === 70) {
             mapaActual = 'interior_casa';
@@ -532,6 +597,10 @@ function intentarInteractuar() {
             if (props.esTienda) { abrirTienda(); return; }
             if (props.esObjetoSuelo) { recogerObjetoSuelo(v.x, v.y); return; }
             if (props.esCuracion) { iniciarCuracion(); return; }
+			if (props.esAgua && !puedeSurfear()) {
+				iniciarDialogo(["El agua parece profunda...", "Necesitas un Pokémon de tipo AGUA para SURFEAR."]);
+				return;
+			}
         }
     }
 }
@@ -957,13 +1026,17 @@ function procesarFinDeTurnoJugador() {
 // --- TURNO DEL ENEMIGO CON INTELIGENCIA ELEMENTAL Y ESTADOS ---
 function turnoEnemigo() {
     // 1. Verificación de Paralización Enemiga
-    if (enemigoActual.estado === 'PARALIZADO' && Math.random() < 0.25) {
-        document.getElementById('battleText').innerText = `¡El ${enemigoActual.nombre} salvaje está paralizado y no puede atacar!`;
-        playTone(150, 'sine', 0.3);
-        setTimeout(procesarFinDeTurnoEnemigo, 1500);
-        return;
-    }
-
+	if (enemigoActual.estado === 'PARALIZADO' && Math.random() < 0.25) {
+		document.getElementById('battleText').innerText = `¡El ${enemigoActual.nombre} salvaje está paralizado y no puede atacar!`;
+		playTone(150, 'sine', 0.3);
+		setTimeout(() => {
+			document.getElementById('battleText').innerText = `¿Qué debe hacer ${miPokemon.nombre}?`;
+			turnoBloqueado = false; 
+			cerrarAtaques();
+		}, 1500);
+		return;
+	}
+	
     let atkEnemigo = enemigoActual.ataques[Math.floor(Math.random() * enemigoActual.ataques.length)];
     document.getElementById('battleText').innerText = `¡${enemigoActual.nombre} salvaje usó ${atkEnemigo.n}!`;
     playTone(220, 'sine', 0.25);
@@ -1399,9 +1472,18 @@ function intentarHuir() {
 }
 
 function finalizarBatalla() {
-    modo = 'exploracion'; turnoBloqueado = false;
+    modo = 'exploracion';
+    turnoBloqueado = false;
+    animacionCaptura = false; // Reset de la animación
+    
+    // Ocultar elementos visuales
     document.getElementById('battleUI').style.display = 'none';
+    document.getElementById('menuAtaques').style.display = 'none';
+    document.getElementById('menuPokemon').style.display = 'none';
+    document.getElementById('menuInventario').style.display = 'none';
+    
     reproducirMusica('exploracion');
+    console.log("Batalla finalizada, UI oculta.");
 }
 
 // ============================================================================
@@ -1712,7 +1794,6 @@ function loop() {
 
     // 2. Dibujado (usa jugador.pixelX y jugador.pixelY en lugar de jugador.gridX/y)
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
     if (modo === 'exploracion' || modo === 'pausa' || modo === 'ordenador' || modo === 'dialogo' || modo === 'alerta') {
         let mapa = MAPAS[mapaActual];
         for (let r = 0; r < mapa.length; r++) {
@@ -1763,27 +1844,29 @@ function loop() {
         } else {
             ctx.drawImage(assets.pkmnEnemigo, 340, 40);
         }
-
+	
         // --- HUD REFACTORIZADO Y UNIFICADO (EVITA SOBREESCRITURA DE TEXTO) ---
         ctx.fillStyle = '#000'; ctx.font = 'bold 14px Courier New';
         
         // 1. Datos e indicadores del Rival
         let txtEnemigo = `${enemigoActual.nombre.toUpperCase()} Nvl:${enemigoActual.nivel}`;
-        if(enemigoActual.estado !== 'OK') txtEnemigo += ` [${enemigoActual.estado.substring(0,3)}]`;
+        //if(enemigoActual.estado !== 'OK') txtEnemigo += ` [${enemigoActual.estado.substring(0,3)}]`;
         ctx.fillText(txtEnemigo, 40, 45);
-        
-        ctx.fillStyle = '#ddd'; ctx.fillRect(40, 55, 120, 6);
-        ctx.fillStyle = '#4caf50'; ctx.fillRect(40, 55, 120 * (enemigoActual.hp / enemigoActual.hpMax), 6);
-
+		// Barra de vida (usamos Math.max para que nunca sea negativa)
+		let vidaEnemigo = Math.max(0, 120 * (enemigoActual.hp / enemigoActual.hpMax));
+		ctx.fillStyle = enemigoActual.hp < enemigoActual.hpMax/4 ? '#f44336' : '#4caf50';
+		ctx.fillRect(40, 55, vidaEnemigo, 6);
+		
         // 2. Datos e indicadores de tu Pokémon activo
         ctx.fillStyle = '#000';
         let txtJugador = `${miPokemon.nombre.toUpperCase()} Nvl:${miPokemon.nivel}`;
-        if(miPokemon.estado !== 'OK') txtJugador += ` [${miPokemon.estado.substring(0,3)}]`;
+        //if(miPokemon.estado !== 'OK') txtJugador += ` [${miPokemon.estado.substring(0,3)}]`;
         ctx.fillText(txtJugador, 300, 165);
-        
         ctx.fillStyle = '#ddd'; ctx.fillRect(300, 175, 120, 6);
-        ctx.fillStyle = '#4caf50'; ctx.fillRect(300, 175, 120 * (miPokemon.hp / miPokemon.hpMax), 6);
-        ctx.fillText(`HP: ${miPokemon.hp}/${miPokemon.hpMax}`, 300, 195);
+		let vidaJugador = Math.max(0, 120 * (miPokemon.hp / miPokemon.hpMax));
+		ctx.fillStyle = miPokemon.hp < miPokemon.hpMax/4 ? '#f44336' : '#4caf50';
+		ctx.fillRect(300, 175, vidaJugador, 6);
+		ctx.fillText(`HP: ${miPokemon.hp}/${miPokemon.hpMax}`, 300, 195);
     }
     requestAnimationFrame(loop);
 }
