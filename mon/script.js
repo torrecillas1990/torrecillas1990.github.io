@@ -58,7 +58,7 @@ const assets = {
     32: crearTile('#b3e5fc', '#81d4fa', 'baldosa'),
     40: crearTile('#8d6e63', '#4e342e', 'cueva'),
     50: crearTile('#0288d1', '#01579b', 'agua'),
-    60: crearTile('#b0bec5', '#0288d1', 'orilla'),
+    60: crearTile('#ece2c6', '#a2574f', 'orilla'),
     70: crearTile('#5d4037', '#3e2723', 'puerta'),
     71: crearTile('#ffb74d', '#e53935', 'alfombra_salida'),
     72: crearTile('#9e9e9e', '#2196f3', 'ordenador'),
@@ -94,7 +94,7 @@ function crearTile(col1, col2, tipo) {
     if(tipo==='baldosa') { cx.strokeRect(0, 0, TILE_SIZE, TILE_SIZE); }
     if(tipo==='cueva') { cx.fillRect(2, 2, 6, 6); cx.fillRect(18, 20, 8, 4); }
     if(tipo==='agua') { cx.fillRect(2, 8, 12, 2); cx.fillRect(16, 22, 10, 2); }
-    if(tipo==='orilla') { cx.fillRect(0, 0, TILE_SIZE, 12); }
+    if(tipo==='orilla') { cx.fillRect(6,6,4,4); cx.fillRect(20,18,4,4); cx.fillRect(8,16,4,4); cx.fillRect(20,5,4,4); }
     if(tipo==='puerta') { cx.fillRect(4, 4, TILE_SIZE-8, TILE_SIZE); cx.fillStyle='#ffd54f'; cx.fillRect(6,16,4,4); }
     if(tipo==='alfombra_salida') { cx.fillRect(2, 16, TILE_SIZE-4, TILE_SIZE-16); }
     if(tipo==='hielo') { cx.strokeStyle = '#ffffff'; cx.beginPath(); cx.moveTo(4,4); cx.lineTo(28,28); cx.stroke(); }
@@ -174,6 +174,13 @@ let mapaActual = 'exterior';
 let modo = 'exploracion';
 let puntoReaparicion = { mapa: 'exterior', x: 2 * TILE_SIZE, y: 2 * TILE_SIZE };
 const teclas = {};
+
+const CAMERA = {
+    x: 0,
+    y: 0,
+    width: 512,  // Tu tamaño de canvas
+    height: 512
+};
 
 // --- SUSTITUYE TU OBJETO JUGADOR ACTUAL ---
 const jugador = {
@@ -531,6 +538,16 @@ function chequearEventosMapa() {
     if (props.esCintaIzquierda) {jugador.dirX = -1; jugador.dirY = 0; jugador.moviendo = true; }
 	if (props.esCintaArriba) {jugador.dirX = 0; jugador.dirY = -1; jugador.moviendo = true; }
 	if (props.esCintaAbajo) {jugador.dirX = 0; jugador.dirY = 1; jugador.moviendo = true; }
+	
+	if (props.esRemolinoAgua) {
+		let ran = Math.random();
+		console.log(ran);
+		if (ran <= 0.25) jugador.dirX = 0; jugador.dirY = 1;
+		if (ran > 0.25 && ran < 0.5) jugador.dirX = 1; jugador.dirY = 0;
+		if (ran > 0.5 && ran < 0.75) jugador.dirX = 0; jugador.dirY = -1;
+		if (ran > 0.75) jugador.dirX = -1; jugador.dirY = 0;
+		jugador.moviendo = true; 
+	}
 
     // 2. Eventos estándar
     if (props.tieneEncuentros && bloqueActual === 1 && Math.random() < 0.1) iniciarBatalla();
@@ -540,7 +557,7 @@ function chequearEventosMapa() {
     if (props.esInteractivo) {
         if (bloqueActual === 70) {
             mapaActual = 'interior_casa';
-            jugador.gridX = 6; jugador.gridY = 3; // Teletransporte lógico
+            jugador.gridX = 6; jugador.gridY = 6; // Teletransporte lógico
             jugador.pixelX = jugador.gridX * TILE_SIZE;
             jugador.pixelY = jugador.gridY * TILE_SIZE;
         } else if (bloqueActual === 71) {
@@ -811,14 +828,6 @@ function comprobarTransicionBordes() {
     let anchoMapa = mapa[0].length;
     let altoMapa = mapa.length;
 
-    // TRANSICIÓN 1: De Exterior hacia el Este (Derecha)
-    if (mapaActual === 'exterior' && gridX >= anchoMapa - 1) {
-        ejecutarEfectoTransicionBorde('ruta_este', TILE_SIZE, jugador.gridY); // Aparece a la izquierda (x = 32)
-    }
-    // TRANSICIÓN 2: De Ruta Este de vuelta al Oeste (Izquierda)
-    else if (mapaActual === 'ruta_este' && gridX <= 0) {
-        ejecutarEfectoTransicionBorde('exterior', (anchoMapa - 2) * TILE_SIZE, jugador.gridY); // Aparece a la derecha
-    }
 }
 
 function ejecutarEfectoTransicionBorde(nuevoMapa, destinoX, destinoY) {
@@ -1791,7 +1800,34 @@ function loop() {
     } else {
         actualizarMovimiento();
     }
+	
+	// 1. Calcular la cámara (centrada en el jugador)
+    // El objetivo es que el jugador esté siempre en el centro del canvas
+    CAMERA.x = jugador.pixelX - (canvas.width / 2) + (TILE_SIZE / 2);
+    CAMERA.y = jugador.pixelY - (canvas.height / 2) + (TILE_SIZE / 2);
 
+    // 2. Limitar la cámara para que no vea el "vacío" fuera del mapa
+    let mapa = MAPAS[mapaActual];
+    let mapaWidth = mapa[0].length * TILE_SIZE;
+    let mapaHeight = mapa.length * TILE_SIZE;
+    
+    CAMERA.x = Math.max(0, Math.min(CAMERA.x, mapaWidth - canvas.width));
+    CAMERA.y = Math.max(0, Math.min(CAMERA.y, mapaHeight - canvas.height));
+
+    // 3. Dibujado desplazado (Translación)
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.translate(-CAMERA.x, -CAMERA.y); // Desplaza todo el dibujo
+
+    // Renderizar solo lo visible (opcional, por ahora dibujamos todo el mapa)
+    for (let r = 0; r < mapa.length; r++) {
+        for (let c = 0; c < mapa[r].length; c++) {
+            let id = mapa[r][c];
+            let img = assets[id] || assets[02];
+            ctx.drawImage(img, c * TILE_SIZE, r * TILE_SIZE);
+        }
+    }
+	
     // 2. Dibujado (usa jugador.pixelX y jugador.pixelY en lugar de jugador.gridX/y)
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (modo === 'exploracion' || modo === 'pausa' || modo === 'ordenador' || modo === 'dialogo' || modo === 'alerta') {
@@ -1803,7 +1839,8 @@ function loop() {
                 ctx.drawImage(img, c * TILE_SIZE, r * TILE_SIZE);
             }
         }
-        let spriteElegido = assets.player;
+        let spriteElegido;
+        if (jugador.estadoEstilo === 'normal') spriteElegido = assets.player;
         if (jugador.estadoEstilo === 'surf') spriteElegido = assets.playerSurf;
         if (jugador.estadoEstilo === 'hielo') spriteElegido = assets.playerHielo;
         
@@ -1823,7 +1860,8 @@ function loop() {
 		});
 
         ctx.drawImage(spriteElegido, jugador.pixelX, jugador.pixelY);
-
+		
+		ctx.restore(); // Finaliza el desplazamiento
     } else if (modo === 'batalla') {
         ctx.fillStyle = '#f5f5f5'; ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = '#cbd5e1';
