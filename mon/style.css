@@ -126,11 +126,12 @@ button:hover { background: #000; color: #fff; }
 
 /* --- CAJA DE DIÁLOGOS DE NPCs --- */
 #dialogoUI {
+    z-index: 9999 !important; /* Fuerza a que esté por encima de todo */
     display: none; /* Se activa con flex desde JS */
     position: absolute;
     bottom: 12px; left: 12px;
-    width: calc(100% - 24px); height: 96px;
-    background: #ffffff;
+    top: 16px; right: 16px;   
+	background: #ffffff;
     color: #000000;
     border: 4px solid #000000;
     border-radius: 4px;
@@ -141,7 +142,7 @@ button:hover { background: #000; color: #fff; }
 }
 
 #dialogoContenido {
-    position: relative;
+    position: absolute;
     width: 100%; height: 100%;
     font-size: 15px;
     font-weight: bold;

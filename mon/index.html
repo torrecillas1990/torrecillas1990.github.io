@@ -57,23 +57,64 @@
 				</div>
             </div>
         </div>
+		
+		<!-- Caja de Diálogos con NPCs -->
+		<div id="dialogoUI">
+			<div id="dialogoContenido">
+				<span id="dialogoTexto">...</span>
+				<div id="dialogoFlecha">▼</div>
+			</div>
+		</div>
+		
+		<!-- Interfaz de la Tienda Pokémon (Mart) -->
+		<div id="contenedorTienda" class="overlay-sistema">
+			<div class="ordenador-box" style="height: auto; max-height: 380px;">
+				<div class="panel-header" id="tiendaTitulo">TIENDA POKÉMON (Saldo: $0)</div>
+				<div class="panel-contenido" id="listaProductosTienda" style="margin-bottom: 8px;">
+					<!-- Se llena dinámicamente con JS -->
+				</div>
+				<button class="btn-volver-pausa" onclick="cerrarTienda()">SALIR DE LA TIENDA</button>
+			</div>
+		</div>
+		
+		<!-- Interfaz para Aprender Nuevos Ataques -->
+		<div id="contenedorAprenderAtaque" class="overlay-sistema" style="z-index: 40;">
+			<div class="ordenador-box" style="height: auto; max-height: 400px; width: 90%;">
+				<div class="panel-header" style="background:#2196f3;">APRENDER MOVIMIENTO</div>
+				<div class="panel-contenido" style="text-align: center; margin-bottom: 8px;">
+					<p id="textoAprender" style="font-size: 13px; margin-bottom: 12px; font-weight: bold;"></p>
+					<div id="listaAtaquesAprender" style="display: flex; flex-direction: column; gap: 4px;">
+						<!-- Los botones se generarán dinámicamente con JS -->
+					</div>
+				</div>
+			</div>
+		</div>
+		
+		<!-- Interfaz de Almacenamiento del Ordenador (PC) -->
+		<div id="contenedorOrdenador" class="overlay-sistema">
+			<div class="ordenador-box">
+				<div class="panel-header">SISTEMA DE ALMACENAMIENTO POKÉMON</div>
+				<div class="ordenador-split">
+					<!-- Columna Izquierda: Tu Equipo -->
+					<div class="columna-pc">
+						<div class="titulo-columna">TU EQUIPO (Click para Depositar)</div>
+						<div id="pcListaEquipo" class="lista-pc-items"></div>
+					</div>
+					<!-- Columna Derecha: Tu Caja -->
+					<div class="columna-pc">
+						<div class="titulo-columna">TU CAJA (Click para Retirar)</div>
+						<div id="pcListaCaja" class="lista-pc-items"></div>
+					</div>
+				</div>
+				<button class="btn-volver-pausa" onclick="cerrarMenuOrdenador()">APAGAR ORDENADOR</button>
+			</div>
+		</div>
     </div>
 
     <div id="instrucciones">
         <b>FÍSICAS AVANZADAS (01-99):</b> 🧊 Hielo (80) | ➡️ Cinta (81) | 🌀 Remolino Agua (82) | 🕳️ Torbellino Arena (83)<br>
         <b>BLOQUES:</b> 21 Piedra Sólida | 32 Baldosa | 40 Suelo Cueva | 50 Agua (Entra por Orilla 60) | 70 Entrar | 71 Salir
     </div>
-	
-	<!-- Interfaz de la Tienda Pokémon (Mart) -->
-	<div id="contenedorTienda" class="overlay-sistema">
-		<div class="ordenador-box" style="height: auto; max-height: 380px;">
-			<div class="panel-header" id="tiendaTitulo">TIENDA POKÉMON (Saldo: $0)</div>
-			<div class="panel-contenido" id="listaProductosTienda" style="margin-bottom: 8px;">
-				<!-- Se llena dinámicamente con JS -->
-			</div>
-			<button class="btn-volver-pausa" onclick="cerrarTienda()">SALIR DE LA TIENDA</button>
-		</div>
-	</div>
 	
 	<!-- MENÚ DE PAUSA GENERAL Y SUBPANELES INTEGRADOS -->
 	<div id="contenedorPausa">
@@ -119,34 +160,6 @@
 				<button id="btnConfirmarGuardar" onclick="pausaConfirmarGuardar()" style="width:80px; text-align:center; margin:10px;">SÍ</button>
 			</div>
 			<button class="btn-volver-pausa" onclick="regresarAlMenuPausa()">VOLVER</button>
-		</div>
-		
-		<!-- Caja de Diálogos con NPCs -->
-		<div id="dialogoUI">
-			<div id="dialogoContenido">
-				<span id="dialogoTexto">...</span>
-				<div id="dialogoFlecha">▼</div>
-			</div>
-		</div>
-
-		<!-- NUEVO: Interfaz de Almacenamiento del Ordenador (PC) -->
-		<div id="contenedorOrdenador" class="overlay-sistema">
-			<div class="ordenador-box">
-				<div class="panel-header">SISTEMA DE ALMACENAMIENTO POKÉMON</div>
-				<div class="ordenador-split">
-					<!-- Columna Izquierda: Tu Equipo -->
-					<div class="columna-pc">
-						<div class="titulo-columna">TU EQUIPO (Click para Depositar)</div>
-						<div id="pcListaEquipo" class="lista-pc-items"></div>
-					</div>
-					<!-- Columna Derecha: Tu Caja -->
-					<div class="columna-pc">
-						<div class="titulo-columna">TU CAJA (Click para Retirar)</div>
-						<div id="pcListaCaja" class="lista-pc-items"></div>
-					</div>
-				</div>
-				<button class="btn-volver-pausa" onclick="cerrarMenuOrdenador()">APAGAR ORDENADOR</button>
-			</div>
 		</div>
 
 		<!-- Subpanel 5: Opciones -->
