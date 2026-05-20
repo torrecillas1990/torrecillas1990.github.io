@@ -54,5 +54,37 @@ window.VS_torrecillas1990_20260519 = [
         "prot": 15.6,
         "grasa": 9.24,
         "carb": 0.6
+    },
+    {
+        "id": 1779291261302,
+        "nombre": "Tarta tres chocolates (200g/ml)",
+        "kcal": 708,
+        "prot": 8.8,
+        "grasa": 46,
+        "carb": 68
+    },
+    {
+        "id": 1779291277801,
+        "nombre": "Tostadas 100% Espelta Integral (1 tostada 7g) (28g/ml)",
+        "kcal": 106.96,
+        "prot": 4.76,
+        "grasa": 1.7920000000000003,
+        "carb": 16.52
+    },
+    {
+        "id": 1779291294617,
+        "nombre": "Queso Fresco de Cabra (125g/ml)",
+        "kcal": 538.75,
+        "prot": 15.875,
+        "grasa": 27.375,
+        "carb": 4.25
+    },
+    {
+        "id": 1779291302947,
+        "nombre": "Nispero (120g/ml)",
+        "kcal": 56.4,
+        "prot": 0.48,
+        "grasa": 0.24,
+        "carb": 14.4
     }
 ];

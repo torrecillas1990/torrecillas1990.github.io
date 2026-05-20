@@ -72,6 +72,11 @@ const assets = {
     84: crearTile('#ffb300', '#ff8f00', 'cinta_abajo'),
     85: crearTile('#01579b', '#0091ea', 'remolino_agua'),
     86: crearTile('#d7ccc8', '#a1887f', 'remolino_tierra'),
+    100: crearTile('#5d4037', '#3e2723', 'puerta'),
+    101: crearTile('#5d4037', '#3e2723', 'alfombra_salida'),
+    102: crearTile('#5d4037', '#3e2723', 'puerta'),
+    103: crearTile('#5d4037', '#3e2723', 'alfombra_salida'),
+    104: crearTile('#5d4037', '#3e2723', 'puerta'),
 
     player: crearSpriteJugador('#ffb74d', '#e53935'),
     playerSurf: crearSpriteSurf(),
@@ -170,9 +175,9 @@ function puedeSurfear() {
 // ============================================================================
 // 3. VARIABLES DE ESTADO Y ALMACENAMIENTO GLOBAL
 // ============================================================================
-let mapaActual = 'exterior';
+let mapaActual = 'pueblo';
+let puntoReaparicion = { mapa: 'pueblo', x: 3, y: 4 };
 let modo = 'exploracion';
-let puntoReaparicion = { mapa: 'exterior', x: 2 * TILE_SIZE, y: 2 * TILE_SIZE };
 const teclas = {};
 
 const CAMERA = {
@@ -399,7 +404,7 @@ function obtenerPropiedadesBloque(id) {
     return {
         esSolidoNonatural:   (id >= 10 && id <= 19),
         esSolidoNatural:     (id >= 20 && id <= 29),
-        tieneEncuentros:     (id >= 01 && id <= 09),
+        tieneEncuentros:     id === 01 || id === 40 || id === 50,
         esAgua:              (id >= 50 && id <= 59) || id === 85,
         esTransicionAgua:    (id >= 60 && id <= 69),
         esInteractivo:       (id >= 70 && id <= 79),
@@ -413,7 +418,8 @@ function obtenerPropiedadesBloque(id) {
         esCintaArriba:       (id === 83),
         esCintaAbajo:        (id === 84),
         esRemolinoAgua:      (id === 85),
-        esRemolinoTierra:    (id === 86)
+        esRemolinoTierra:    (id === 86),
+        esPortal:            (id >= 100 && id <= 199)
     };
 }
 
@@ -502,8 +508,8 @@ function comprobarColisionGrid(gx, gy) {
     if (props.esRemolinoAgua) return false;
     if (props.esRemolinoTierra) return false;
 	
-    // Si sales del agua, vuelves al estado normal
-    if (!props.esAgua && jugador.estadoEstilo === 'surf') {
+    // Si sales del hielo o del agua, vuelves al estado normal
+    if (!props.esHielo && !props.esAgua) {
         jugador.estadoEstilo = 'normal';
     }
 	
@@ -524,14 +530,12 @@ function chequearEventosMapa() {
         // Lógica de hielo: Deslizar automáticamente en la misma dirección
         // Solo si tenemos dirección acumulada
         if (jugador.dirX !== 0 || jugador.dirY !== 0) {
-            setTimeout(() => {
+            //setTimeout(() => {
                 // Forzamos movimiento en la misma dirección sin esperar input
                 jugador.moviendo = true;
                 // La animación se ejecutará en el siguiente frame del loop
-            }, 50); 
+            //}, 10); 
         }
-    } else {
-        jugador.estadoEstilo = 'normal';
     }
 
     if (props.esCintaDerecha) {jugador.dirX = 1; jugador.dirY = 0; jugador.moviendo = true; }
@@ -540,6 +544,7 @@ function chequearEventosMapa() {
 	if (props.esCintaAbajo) {jugador.dirX = 0; jugador.dirY = 1; jugador.moviendo = true; }
 	
 	if (props.esRemolinoAgua) {
+		jugador.anguloGiro = 8;
 		let ran = Math.random();
 		console.log(ran);
 		if (ran <= 0.25) jugador.dirX = 0; jugador.dirY = 1;
@@ -548,23 +553,46 @@ function chequearEventosMapa() {
 		if (ran > 0.75) jugador.dirX = -1; jugador.dirY = 0;
 		jugador.moviendo = true; 
 	}
+	
+	if (props.esRemolinoTierra) { jugador.velocidadAnim = 16; } else { jugador.velocidadAnim = 8; }
 
     // 2. Eventos estándar
-    if (props.tieneEncuentros && bloqueActual === 1 && Math.random() < 0.1) iniciarBatalla();
+    if (props.tieneEncuentros && Math.random() < 0.1) iniciarBatalla();
     if (props.esObjetoSuelo) recogerObjetoSuelo(jugador.gridX, jugador.gridY);
     
     // 3. Portales
-    if (props.esInteractivo) {
-        if (bloqueActual === 70) {
-            mapaActual = 'interior_casa';
-            jugador.gridX = 6; jugador.gridY = 6; // Teletransporte lógico
-            jugador.pixelX = jugador.gridX * TILE_SIZE;
-            jugador.pixelY = jugador.gridY * TILE_SIZE;
-        } else if (bloqueActual === 71) {
-            mapaActual = 'exterior';
-            jugador.gridX = 4; jugador.gridY = 6;
-            jugador.pixelX = jugador.gridX * TILE_SIZE;
-            jugador.pixelY = jugador.gridY * TILE_SIZE;
+    if (props.esPortal) {
+        switch (bloqueActual) {
+			case 100: // Entrar a la casa
+				mapaActual = 'interior_casa_1';
+				jugador.gridX = 6; jugador.gridY = 6; 
+				jugador.pixelX = jugador.gridX * TILE_SIZE;
+				jugador.pixelY = jugador.gridY * TILE_SIZE;
+				break;
+			case 101: // Salir de la casa
+				mapaActual = 'exterior';
+				jugador.gridX = 4; jugador.gridY = 6; // Justo delante de la puerta
+				jugador.pixelX = jugador.gridX * TILE_SIZE;
+				jugador.pixelY = jugador.gridY * TILE_SIZE;
+				break;
+			case 102: // Entrar a la casa
+				mapaActual = 'interior_casa_2';
+				jugador.gridX = 3; jugador.gridY = 4; // Justo delante de la puerta
+				jugador.pixelX = jugador.gridX * TILE_SIZE;
+				jugador.pixelY = jugador.gridY * TILE_SIZE;
+				break;
+			case 103: // Salir de la casa
+				mapaActual = 'pueblo';
+				jugador.gridX = 4; jugador.gridY = 4; // Justo delante de la puerta
+				jugador.pixelX = jugador.gridX * TILE_SIZE;
+				jugador.pixelY = jugador.gridY * TILE_SIZE;
+				break;
+			default:
+				mapaActual = 'exterior';
+				jugador.gridX = 3; jugador.gridY = 4; // Justo delante de la puerta
+				jugador.pixelX = jugador.gridX * TILE_SIZE;
+				jugador.pixelY = jugador.gridY * TILE_SIZE;
+				break;
         }
     }
 }
@@ -822,12 +850,22 @@ function comprobarTransicionBordes() {
     if (modo !== 'exploracion') return;
 
     let mapa = MAPAS[mapaActual];
-    let gridX = Math.floor((jugador.gridX + TILE_SIZE / 2) / TILE_SIZE);
-    let gridY = Math.floor((jugador.gridY + TILE_SIZE / 2) / TILE_SIZE);
-    
     let anchoMapa = mapa[0].length;
-    let altoMapa = mapa.length;
-
+    
+    // Usamos anchoMapa - 1 porque los índices de array empiezan en 0
+    if (mapaActual === 'exterior' && jugador.gridX >= anchoMapa - 1) { // TRANSICIÓN: De exterior a pueblo (Por la derecha)
+        let ancho = MAPAS['pueblo'][0].length;
+        ejecutarEfectoTransicionBorde('pueblo', 1, 2); 
+    } else if (mapaActual === 'pueblo' && jugador.gridX <= 0) { // TRANSICIÓN: De Pueblo a Exterior (Por la izquierda)
+        let ancho = MAPAS['exterior'][0].length;
+        ejecutarEfectoTransicionBorde('exterior', ancho - 3, jugador.gridY * 2); 
+    } else if (mapaActual === 'pueblo' && jugador.gridX >= anchoMapa - 1) { // TRANSICIÓN: De Pueblo a Ruta (Por la derecha)
+        let ancho = MAPAS['ruta_1'][0].length;
+        ejecutarEfectoTransicionBorde('ruta_1', 1, jugador.gridY); 
+    } else if (mapaActual === 'ruta_1' && jugador.gridX <= 0) { // TRANSICIÓN: De Ruta de vuelta a Pueblo (Por la izquierda)
+        let ancho = MAPAS['pueblo'][0].length;
+        ejecutarEfectoTransicionBorde('pueblo', ancho - 1, jugador.gridY); 
+    }
 }
 
 function ejecutarEfectoTransicionBorde(nuevoMapa, destinoX, destinoY) {
@@ -1498,6 +1536,60 @@ function finalizarBatalla() {
 // ============================================================================
 // 7. SISTEMA DE GESTIÓN DE MENÚ DE PAUSA (SUBPANELES HTML)
 // ============================================================================
+let menuCursor = {
+    index: 0,
+    max: 0,
+    nombreMenu: null
+};
+
+// --- NUEVO SISTEMA DE CURSOR DINÁMICO ---
+let menuCursorIndex = 0;
+
+function obtenerBotonesVisibles() {
+    // Escanea todos los botones y filas clickeables
+    let elementos = document.querySelectorAll('button, .item-pc-pkmn');
+    
+    // Filtra para devolver SOLO los que están visibles, que no sean la cruceta táctil y que no estén bloqueados
+    return Array.from(elementos).filter(el => {
+        let esVisible = el.offsetWidth > 0 || el.offsetHeight > 0;
+        let noEsCrucetaTactil = !el.id.startsWith('btnV');
+        return esVisible && noEsCrucetaTactil && !el.disabled;
+    });
+}
+
+// Esta función simplifica mover el cursor
+function moverCursorMenu(direccion) {
+    let botones = obtenerBotonesVisibles();
+    if (botones.length === 0) return;
+
+    // Ajuste de seguridad si el menú cambia de tamaño
+    if (menuCursorIndex >= botones.length) menuCursorIndex = 0;
+
+    // Quitar la clase visual de todos
+    botones.forEach(b => b.classList.remove('menu-activo'));
+
+    // Mover el índice
+    if (direccion === 'down' || direccion === 'right') {
+        menuCursorIndex = (menuCursorIndex + 1) % botones.length;
+    } else if (direccion === 'up' || direccion === 'left') {
+        menuCursorIndex = (menuCursorIndex - 1 + botones.length) % botones.length;
+    }
+
+    playTone(300, 'sine', 0.03);
+    
+    // Aplicar resaltado al nuevo
+    botones[menuCursorIndex].classList.add('menu-activo');
+    botones[menuCursorIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+function activarBotonMenu() {
+    let botones = obtenerBotonesVisibles();
+    if (botones.length > 0 && botones[menuCursorIndex]) {
+        botones[menuCursorIndex].click();
+        menuCursorIndex = 0; // Reiniciar el cursor para la siguiente pantalla
+    }
+}
+
 function abrirMenuPausa() {
     modo = 'pausa';
     detenerFisicas();
@@ -1505,6 +1597,11 @@ function abrirMenuPausa() {
     document.getElementById('menuPausa').style.display = 'flex';
     ocultarTodosLosSubPaneles();
     playTone(400, 'triangle', 0.05);
+	
+	// Inicializar cursor
+    menuCursor.index = 0;
+    menuCursor.max = document.querySelectorAll('.panel-menu-opcion').length; // O lo que uses
+    menuCursor.nombreMenu = 'pausa';
 }
 
 function cerrarMenuPausa() {
@@ -1658,12 +1755,19 @@ function pausaConfirmarGuardar() {
 // 8. CAPTURA Y ASIGNACIÓN UNIFICADA DE EVENTOS (TECLADO Y PANTALLAS TÁCTILES)
 // ============================================================================
 let juegoIniciado = false;
-window.addEventListener('keydown', e => { 
+window.addEventListener('keydown', e => {
     if (!juegoIniciado) {
         juegoIniciado = true;
         reproducirMusica('exploracion'); // Mueve la música aquí
         return;
     }
+	
+	// Si estamos en un menú, bloqueamos el movimiento del jugador
+    // Evita que la página web haga scroll al usar las flechas o el espacio
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+        e.preventDefault(); 
+    }
+	
     teclas[e.key] = true; 
     audioCtx.resume(); 
 
@@ -1674,6 +1778,14 @@ window.addEventListener('keydown', e => {
         }
     }
 
+	// --- NAVEGACIÓN EN MENÚS ---
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight'){
+        if (['pausa', 'ordenador', 'tienda', 'batalla'].includes(modo)) moverCursorMenu('down');
+    }
+    if (e.key === 'ArrowUp' || e.key === 'ArrowLeft'){
+        if (['pausa', 'ordenador', 'tienda', 'batalla'].includes(modo)) moverCursorMenu('up');
+    }
+	
     if (e.key === 'Escape' || e.key.toLowerCase() === 'b') {
         if (modo === 'pausa') {
             let algunoAbierto = false;
@@ -1685,17 +1797,16 @@ window.addEventListener('keydown', e => {
         }
     }
     
+	// --- BOTÓN DE ACEPTAR ---
     if (e.key.toLowerCase() === 'a' || e.key === 'Enter') {
-		if (modo === 'exploracion') intentarInteractuar();
-		else if (modo === 'dialogo') avanzarDialogo();
-	}
-    
-    if ((e.key.toLowerCase() === 'b' || e.key === 'Escape') && modo === 'ordenador') {
-        cerrarMenuOrdenador();
+        if (modo === 'exploracion') intentarInteractuar();
+        else if (modo === 'dialogo') avanzarDialogo();
+        else if (['pausa', 'ordenador', 'tienda', 'batalla'].includes(modo)) activarBotonMenu();
     }
-	
-	if ((e.key.toLowerCase() === 'b' || e.key === 'Escape') && modo === 'tienda') {
-        cerrarTienda();
+    
+    if (e.key.toLowerCase() === 'b' || e.key === 'Escape') {
+		if (modo === 'ordenador') cerrarMenuOrdenador();
+		else if (modo === 'tienda') cerrarTienda();
     }
 });
 
@@ -1712,13 +1823,21 @@ mapeoMovimiento.forEach(control => {
     const boton = document.getElementById(control.id);
     if(boton) {
         boton.addEventListener('touchstart', (e) => {
-			if (!juegoIniciado) {
-				juegoIniciado = true;
-				reproducirMusica('exploracion'); // Mueve la música aquí
-				return;
-			}
+            if (!juegoIniciado) {
+                juegoIniciado = true;
+                reproducirMusica('exploracion');
+                return;
+            }
             e.preventDefault(); audioCtx.resume();
-            teclas[control.tecla] = true;
+            
+            // Verificamos si estamos en algún menú (incluyendo los de batalla)
+            if (['pausa', 'ordenador', 'tienda', 'batalla'].includes(modo)) {
+                let dir = (control.tecla === 'ArrowDown' || control.tecla === 'ArrowRight') ? 'down' : 'up';
+                moverCursorMenu(dir);
+            } else {
+                // Si estamos explorando el mapa
+                teclas[control.tecla] = true;
+            }
         });
         boton.addEventListener('touchend', (e) => {
 			if (!juegoIniciado) {
@@ -1744,6 +1863,7 @@ if(document.getElementById('btnVA')) {
         
         if (modo === 'exploracion') intentarInteractuar();
         else if (modo === 'dialogo') avanzarDialogo();
+        else if (['pausa', 'ordenador', 'tienda', 'batalla'].includes(modo)) activarBotonMenu();
     });
 }
 
@@ -1800,7 +1920,7 @@ if(document.getElementById('btnVSelect')) {
 // 9. BUCLE CENTRAL DEL JUEGO E INICIALIZACIÓN
 // ============================================================================
 function loop() {
-	if (!juegoIniciado) {
+    if (!juegoIniciado) {
         ctx.fillStyle = "black";
         ctx.fillRect(0,0, canvas.width, canvas.height);
         ctx.fillStyle = "white";
@@ -1809,8 +1929,8 @@ function loop() {
         requestAnimationFrame(loop);
         return;
     }
-	
-    // 1. Lógica de animación de movimiento
+
+    // 1. Lógica de animación
     if (jugador.moviendo) {
         jugador.frameActual++;
         // Interpolación lineal simple
@@ -1826,72 +1946,44 @@ function loop() {
             
             // Comprobaciones tras terminar el paso
             chequearEventosMapa();
+			comprobarTransicionBordes();
         }
     } else {
         actualizarMovimiento();
     }
-	
-	// 1. Calcular la cámara (centrada en el jugador)
-    // El objetivo es que el jugador esté siempre en el centro del canvas
+
+    // 2. Cálculo de Cámara
     CAMERA.x = jugador.pixelX - (canvas.width / 2) + (TILE_SIZE / 2);
     CAMERA.y = jugador.pixelY - (canvas.height / 2) + (TILE_SIZE / 2);
-
-    // 2. Limitar la cámara para que no vea el "vacío" fuera del mapa
     let mapa = MAPAS[mapaActual];
-    let mapaWidth = mapa[0].length * TILE_SIZE;
-    let mapaHeight = mapa.length * TILE_SIZE;
-    
-    CAMERA.x = Math.max(0, Math.min(CAMERA.x, mapaWidth - canvas.width));
-    CAMERA.y = Math.max(0, Math.min(CAMERA.y, mapaHeight - canvas.height));
+    CAMERA.x = Math.max(0, Math.min(CAMERA.x, (mapa[0].length * TILE_SIZE) - canvas.width));
+    CAMERA.y = Math.max(0, Math.min(CAMERA.y, (mapa.length * TILE_SIZE) - canvas.height));
 
-    // 3. Dibujado desplazado (Translación)
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.save();
-    ctx.translate(-CAMERA.x, -CAMERA.y); // Desplaza todo el dibujo
+    // 3. Dibujado
+    ctx.clearRect(0, 0, canvas.width, canvas.height); // Limpiamos UNA sola vez
 
-    // Renderizar solo lo visible (opcional, por ahora dibujamos todo el mapa)
-    for (let r = 0; r < mapa.length; r++) {
-        for (let c = 0; c < mapa[r].length; c++) {
-            let id = mapa[r][c];
-            let img = assets[id] || assets[02];
-            ctx.drawImage(img, c * TILE_SIZE, r * TILE_SIZE);
-        }
-    }
-	
-    // 2. Dibujado (usa jugador.pixelX y jugador.pixelY en lugar de jugador.gridX/y)
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (modo === 'exploracion' || modo === 'pausa' || modo === 'ordenador' || modo === 'dialogo' || modo === 'alerta') {
-        let mapa = MAPAS[mapaActual];
+        ctx.save();
+        ctx.translate(-CAMERA.x, -CAMERA.y); // Aplicamos cámara
+
+        // Dibujar Mapa
         for (let r = 0; r < mapa.length; r++) {
             for (let c = 0; c < mapa[r].length; c++) {
-                let id = mapa[r][c];
-                let img = assets[id] || assets[02];
-                ctx.drawImage(img, c * TILE_SIZE, r * TILE_SIZE);
+                ctx.drawImage(assets[mapa[r][c]] || assets[02], c * TILE_SIZE, r * TILE_SIZE);
             }
         }
-        let spriteElegido;
-        if (jugador.estadoEstilo === 'normal') spriteElegido = assets.player;
-        if (jugador.estadoEstilo === 'surf') spriteElegido = assets.playerSurf;
-        if (jugador.estadoEstilo === 'hielo') spriteElegido = assets.playerHielo;
-        
-		// Renderizado dinámico de NPCs del mapa activo
-		let npcsMapa = NPCS[mapaActual] || [];
-		npcsMapa.forEach(npc => {
-			// Dibujamos cabeza
-			ctx.fillStyle = npc.colCabeza; 
-			ctx.fillRect(npc.gridX * TILE_SIZE + 8, npc.gridY * TILE_SIZE + 4, 16, 12); 
-			// Dibujamos cuerpo
-			ctx.fillStyle = npc.colCuerpo; 
-			ctx.fillRect(npc.gridX * TILE_SIZE + 6, npc.gridY * TILE_SIZE + 16, 20, 14); 
-			// Dibujamos ojos negros clásicos
-			ctx.fillStyle = '#000'; 
-			ctx.fillRect(npc.gridX * TILE_SIZE + 10, npc.gridY * TILE_SIZE + 8, 3, 3); 
-			ctx.fillRect(npc.gridX * TILE_SIZE + 19, npc.gridY * TILE_SIZE + 8, 3, 3);
-		});
-
+        // Dibujar NPCs
+        (NPCS[mapaActual] || []).forEach(npc => {
+            ctx.fillStyle = npc.colCabeza; ctx.fillRect(npc.gridX * TILE_SIZE + 8, npc.gridY * TILE_SIZE + 4, 16, 12);
+            ctx.fillStyle = npc.colCuerpo; ctx.fillRect(npc.gridX * TILE_SIZE + 6, npc.gridY * TILE_SIZE + 16, 20, 14);
+            ctx.fillStyle = '#000'; ctx.fillRect(npc.gridX * TILE_SIZE + 10, npc.gridY * TILE_SIZE + 8, 3, 3);
+            ctx.fillRect(npc.gridX * TILE_SIZE + 19, npc.gridY * TILE_SIZE + 8, 3, 3);
+        });
+        // Dibujar Jugador
+        let spriteElegido = (jugador.estadoEstilo === 'surf') ? assets.playerSurf : (jugador.estadoEstilo === 'hielo' ? assets.playerHielo : assets.player);
         ctx.drawImage(spriteElegido, jugador.pixelX, jugador.pixelY);
-		
-		ctx.restore(); // Finaliza el desplazamiento
+        
+        ctx.restore(); // Quitamos la cámara para poder dibujar el HUD
     } else if (modo === 'batalla') {
         ctx.fillStyle = '#f5f5f5'; ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = '#cbd5e1';

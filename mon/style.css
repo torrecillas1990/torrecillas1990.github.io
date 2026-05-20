@@ -236,6 +236,20 @@ button:hover { background: #000; color: #fff; }
     border-color: #000000;
 }
 
+/* Esto hará que el botón se destaque */
+.menu-activo {
+    border: 3px solid #ffeb3b !important; /* Amarillo Pokémon */
+    background-color: #3f51b5 !important; /* Azul para resaltar */
+    color: white !important;
+    transform: scale(1.05); /* Un pequeño efecto de crecimiento */
+    transition: transform 0.1s;
+}
+
+.seleccionado {
+    border: 2px solid yellow !important;
+    background-color: #333 !important;
+}
+
 /* --- VISTA MÓVIL (RESPONSIVE SPLIT-SCREEN) --- */
 @media (max-width: 768px) {
     body {
