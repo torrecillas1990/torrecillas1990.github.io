@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Analizador de Voz PWA</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Analizador y Clonador de Voz</h1>
+    
+    <section>
+        <h2>Captura</h2>
+		<canvas id="visualizador" width="600" height="150"></canvas>
+        <button id="btnIniciar">Iniciar Grabación</button>
+        <button id="btnParar" disabled>Parar y Guardar</button>
+    </section>
+
+    <section>
+        <h2>Cargar Perfil de Voz</h2>
+        <input type="file" id="fileInput" accept=".json">
+    </section>
+
+    <section>
+        <h2>Síntesis</h2>
+        <textarea id="textoInput" placeholder="Escribe algo..."></textarea>
+        <button id="btnPlay">Play con voz cargada</button>
+    </section>
+
+    <script src="app.js"></script>
+</body>
+</html>
