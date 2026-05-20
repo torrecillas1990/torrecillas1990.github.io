@@ -63,6 +63,7 @@ const assets = {
     71: crearTile('#ffb74d', '#e53935', 'alfombra_salida'),
     72: crearTile('#9e9e9e', '#2196f3', 'ordenador'),
     73: crearTile('#43a047', '#ffe082', 'tienda'), // <--- Mostrador verde y caja registradora dorada
+    74: crearTile('#e53935', '#ffffff', 'objeto_suelo'), // <--- Objeto recogible
     80: crearTile('#e0f7fa', '#b2ebf2', 'hielo'),
     81: crearTile('#ffb300', '#ff8f00', 'cinta_derecha'),
     82: crearTile('#01579b', '#0091ea', 'remolino_agua'),
@@ -107,6 +108,20 @@ function crearTile(col1, col2, tipo) {
 		cx.fillStyle = col2; cx.fillRect(6, 4, 12, 10); // Caja registradora
 		cx.fillStyle = '#b71c1c'; cx.fillRect(14, 8, 4, 4); // Botón de la caja
 	}
+    if(tipo === 'objeto_suelo') {
+        // Fondo: Suelo base
+        cx.fillStyle = '#9ccc65'; cx.fillRect(0,0,TILE_SIZE,TILE_SIZE);
+        // La Poké Ball tirada en el centro
+        let bx = TILE_SIZE/2; let by = TILE_SIZE/2 + 2;
+        cx.fillStyle = col1; cx.beginPath(); cx.arc(bx, by, 6, Math.PI, 0); cx.fill();
+        cx.fillStyle = col2; cx.beginPath(); cx.arc(bx, by, 6, 0, Math.PI); cx.fill();
+        cx.lineWidth = 1; cx.strokeStyle = '#000';
+        cx.beginPath(); cx.arc(bx, by, 6, 0, Math.PI*2); cx.stroke();
+        cx.beginPath(); cx.moveTo(bx-6, by); cx.lineTo(bx+6, by); cx.stroke();
+        cx.fillStyle = '#000'; cx.beginPath(); cx.arc(bx, by, 2, 0, Math.PI*2); cx.fill();
+        cx.fillStyle = '#fff'; cx.beginPath(); cx.arc(bx, by, 1, 0, Math.PI*2); cx.fill();
+    }
+    return c;
     return c;
 }
 
@@ -279,6 +294,36 @@ const NPCS = {
     ]
 };
 
+// --- SISTEMA DE RECOLECCIÓN DE OBJETOS ---
+let objetosRecogidos = {}; // Guarda un registro de { "mapa_x_y": true }
+
+function recogerObjetoSuelo(gridX, gridY) {
+    // Generar una clave única para saber qué objeto del mundo es este
+    let claveUnica = `${mapaActual}_${gridX}_${gridY}`;
+    
+    // Si por algún motivo ya está recogido, abortamos
+    if (objetosRecogidos[claveUnica]) return; 
+
+    // Pool de posibles premios (se puede añadir elixir, etc)
+    let posibles = ['pociones', 'bolas', 'pociones', 'bolas', 'curaQuemadura', 'antiparaliz'];
+    let premio = posibles[Math.floor(Math.random() * posibles.length)];
+
+    // Añadir a la mochila y marcar como recogido
+    inventario[premio]++;
+    objetosRecogidos[claveUnica] = true;
+    
+    // Borrar el objeto físicamente del mapa en tiempo real (lo cambiamos por suelo ID 02)
+    MAPAS[mapaActual][gridY][gridX] = 02; 
+    
+    // Efecto de sonido del mítico "jingle" de objeto
+    playTone(600, 'square', 0.1);
+    setTimeout(() => playTone(800, 'square', 0.15), 100);
+
+    // Lanzar diálogo de notificación
+    let nombreFormateado = premio.replace(/([A-Z])/g, ' $1').toUpperCase();
+    iniciarDialogo([`¡Encontraste ${nombreFormateado}!`, `Lo has guardado en el bolsillo de tu MOCHILA.`]);
+}
+
 // Variables para segmentar las reglas de la batalla en curso
 let tipoBatalla = 'salvaje'; // Puede ser 'salvaje' o 'entrenador'
 let entrenadorActual = null;
@@ -301,6 +346,7 @@ function obtenerPropiedadesBloque(id) {
         esInteractivo:       (id >= 70 && id <= 79),
         esOrdenador:         (id === 72),
         esTienda:            (id === 73),
+		esObjetoSuelo:       (id === 74),
         esHielo:             (id === 80),
         esCintaDerecha:      (id === 81),
         esRemolinoAgua:      (id === 82),
@@ -409,9 +455,11 @@ function actualizarMovimiento() {
             if (Math.random() < 0.006) iniciarBatalla();
         }
 
-		// INYECTAR AQUÍ EL ESCÁNER DE CAMPO VISUAL
-		comprobarVisionEntrenadores();
-
+		// --- Interceptor de pisar un objeto ---
+        if (propsNuevas.esObjetoSuelo) {
+            recogerObjetoSuelo(centroX, centroY);
+        }
+		
         if (propsNuevas.esInteractivo) {
             if (nuevoBloque === 70) { 
                 mapaActual = 'interior_casa';
@@ -428,8 +476,9 @@ function actualizarMovimiento() {
 		
 		// INYECTAR AQUÍ EL INTERCEPTOR DE BORDES:
         comprobarTransicionBordes();
-        
-        comprobarVisionEntrenadores();
+
+        // INYECTAR AQUÍ EL ESCÁNER DE CAMPO VISUAL
+		comprobarVisionEntrenadores();
     } else {
         jugador.dirX = 0;
         jugador.dirY = 0;
@@ -457,13 +506,14 @@ function intentarInteractuar() {
         }
     }
 
-    // 2. Verificar Bloques estructurales (PC y Tienda)
+    // 2. Verificar Bloques estructurales (PC, Tienda y Objetos)
     for (let v of vecinos) {
         if (mapa[v.y] && mapa[v.y][v.x] !== undefined) {
             let idBloque = mapa[v.y][v.x];
             let props = obtenerPropiedadesBloque(idBloque);
             if (props.esOrdenador) { abrirMenuOrdenador(); return; }
-            if (props.esTienda) { abrirTienda(); return; } // <--- INYECTADO AQUÍ
+            if (props.esTienda) { abrirTienda(); return; }
+            if (props.esObjetoSuelo) { recogerObjetoSuelo(v.x, v.y); return; }
         }
     }
 }
@@ -1342,7 +1392,9 @@ function pausaConfirmarGuardar() {
             mapa: mapaActual, inventario: inventario,
             equipo: equipo, caja: caja,
             especiesAvistadas: especiesAvistadas,
-            musicaEncendida: musicaEncendida
+            musicaEncendida: musicaEncendida,
+            monedero: monedero,
+			objetosRecogidos: objetosRecogidos
         };
         localStorage.setItem('pokemon_pro_save', JSON.stringify(salvado));
         playTone(600, 'square', 0.08);
@@ -1558,7 +1610,22 @@ if (partidaExistente) {
     if(datos.caja) datos.caja.forEach(p => caja.push(p));
     
     miPokemon = equipo[0];
-    if (datos.musicaEncendida !== undefined) musicaEncendida = datos.musicaEncendida;
+	if (datos.musicaEncendida !== undefined) musicaEncendida = datos.musicaEncendida;
+    if (datos.monedero !== undefined) monedero = datos.monedero; // <--- ¡Recuperamos el dinero!
+    if (datos.objetosRecogidos) objetosRecogidos = datos.objetosRecogidos; // Recuperar historial
+
+    // NUEVO: Purgar los objetos del mapa que ya fueron recogidos en partidas anteriores
+    for (let clave in objetosRecogidos) {
+        let partes = clave.split('_');
+        let mapaObj = partes[0];
+        let gX = parseInt(partes[1]);
+        let gY = parseInt(partes[2]);
+        // Si el mapa existe y el bloque actual es una ball, lo reemplazamos por suelo (02)
+        if (MAPAS[mapaObj] && MAPAS[mapaObj][gY] && MAPAS[mapaObj][gY][gX] === 74) {
+            MAPAS[mapaObj][gY][gX] = 02; 
+        }
+    }
+    
     console.log("¡Partida cargada con éxito!");
 }
 
