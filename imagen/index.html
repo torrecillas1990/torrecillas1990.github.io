@@ -22,12 +22,7 @@
         }
         #workspace { box-shadow: 0 0 20px rgba(0,0,0,0.8); transition: box-shadow 0.3s ease; }
 
-        .sidebar {
-            position: absolute; top: 0; bottom: 0; width: 260px;
-            background: rgba(37, 37, 37, 0.98); backdrop-filter: blur(10px);
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 50;
-            display: flex; flex-direction: column; box-shadow: 0 0 20px rgba(0,0,0,0.5);
-        }
+        .sidebar { position: absolute; top: 0; bottom: 0; width: 260px; background: rgba(37, 37, 37, 0.98); backdrop-filter: blur(10px); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 50; display: flex; flex-direction: column; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
         #panel-tools { left: 0; transform: translateX(-100%); border-right: 1px solid #444; }
         #panel-layers { right: 0; transform: translateX(100%); border-left: 1px solid #444; }
         #panel-tools.open, #panel-layers.open { transform: translateX(0); }
@@ -61,6 +56,7 @@
     <div id="topbar">
         <div class="toolbar-group">
             <button id="btnToggleTools" class="btn btn-icon" title="Herramientas">🛠️</button>
+            <button id="btnResetView" class="btn btn-icon" title="Resetear Zoom y Cámara">🔍</button>
         </div>
         <div class="toolbar-group">
             <button id="btnUndo" class="btn btn-icon" title="Deshacer">↩️</button>
@@ -80,7 +76,10 @@
                 <button id="btnCloseTools" class="close-btn">×</button>
             </div>
             <div class="tools-grid">
-                <div class="tool-item active"><span class="icon">👆</span> Mover</div>
+				<button id="btnExportPNG" class="btn" style="background: #28a745;">💾 PNG</button>
+				<button id="btnExportJPG" class="btn" style="background: #007bff;">💾 JPG</button>
+                <div class="tool-item active" id="tool-select"><span class="icon">👆</span> Seleccionar</div>
+                <div class="tool-item" id="tool-pan"><span class="icon">✋</span> Mover Vista</div>
                 <div class="tool-item" id="tool-clone"><span class="icon">👯</span> Clonar</div>
                 <div class="tool-item" id="tool-crop"><span class="icon">✂️</span> Lienzo</div>
                 <div class="tool-item" id="tool-lasso"><span class="icon">🖍️</span> Lazo</div>
@@ -98,7 +97,7 @@
             <ul id="layers-list"></ul>
         </div>
         
-        <!-- Otras barras flotantes... -->
+        <!-- Barras flotantes -->
         <div id="tool-options-bar" class="floating-bar" style="border-radius: 50px;">
             <span id="clone-status" style="font-size: 13px; font-weight: bold; color: #00bfff;">🎯 Fija el Origen</span>
             <div style="width: 1px; height: 20px; background: #555;"></div>
@@ -113,40 +112,45 @@
             <button id="btn-cancel-crop" class="btn" style="padding: 5px 10px; font-size: 12px; background: #a03030;">Cancelar</button>
         </div>
 
-        <div id="tool-lasso-bar" class="floating-bar" style="border-radius: 50px;">
-            <span style="font-size: 13px; font-weight: bold; color: #00bfff;">🖍️ Dibuja rodeando al sujeto</span>
-            <button id="btn-cancel-lasso" class="btn" style="padding: 5px 10px; font-size: 12px; background: #a03030;">Cancelar</button>
-        </div>
+		<div id="tool-lasso-bar" class="floating-bar">
+			<span id="lasso-status" style="font-size: 13px; font-weight: bold; color: #00bfff;">🖍️ Dibuja el área</span>
+			<select id="lasso-mode" class="btn" style="background: #222; padding: 5px;">
+				<option value="keep">Mantener selección</option>
+				<option value="invert">Eliminar selección</option>
+			</select>
+			<button id="btn-cancel-lasso" class="btn" style="padding: 5px 10px; font-size: 12px; background: #a03030;">Cancelar</button>
+		</div>
 
-        <!-- NUEVA BARRA: Filtros y Ajustes -->
         <div id="tool-filters-bar" class="floating-bar" style="flex-direction: column; align-items: stretch; width: 250px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                 <span style="font-size: 13px; font-weight: bold; color: #00bfff;">🎨 Ajustes de Color</span>
                 <button id="btn-close-filters" class="close-btn" style="padding: 0;">×</button>
             </div>
-            
             <div style="display: flex; gap: 5px; margin-bottom: 15px;">
                 <button id="btn-filter-gray" class="btn" style="flex:1; font-size:11px; padding:6px;">B/N</button>
                 <button id="btn-filter-sepia" class="btn" style="flex:1; font-size:11px; padding:6px;">Sepia</button>
                 <button id="btn-filter-invert" class="btn" style="flex:1; font-size:11px; padding:6px;">Invertir</button>
             </div>
-
-            <label style="font-size: 12px; display:flex; justify-content:space-between; margin-bottom: 8px;">
-                Brillo: <input type="range" id="filter-brightness" min="-0.5" max="0.5" step="0.02" value="0" style="width: 140px;">
-            </label>
-            <label style="font-size: 12px; display:flex; justify-content:space-between; margin-bottom: 8px;">
-                Contraste: <input type="range" id="filter-contrast" min="-0.5" max="0.5" step="0.02" value="0" style="width: 140px;">
-            </label>
-            <label style="font-size: 12px; display:flex; justify-content:space-between; margin-bottom: 15px;">
-                Saturación: <input type="range" id="filter-saturation" min="-1" max="1" step="0.05" value="0" style="width: 140px;">
-            </label>
-            
+			<div style="display: flex; gap: 5px; margin-top: 15px; border-top: 1px solid #444; padding-top: 15px;">
+				<button id="btn-flip-x" class="btn" style="flex:1; font-size:11px;">Voltear H</button>
+				<button id="btn-flip-y" class="btn" style="flex:1; font-size:11px;">Voltear V</button>
+				<button id="btn-rotate-90" class="btn" style="flex:1; font-size:11px;">Rotar 90°</button>
+			</div>
+            <label style="font-size: 12px; display:flex; justify-content:space-between; margin-bottom: 8px;">Brillo: <input type="range" id="filter-brightness" min="-0.5" max="0.5" step="0.02" value="0" style="width: 140px;"></label>
+            <label style="font-size: 12px; display:flex; justify-content:space-between; margin-bottom: 8px;">Contraste: <input type="range" id="filter-contrast" min="-0.5" max="0.5" step="0.02" value="0" style="width: 140px;"></label>
+            <label style="font-size: 12px; display:flex; justify-content:space-between; margin-bottom: 15px;">Saturación: <input type="range" id="filter-saturation" min="-1" max="1" step="0.05" value="0" style="width: 140px;"></label>
+			<label style="font-size: 12px; display:flex; justify-content:space-between; margin-bottom: 15px;">Opacidad: <input type="range" id="filter-opacity" min="0" max="1" step="0.05" value="1" style="width: 140px;"></label>
             <button id="btn-reset-filters" class="btn" style="background: #a03030; width: 100%; font-size: 12px;">Borrar Filtros</button>
         </div>
-
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+	<script type="module">
+		import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.16.0';
+		// Desactivamos el almacenamiento local para modelos pesados si es necesario
+		env.allowLocalModels = false;
+		window.transformers = { pipeline };
+	</script>
     <script src="app.js"></script>
 </body>
 </html>
