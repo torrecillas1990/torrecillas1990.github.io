@@ -62,8 +62,20 @@ const proyectos = [
     {
         categoria: 'utilidades',
         titulo: 'Contador de Calorías',
-        descripcion: 'Herramienta para base de datos simplificada para productos específicos de Mercadona.',
+        descripcion: 'Herramienta para base de datos simplificada para productos específicos.',
         ruta: 'deportiva/contador-calorias/index.html'
+    },
+    {
+        categoria: 'utilidades',
+        titulo: 'Editor Imagenes',
+        descripcion: 'Herramienta para editar imagenes de manera profesional.',
+        ruta: 'imagen/index.html'
+    },
+    {
+        categoria: 'utilidades',
+        titulo: 'Editor Voz',
+        descripcion: 'Herramienta para editar sonidos de manera profesional.',
+        ruta: 'voz/index.html'
     },
     {
         categoria: 'juegos',

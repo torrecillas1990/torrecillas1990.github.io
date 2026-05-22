@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ProPhoto Editor</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1e1e1e">
+    <style>
+        body { margin: 0; background-color: #1e1e1e; color: white; display: flex; flex-direction: column; height: 100vh; overflow: hidden; font-family: sans-serif; }
+        #topbar { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #252525; border-bottom: 1px solid #444; z-index: 100; }
+        .toolbar-group { display: flex; gap: 8px; align-items: center; }
+        .btn { padding: 8px 12px; background: #333; color: white; border: 1px solid #555; border-radius: 5px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+        .btn:hover { background: #444; }
+        .btn-icon { font-size: 18px; padding: 8px; }
+
+        #main-content { flex: 1; position: relative; display: flex; overflow: hidden; }
+        #workspace-container {
+            flex: 1; display: flex; justify-content: center; align-items: center; background: #1a1a1a;
+            background-image: linear-gradient(45deg, #222 25%, transparent 25%), linear-gradient(-45deg, #222 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #222 75%), linear-gradient(-45deg, transparent 75%, #222 75%);
+            background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+        #workspace { box-shadow: 0 0 20px rgba(0,0,0,0.8); transition: box-shadow 0.3s ease; }
+
+        .sidebar {
+            position: absolute; top: 0; bottom: 0; width: 260px;
+            background: rgba(37, 37, 37, 0.98); backdrop-filter: blur(10px);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 50;
+            display: flex; flex-direction: column; box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        #panel-tools { left: 0; transform: translateX(-100%); border-right: 1px solid #444; }
+        #panel-layers { right: 0; transform: translateX(100%); border-left: 1px solid #444; }
+        #panel-tools.open, #panel-layers.open { transform: translateX(0); }
+
+        .panel-header { padding: 15px; background: #333; font-weight: bold; border-bottom: 1px solid #444; display: flex; justify-content: space-between; align-items: center; }
+        .close-btn { background: none; border: none; color: #aaa; font-size: 20px; cursor: pointer; }
+        .close-btn:hover { color: white; }
+
+        .tools-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px; }
+        .tool-item { padding: 15px 10px; background: #2a2a2a; border: 1px solid #444; border-radius: 8px; color: white; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 12px; text-align: center;}
+        .tool-item:hover { background: #333; }
+        .tool-item.active { background: #3a5a78; border-color: #00bfff; }
+        .tool-item span.icon { font-size: 20px; }
+
+        #layers-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex: 1; }
+        .layer-item { padding: 12px 10px; border-bottom: 1px solid #333; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+        .layer-item:hover { background-color: #2a2a2a; }
+        .layer-item.active { background-color: #3a5a78; border-left: 4px solid #00bfff; }
+        .layer-name { flex: 1; margin-left: 10px; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .layer-actions { display: flex; gap: 5px; }
+        .layer-actions button { background: #333; border: 1px solid #444; color: #ddd; cursor: pointer; padding: 4px 6px; font-size: 12px; border-radius: 4px;}
+        .layer-actions button:hover { color: white; background: #555; border-color: #666; }
+        
+        .floating-bar { display: none; position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(30,30,30,0.95); padding: 10px 20px; border-radius: 10px; border: 1px solid #555; z-index: 100; box-shadow: 0 5px 20px rgba(0,0,0,0.6); align-items: center; gap: 15px; white-space: nowrap; }
+
+        @media (max-width: 600px) { .btn span.text { display: none; } .sidebar { width: 80%; max-width: 300px; } }
+    </style>
+</head>
+<body>
+
+    <div id="topbar">
+        <div class="toolbar-group">
+            <button id="btnToggleTools" class="btn btn-icon" title="Herramientas">🛠️</button>
+        </div>
+        <div class="toolbar-group">
+            <button id="btnUndo" class="btn btn-icon" title="Deshacer">↩️</button>
+            <button id="btnUpload" class="btn"><span class="icon">📁</span> <span class="text">&nbsp;Importar</span></button>
+            <button id="btnRedo" class="btn btn-icon" title="Rehacer">↪️</button>
+            <input type="file" id="fileInput" accept="image/*" style="display: none;">
+        </div>
+        <div class="toolbar-group">
+            <button id="btnToggleLayers" class="btn btn-icon" title="Capas">📚</button>
+        </div>
+    </div>
+
+    <div id="main-content">
+        <div id="panel-tools" class="sidebar">
+            <div class="panel-header">
+                <span>Herramientas</span>
+                <button id="btnCloseTools" class="close-btn">×</button>
+            </div>
+            <div class="tools-grid">
+                <div class="tool-item active"><span class="icon">👆</span> Mover</div>
+                <div class="tool-item" id="tool-clone"><span class="icon">👯</span> Clonar</div>
+                <div class="tool-item" id="tool-crop"><span class="icon">✂️</span> Lienzo</div>
+                <div class="tool-item" id="tool-lasso"><span class="icon">🖍️</span> Lazo</div>
+                <div class="tool-item" id="tool-filters"><span class="icon">🎨</span> Filtros</div>
+                <div class="tool-item"><span class="icon">🪄</span> Fondo IA</div>
+            </div>
+        </div>
+
+        <div id="workspace-container">
+            <div id="workspace"><canvas id="mainCanvas"></canvas></div>
+        </div>
+
+        <div id="panel-layers" class="sidebar">
+            <div class="panel-header"><span>Gestor de Capas</span><button id="btnCloseLayers" class="close-btn">×</button></div>
+            <ul id="layers-list"></ul>
+        </div>
+        
+        <!-- Otras barras flotantes... -->
+        <div id="tool-options-bar" class="floating-bar" style="border-radius: 50px;">
+            <span id="clone-status" style="font-size: 13px; font-weight: bold; color: #00bfff;">🎯 Fija el Origen</span>
+            <div style="width: 1px; height: 20px; background: #555;"></div>
+            <label style="font-size: 12px; display:flex; align-items:center; gap:5px; margin: 0;">Tamaño: <input type="range" id="clone-size" min="5" max="100" value="30" style="width: 80px;"></label>
+            <button id="btn-reset-clone" class="btn" style="padding: 5px 10px; font-size: 12px; background: #444;">Resetear</button>
+            <button id="btn-close-tool" class="btn" style="padding: 5px 10px; font-size: 12px; background: #a03030;">Terminar</button>
+        </div>
+
+        <div id="tool-crop-bar" class="floating-bar" style="border-radius: 50px;">
+            <span style="font-size: 13px; font-weight: bold; color: #00bfff;">✂️ Ajusta el área</span>
+            <button id="btn-apply-crop" class="btn" style="padding: 5px 10px; font-size: 12px; background: #28a745; display: none;">Aplicar</button>
+            <button id="btn-cancel-crop" class="btn" style="padding: 5px 10px; font-size: 12px; background: #a03030;">Cancelar</button>
+        </div>
+
+        <div id="tool-lasso-bar" class="floating-bar" style="border-radius: 50px;">
+            <span style="font-size: 13px; font-weight: bold; color: #00bfff;">🖍️ Dibuja rodeando al sujeto</span>
+            <button id="btn-cancel-lasso" class="btn" style="padding: 5px 10px; font-size: 12px; background: #a03030;">Cancelar</button>
+        </div>
+
+        <!-- NUEVA BARRA: Filtros y Ajustes -->
+        <div id="tool-filters-bar" class="floating-bar" style="flex-direction: column; align-items: stretch; width: 250px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span style="font-size: 13px; font-weight: bold; color: #00bfff;">🎨 Ajustes de Color</span>
+                <button id="btn-close-filters" class="close-btn" style="padding: 0;">×</button>
+            </div>
+            
+            <div style="display: flex; gap: 5px; margin-bottom: 15px;">
+                <button id="btn-filter-gray" class="btn" style="flex:1; font-size:11px; padding:6px;">B/N</button>
+                <button id="btn-filter-sepia" class="btn" style="flex:1; font-size:11px; padding:6px;">Sepia</button>
+                <button id="btn-filter-invert" class="btn" style="flex:1; font-size:11px; padding:6px;">Invertir</button>
+            </div>
+
+            <label style="font-size: 12px; display:flex; justify-content:space-between; margin-bottom: 8px;">
+                Brillo: <input type="range" id="filter-brightness" min="-0.5" max="0.5" step="0.02" value="0" style="width: 140px;">
+            </label>
+            <label style="font-size: 12px; display:flex; justify-content:space-between; margin-bottom: 8px;">
+                Contraste: <input type="range" id="filter-contrast" min="-0.5" max="0.5" step="0.02" value="0" style="width: 140px;">
+            </label>
+            <label style="font-size: 12px; display:flex; justify-content:space-between; margin-bottom: 15px;">
+                Saturación: <input type="range" id="filter-saturation" min="-1" max="1" step="0.05" value="0" style="width: 140px;">
+            </label>
+            
+            <button id="btn-reset-filters" class="btn" style="background: #a03030; width: 100%; font-size: 12px;">Borrar Filtros</button>
+        </div>
+
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
