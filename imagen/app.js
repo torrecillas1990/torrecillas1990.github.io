@@ -119,20 +119,23 @@ canvas.on('selection:created', updateLayersPanel); canvas.on('selection:updated'
 // ==========================================
 // 6. CONTROLADORES DE UI Y HERRAMIENTAS ACTIVAS
 // ==========================================
-let isPanMode = false, isCloneMode = false, isCropMode = false, isLassoMode = false, isEyedropperMode = false;
+// ==========================================
+// 6. CONTROLADORES DE UI Y HERRAMIENTAS ACTIVAS
+// ==========================================
+let isPanMode = false, isCloneMode = false, isCropMode = false, isLassoMode = false, isEyedropperMode = false, isEraserMode = false;
 let cloneSource = { x: 0, y: 0 }, cloneImageSnapshot = null, cloneDeltaX = 0, cloneDeltaY = 0, isCloneDeltaSet = false, isSettingCloneSource = false, myCloneBrush = null;
-let cropRect = null, cropOrigX = 0, cropOrigY = 0, isDrawingCrop = false, lassoTarget = null;
+let cropRect = null, cropOrigX = 0, cropOrigY = 0, isDrawingCrop = false, lassoTarget = null, eraserTarget = null;
 
 const toolBars = [
     document.getElementById('tool-options-bar'), document.getElementById('tool-crop-bar'),
     document.getElementById('tool-lasso-bar'), document.getElementById('tool-filters-bar'),
     document.getElementById('tool-shapes-bar'), document.getElementById('tool-text-bar'),
-    document.getElementById('tool-color-bar')
+    document.getElementById('tool-color-bar'), document.getElementById('tool-eraser-bar')
 ];
 
 function setActiveUI(id) { document.querySelectorAll('.tool-item').forEach(el => el.classList.remove('active')); if(id) document.getElementById(id).classList.add('active'); }
 function closeAllTools() {
-    isPanMode = isCloneMode = isCropMode = isLassoMode = isEyedropperMode = false;
+    isPanMode = isCloneMode = isCropMode = isLassoMode = isEyedropperMode = isEraserMode = false;
     canvas.isDrawingMode = false; canvas.selection = true; canvas.defaultCursor = 'default';
     toolBars.forEach(b => { if(b) b.style.display = 'none'; });
     if(cropRect) { canvas.remove(cropRect); cropRect = null; }
@@ -148,7 +151,7 @@ document.querySelectorAll('.close-btn').forEach(btn => btn.addEventListener('cli
 }));
 
 // ==========================================
-// 7. HERRAMIENTAS: CLONAR, CROP, LAZO
+// 7. HERRAMIENTAS: CLONAR, CROP, LAZO, BORRADOR
 // ==========================================
 document.getElementById('tool-clone').addEventListener('click', () => { closeAllTools(); setActiveUI('tool-clone'); canvas.discardActiveObject(); isCloneMode = true; isSettingCloneSource = true; isCloneDeltaSet = false; document.getElementById('tool-options-bar').style.display = 'flex'; document.getElementById('clone-status').innerText = '🎯 Fija el Origen'; canvas.defaultCursor = 'crosshair'; });
 document.getElementById('btn-reset-clone').addEventListener('click', () => { isSettingCloneSource = true; isCloneDeltaSet = false; canvas.isDrawingMode = false; canvas.defaultCursor = 'crosshair'; document.getElementById('clone-status').innerText = '🎯 Fija el Origen'; });
@@ -161,6 +164,27 @@ document.getElementById('btn-apply-crop').addEventListener('click', () => { if (
 
 document.getElementById('tool-lasso').addEventListener('click', () => { lassoTarget = canvas.getActiveObject(); if (!lassoTarget) return alert('Selecciona primero la capa a recortar.'); closeAllTools(); setActiveUI('tool-lasso'); isLassoMode = true; canvas.isDrawingMode = true; canvas.freeDrawingBrush = new fabric.PencilBrush(canvas); canvas.freeDrawingBrush.color = 'rgba(0,191,255,0.7)'; canvas.freeDrawingBrush.width = 4; document.getElementById('tool-lasso-bar').style.display = 'flex'; });
 document.getElementById('btn-cancel-lasso').addEventListener('click', () => { closeAllTools(); setActiveUI('tool-select'); });
+
+// --- HERRAMIENTA BORRADOR ---
+document.getElementById('tool-eraser').addEventListener('click', () => { 
+    eraserTarget = canvas.getActiveObject();
+    if (!eraserTarget) return alert('Por favor, selecciona primero la capa que quieres borrar.');
+    
+    closeAllTools(); 
+    setActiveUI('tool-eraser'); 
+    isEraserMode = true; 
+    canvas.isDrawingMode = true; 
+    
+    // Configuramos un pincel rojo semitransparente para ver lo que borramos
+    canvas.freeDrawingBrush = new fabric.PencilBrush(canvas); 
+    canvas.freeDrawingBrush.color = 'rgba(255, 0, 0, 0.4)'; 
+    canvas.freeDrawingBrush.width = parseInt(document.getElementById('eraser-size').value, 10); 
+    
+    document.getElementById('tool-eraser-bar').style.display = 'flex'; 
+});
+
+document.getElementById('btn-cancel-eraser').addEventListener('click', () => { closeAllTools(); setActiveUI('tool-select'); });
+document.getElementById('eraser-size').addEventListener('input', e => { if (isEraserMode) canvas.freeDrawingBrush.width = parseInt(e.target.value, 10); });
 
 // ==========================================
 // 8. PANEL DE COLOR Y PIPETA
@@ -372,31 +396,90 @@ canvas.on('mouse:up', function() {
     verticalGuide = null; horizontalGuide = null; canvas.requestRenderAll();
 });
 
+// Evento que se dispara al terminar de dibujar un trazo (Lazo, Clonar o Borrador)
 canvas.on('path:created', function(opt) {
-    if (isCloneMode) { opt.path.name = 'Clonación'; updateLayersPanel(); } 
-    else if (isLassoMode) {
-        const mode = document.getElementById('lasso-mode').value; isMaskProcessing = true; const path = opt.path; canvas.remove(path); path.set({ fill: 'black', stroke: 'transparent' });
-        const visibilityMap = new Map(); canvas.getObjects().forEach(obj => { visibilityMap.set(obj, obj.visible); obj.visible = false; });
-        lassoTarget.visible = true; canvas.renderAll(); const imgDataUrl = canvas.toDataURL({ format: 'png' });
-        lassoTarget.visible = false; path.visible = true; canvas.add(path); canvas.renderAll(); const pathDataUrl = canvas.toDataURL({ format: 'png' }); canvas.remove(path);
-        canvas.getObjects().forEach(obj => { obj.visible = visibilityMap.get(obj); }); canvas.renderAll();
+    if (isCloneMode) { 
+        opt.path.name = 'Clonación'; updateLayersPanel(); 
+    } 
+    else if (isLassoMode || isEraserMode) {
+        isMaskProcessing = true; 
+        const path = opt.path; 
+        canvas.remove(path); 
         
+        // Configurar el path según la herramienta
+        if (isLassoMode) path.set({ fill: 'black', stroke: 'transparent' });
+        if (isEraserMode) path.set({ stroke: 'black', opacity: 1, fill: 'transparent' }); // Trazo grueso sólido
+        
+        const targetLayer = isLassoMode ? lassoTarget : eraserTarget;
+        
+        // TRUCO PRO: Guardamos la vista de cámara actual y la reseteamos para capturar a resolución real sin que se rompa al estar haciendo Zoom.
+        const originalVpt = canvas.viewportTransform.slice();
+        canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+
+        // Ocultamos todo excepto la capa objetivo y tomamos la foto
+        const visibilityMap = new Map(); 
+        canvas.getObjects().forEach(obj => { visibilityMap.set(obj, obj.visible); obj.visible = false; });
+        
+        targetLayer.visible = true; 
+        canvas.renderAll(); 
+        const imgDataUrl = canvas.toDataURL({ format: 'png' });
+        
+        // Hacemos lo mismo con el dibujo que has hecho (el Lazo o el Borrón)
+        targetLayer.visible = false; 
+        path.visible = true; 
+        canvas.add(path); 
+        canvas.renderAll(); 
+        const pathDataUrl = canvas.toDataURL({ format: 'png' }); 
+        canvas.remove(path);
+
+        // Restaurar estado visual y cámara del usuario
+        canvas.getObjects().forEach(obj => { obj.visible = visibilityMap.get(obj); }); 
+        canvas.setViewportTransform(originalVpt);
+        canvas.renderAll();
+        
+        // Motor nativo de fusión de capas
         const imgObj = new Image(); imgObj.src = imgDataUrl;
         imgObj.onload = () => {
             const pathObj = new Image(); pathObj.src = pathDataUrl;
             pathObj.onload = () => {
                 const tempC = document.createElement('canvas'); tempC.width = canvas.width; tempC.height = canvas.height; const ctx = tempC.getContext('2d');
-                ctx.drawImage(imgObj, 0, 0); ctx.globalCompositeOperation = (mode === 'invert') ? 'destination-out' : 'destination-in'; ctx.drawImage(pathObj, 0, 0);
+                ctx.drawImage(imgObj, 0, 0); 
+                
+                // Modo de fusión (Agujerear vs Mantener)
+                if (isEraserMode) {
+                    ctx.globalCompositeOperation = 'destination-out'; // La goma agujerea
+                } else if (isLassoMode) {
+                    const mode = document.getElementById('lasso-mode').value;
+                    ctx.globalCompositeOperation = (mode === 'invert') ? 'destination-out' : 'destination-in';
+                }
+                
+                ctx.drawImage(pathObj, 0, 0);
                 const finalC = document.createElement('canvas'); finalC.width = canvas.width; finalC.height = canvas.height; finalC.getContext('2d').drawImage(tempC, 0, 0);
+                
                 fabric.Image.fromURL(finalC.toDataURL('image/png'), function(finalImg) {
-                    finalImg.set({ left: 0, top: 0, name: lassoTarget.name + (mode === 'invert' ? ' (Invertido)' : ' (Recortado)') });
-                    canvas.remove(lassoTarget); canvas.add(finalImg); canvas.setActiveObject(finalImg); closeAllTools(); setActiveUI('tool-select'); isMaskProcessing = false; saveHistory();
+                    finalImg.set({ left: 0, top: 0, name: targetLayer.name + (isEraserMode ? ' (Borrado)' : '') });
+                    
+                    // Respetar el orden (z-index) de la capa
+                    const zIndex = canvas.getObjects().indexOf(targetLayer);
+                    canvas.remove(targetLayer); 
+                    canvas.insertAt(finalImg, zIndex, false);
+                    canvas.setActiveObject(finalImg); 
+                    
+                    if (isLassoMode) {
+                        closeAllTools(); setActiveUI('tool-select');
+                    } else if (isEraserMode) {
+                        // En modo goma NO cerramos la herramienta para que el usuario pueda seguir borrando
+                        eraserTarget = finalImg;
+                    }
+
+                    isMaskProcessing = false; 
+                    saveHistory();
+                    updateLayersPanel();
                 });
             };
         };
     }
 });
-
 
 // ==========================================
 // 13. SMART GUIDES PRO (GUÍAS MAGNÉTICAS AVANZADAS)

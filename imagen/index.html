@@ -92,6 +92,7 @@
                 <div class="tool-item" id="tool-shapes"><span class="icon">🔼</span> Formas</div>
                 <div class="tool-item" id="tool-filters"><span class="icon">🌟</span> Ajustes</div>
                 <div class="tool-item" id="tool-clone"><span class="icon">👯</span> Clonar</div>
+				<div class="tool-item" id="tool-eraser"><span class="icon">🧽</span> Borrador</div>
                 <div class="tool-item" id="tool-lasso"><span class="icon">🖍️</span> Lazo</div>
                 <div class="tool-item" id="tool-crop"><span class="icon">✂️</span> Lienzo</div>
                 <div class="tool-item" id="tool-ai"><span class="icon">🪄</span> Fondo IA</div>
@@ -193,7 +194,14 @@
         <div id="tool-options-bar" class="floating-bar" style="border-radius: 50px;"><span id="clone-status" style="font-size: 13px; font-weight: bold; color: #00bfff;">🎯 Fija el Origen</span><div style="width: 1px; height: 20px; background: #555;"></div><label style="font-size: 12px; display:flex; align-items:center; gap:5px; margin: 0;">Tamaño: <input type="range" id="clone-size" min="5" max="100" value="30" style="width: 80px;"></label><button id="btn-reset-clone" class="btn" style="padding: 5px 10px; font-size: 12px; background: #444;">Resetear</button><button id="btn-close-tool" class="btn" style="padding: 5px 10px; font-size: 12px; background: #a03030;">Terminar</button></div>
         <div id="tool-crop-bar" class="floating-bar" style="border-radius: 50px;"><span style="font-size: 13px; font-weight: bold; color: #00bfff;">✂️ Ajusta el área</span><button id="btn-apply-crop" class="btn" style="padding: 5px 10px; font-size: 12px; background: #28a745; display: none;">Aplicar</button><button id="btn-cancel-crop" class="btn" style="padding: 5px 10px; font-size: 12px; background: #a03030;">Cancelar</button></div>
         <div id="tool-lasso-bar" class="floating-bar" style="border-radius: 50px;"><span id="lasso-status" style="font-size: 13px; font-weight: bold; color: #00bfff;">🖍️ Dibuja el área</span><select id="lasso-mode" class="btn" style="background: #222; padding: 5px;"><option value="keep">Mantener selección</option><option value="invert">Eliminar selección</option></select><button id="btn-cancel-lasso" class="btn" style="padding: 5px 10px; font-size: 12px; background: #a03030;">Cancelar</button></div>
-
+		<div id="tool-eraser-bar" class="floating-bar" style="border-radius: 50px;">
+			<span style="font-size: 13px; font-weight: bold; color: #ff4444;">🧽 Pinta para borrar</span>
+			<div style="width: 1px; height: 20px; background: #555;"></div>
+			<label style="font-size: 12px; display:flex; align-items:center; gap:5px; margin: 0;">
+				Grosor: <input type="range" id="eraser-size" min="5" max="150" value="30" style="width: 80px;">
+			</label>
+			<button id="btn-cancel-eraser" class="btn" style="padding: 5px 10px; font-size: 12px; background: #a03030;">Terminar</button>
+		</div>
     </div>
 
     <script type="module">
