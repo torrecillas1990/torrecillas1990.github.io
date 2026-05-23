@@ -4,10 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ProPhoto Editor</title>
+    
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1e1e1e">
+
     <style>
         body { margin: 0; background-color: #1e1e1e; color: white; display: flex; flex-direction: column; height: 100vh; overflow: hidden; font-family: sans-serif; }
+        
         #topbar { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #252525; border-bottom: 1px solid #444; z-index: 100; }
         .toolbar-group { display: flex; gap: 8px; align-items: center; }
         .btn { padding: 8px 12px; background: #333; color: white; border: 1px solid #555; border-radius: 5px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
@@ -15,6 +18,7 @@
         .btn-icon { font-size: 18px; padding: 8px; }
 
         #main-content { flex: 1; position: relative; display: flex; overflow: hidden; }
+        
         #workspace-container {
             flex: 1; display: flex; justify-content: center; align-items: center; background: #1a1a1a;
             background-image: linear-gradient(45deg, #222 25%, transparent 25%), linear-gradient(-45deg, #222 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #222 75%), linear-gradient(-45deg, transparent 75%, #222 75%);
@@ -22,7 +26,12 @@
         }
         #workspace { box-shadow: 0 0 20px rgba(0,0,0,0.8); transition: box-shadow 0.3s ease; }
 
-        .sidebar { position: absolute; top: 0; bottom: 0; width: 260px; background: rgba(37, 37, 37, 0.98); backdrop-filter: blur(10px); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 50; display: flex; flex-direction: column; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        .sidebar {
+            position: absolute; top: 0; bottom: 0; width: 260px;
+            background: rgba(37, 37, 37, 0.98); backdrop-filter: blur(10px);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 50;
+            display: flex; flex-direction: column; box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
         #panel-tools { left: 0; transform: translateX(-100%); border-right: 1px solid #444; }
         #panel-layers { right: 0; transform: translateX(100%); border-left: 1px solid #444; }
         #panel-tools.open, #panel-layers.open { transform: translateX(0); }
@@ -50,13 +59,6 @@
 
         @media (max-width: 600px) { .btn span.text { display: none; } .sidebar { width: 80%; max-width: 300px; } }
     </style>
-	<!-- Cargar Transformers.js -->
-	<script type="module">
-		import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.16.0';
-		// Configuramos para que no intente buscar modelos locales raros
-		env.allowLocalModels = false;
-		window.transformers = { pipeline };
-	</script>
 </head>
 <body>
 
@@ -68,6 +70,8 @@
         <div class="toolbar-group">
             <button id="btnUndo" class="btn btn-icon" title="Deshacer">↩️</button>
             <button id="btnUpload" class="btn"><span class="icon">📁</span> <span class="text">&nbsp;Importar</span></button>
+            <button id="btnExportPNG" class="btn" style="background: #28a745;">💾 PNG</button>
+            <button id="btnExportJPG" class="btn" style="background: #007bff;">💾 JPG</button>
             <button id="btnRedo" class="btn btn-icon" title="Rehacer">↪️</button>
             <input type="file" id="fileInput" accept="image/*" style="display: none;">
         </div>
@@ -77,22 +81,23 @@
     </div>
 
     <div id="main-content">
+        
+        <!-- Panel Izquierdo: Herramientas -->
         <div id="panel-tools" class="sidebar">
             <div class="panel-header">
                 <span>Herramientas</span>
                 <button id="btnCloseTools" class="close-btn">×</button>
             </div>
             <div class="tools-grid">
-				<button id="btnExportPNG" class="btn" style="background: #28a745;">💾 PNG</button>
-				<button id="btnExportJPG" class="btn" style="background: #007bff;">💾 JPG</button>
                 <div class="tool-item active" id="tool-select"><span class="icon">👆</span> Seleccionar</div>
                 <div class="tool-item" id="tool-pan"><span class="icon">✋</span> Mover Vista</div>
                 <div class="tool-item" id="tool-clone"><span class="icon">👯</span> Clonar</div>
                 <div class="tool-item" id="tool-crop"><span class="icon">✂️</span> Lienzo</div>
                 <div class="tool-item" id="tool-lasso"><span class="icon">🖍️</span> Lazo</div>
                 <div class="tool-item" id="tool-filters"><span class="icon">🎨</span> Filtros</div>
-                <div class="tool-item"><span class="icon">🪄</span> Fondo IA</div>
-				<div class="tool-item" id="tool-ai"><span class="icon">🪄</span> Fondo IA</div>
+                <div class="tool-item" id="tool-shapes"><span class="icon">🔼</span> Formas</div>
+                <div class="tool-item" id="tool-text"><span class="icon">T</span> Texto</div>
+                <div class="tool-item" id="tool-ai" style="grid-column: 1 / -1;"><span class="icon">🪄</span> Fondo IA</div>
             </div>
         </div>
 
@@ -105,7 +110,7 @@
             <ul id="layers-list"></ul>
         </div>
         
-        <!-- Barras flotantes -->
+        <!-- Otras barras flotantes (Clonación, Recorte, Lazo, Filtros) -->
         <div id="tool-options-bar" class="floating-bar" style="border-radius: 50px;">
             <span id="clone-status" style="font-size: 13px; font-weight: bold; color: #00bfff;">🎯 Fija el Origen</span>
             <div style="width: 1px; height: 20px; background: #555;"></div>
@@ -120,14 +125,14 @@
             <button id="btn-cancel-crop" class="btn" style="padding: 5px 10px; font-size: 12px; background: #a03030;">Cancelar</button>
         </div>
 
-		<div id="tool-lasso-bar" class="floating-bar">
-			<span id="lasso-status" style="font-size: 13px; font-weight: bold; color: #00bfff;">🖍️ Dibuja el área</span>
-			<select id="lasso-mode" class="btn" style="background: #222; padding: 5px;">
-				<option value="keep">Mantener selección</option>
-				<option value="invert">Eliminar selección</option>
-			</select>
-			<button id="btn-cancel-lasso" class="btn" style="padding: 5px 10px; font-size: 12px; background: #a03030;">Cancelar</button>
-		</div>
+        <div id="tool-lasso-bar" class="floating-bar" style="border-radius: 50px;">
+            <span id="lasso-status" style="font-size: 13px; font-weight: bold; color: #00bfff;">🖍️ Dibuja el área</span>
+            <select id="lasso-mode" class="btn" style="background: #222; padding: 5px;">
+                <option value="keep">Mantener selección</option>
+                <option value="invert">Eliminar selección</option>
+            </select>
+            <button id="btn-cancel-lasso" class="btn" style="padding: 5px 10px; font-size: 12px; background: #a03030;">Cancelar</button>
+        </div>
 
         <div id="tool-filters-bar" class="floating-bar" style="flex-direction: column; align-items: stretch; width: 250px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -139,19 +144,72 @@
                 <button id="btn-filter-sepia" class="btn" style="flex:1; font-size:11px; padding:6px;">Sepia</button>
                 <button id="btn-filter-invert" class="btn" style="flex:1; font-size:11px; padding:6px;">Invertir</button>
             </div>
-			<div style="display: flex; gap: 5px; margin-top: 15px; border-top: 1px solid #444; padding-top: 15px;">
-				<button id="btn-flip-x" class="btn" style="flex:1; font-size:11px;">Voltear H</button>
-				<button id="btn-flip-y" class="btn" style="flex:1; font-size:11px;">Voltear V</button>
-				<button id="btn-rotate-90" class="btn" style="flex:1; font-size:11px;">Rotar 90°</button>
-			</div>
             <label style="font-size: 12px; display:flex; justify-content:space-between; margin-bottom: 8px;">Brillo: <input type="range" id="filter-brightness" min="-0.5" max="0.5" step="0.02" value="0" style="width: 140px;"></label>
             <label style="font-size: 12px; display:flex; justify-content:space-between; margin-bottom: 8px;">Contraste: <input type="range" id="filter-contrast" min="-0.5" max="0.5" step="0.02" value="0" style="width: 140px;"></label>
-            <label style="font-size: 12px; display:flex; justify-content:space-between; margin-bottom: 15px;">Saturación: <input type="range" id="filter-saturation" min="-1" max="1" step="0.05" value="0" style="width: 140px;"></label>
-			<label style="font-size: 12px; display:flex; justify-content:space-between; margin-bottom: 15px;">Opacidad: <input type="range" id="filter-opacity" min="0" max="1" step="0.05" value="1" style="width: 140px;"></label>
-            <button id="btn-reset-filters" class="btn" style="background: #a03030; width: 100%; font-size: 12px;">Borrar Filtros</button>
+            <label style="font-size: 12px; display:flex; justify-content:space-between; margin-bottom: 8px;">Saturación: <input type="range" id="filter-saturation" min="-1" max="1" step="0.05" value="0" style="width: 140px;"></label>
+            <label style="font-size: 12px; display:flex; justify-content:space-between; margin-bottom: 15px;">Opacidad: <input type="range" id="filter-opacity" min="0" max="1" step="0.05" value="1" style="width: 140px;"></label>
+            <button id="btn-reset-filters" class="btn" style="background: #a03030; width: 100%; font-size: 12px; margin-bottom: 15px;">Borrar Filtros</button>
+            <div style="display: flex; gap: 5px; border-top: 1px solid #444; padding-top: 15px;">
+                <button id="btn-flip-x" class="btn" style="flex:1; font-size:11px;">Voltear H</button>
+                <button id="btn-flip-y" class="btn" style="flex:1; font-size:11px;">Voltear V</button>
+                <button id="btn-rotate-90" class="btn" style="flex:1; font-size:11px;">Rotar 90°</button>
+            </div>
         </div>
+
+        <!-- NUEVA BARRA: FORMAS -->
+        <div id="tool-shapes-bar" class="floating-bar" style="flex-direction: column; align-items: stretch; width: 250px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span style="font-size: 13px; font-weight: bold; color: #00bfff;">🔼 Añadir Forma</span>
+                <button id="btn-close-shapes" class="close-btn" style="padding: 0;">×</button>
+            </div>
+            <select id="shape-type" class="btn" style="background: #222; margin-bottom: 10px; width: 100%;">
+                <option value="square">Cuadrado</option>
+                <option value="rectangle">Rectángulo</option>
+                <option value="circle">Círculo</option>
+                <option value="triangle">Triángulo</option>
+                <option value="oval">Óvalo</option>
+                <option value="semicircle">Semicírculo</option>
+                <option value="star">Estrella</option>
+            </select>
+            <div style="display: flex; gap: 10px; margin-bottom: 10px; align-items: center;">
+                <input type="color" id="shape-color" value="#00bfff" style="width: 40px; height: 30px; border: none; cursor: pointer;">
+                <select id="shape-fill-type" class="btn" style="background: #222; flex: 1; padding: 5px;">
+                    <option value="fill">Relleno</option>
+                    <option value="outline">Solo Contorno</option>
+                </select>
+            </div>
+            <label id="shape-stroke-container" style="font-size: 12px; display:none; justify-content:space-between; margin-bottom: 15px; align-items:center;">
+                Grosor: <input type="range" id="shape-stroke-width" min="1" max="30" value="5" style="width: 140px;">
+            </label>
+            <button id="btn-add-shape" class="btn" style="background: #28a745; width: 100%;">+ Insertar Forma</button>
+        </div>
+
+        <!-- NUEVA BARRA: TEXTO -->
+        <div id="tool-text-bar" class="floating-bar" style="flex-direction: column; align-items: stretch; width: 250px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span style="font-size: 13px; font-weight: bold; color: #00bfff;">T Añadir Texto</span>
+                <button id="btn-close-text" class="close-btn" style="padding: 0;">×</button>
+            </div>
+            <div style="display: flex; gap: 10px; margin-bottom: 10px; align-items: center;">
+                <input type="color" id="text-color" value="#ffffff" style="width: 40px; height: 30px; border: none; cursor: pointer;">
+                <select id="text-fill-type" class="btn" style="background: #222; flex: 1; padding: 5px;">
+                    <option value="fill">Relleno</option>
+                    <option value="outline">Solo Contorno</option>
+                </select>
+            </div>
+            <label id="text-stroke-container" style="font-size: 12px; display:none; justify-content:space-between; margin-bottom: 15px; align-items:center;">
+                Grosor: <input type="range" id="text-stroke-width" min="1" max="15" value="2" style="width: 140px;">
+            </label>
+            <button id="btn-add-text" class="btn" style="background: #28a745; width: 100%;">+ Insertar Texto</button>
+        </div>
+
     </div>
 
+    <script type="module">
+        import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.16.0';
+        env.allowLocalModels = false;
+        window.transformers = { pipeline };
+    </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
     <script src="app.js"></script>
 </body>
