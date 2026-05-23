@@ -26,12 +26,7 @@
         }
         #workspace { box-shadow: 0 0 20px rgba(0,0,0,0.8); transition: box-shadow 0.3s ease; }
 
-        .sidebar {
-            position: absolute; top: 0; bottom: 0; width: 260px;
-            background: rgba(37, 37, 37, 0.98); backdrop-filter: blur(10px);
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 50;
-            display: flex; flex-direction: column; box-shadow: 0 0 20px rgba(0,0,0,0.5);
-        }
+        .sidebar { position: absolute; top: 0; bottom: 0; width: 260px; background: rgba(37, 37, 37, 0.98); backdrop-filter: blur(10px); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 50; display: flex; flex-direction: column; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
         #panel-tools { left: 0; transform: translateX(-100%); border-right: 1px solid #444; }
         #panel-layers { right: 0; transform: translateX(100%); border-left: 1px solid #444; }
         #panel-tools.open, #panel-layers.open { transform: translateX(0); }
@@ -57,6 +52,10 @@
         
         .floating-bar { display: none; position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(30,30,30,0.95); padding: 10px 20px; border-radius: 10px; border: 1px solid #555; z-index: 100; box-shadow: 0 5px 20px rgba(0,0,0,0.6); align-items: center; gap: 15px; white-space: nowrap; }
 
+        /* Estilos para las muestras de color (Swatches) */
+        .color-swatch { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 2px solid #555; transition: transform 0.1s; }
+        .color-swatch:hover { border-color: #fff; transform: scale(1.2); }
+
         @media (max-width: 600px) { .btn span.text { display: none; } .sidebar { width: 80%; max-width: 300px; } }
     </style>
 </head>
@@ -70,8 +69,6 @@
         <div class="toolbar-group">
             <button id="btnUndo" class="btn btn-icon" title="Deshacer">↩️</button>
             <button id="btnUpload" class="btn"><span class="icon">📁</span> <span class="text">&nbsp;Importar</span></button>
-            <button id="btnExportPNG" class="btn" style="background: #28a745;">💾 PNG</button>
-            <button id="btnExportJPG" class="btn" style="background: #007bff;">💾 JPG</button>
             <button id="btnRedo" class="btn btn-icon" title="Rehacer">↪️</button>
             <input type="file" id="fileInput" accept="image/*" style="display: none;">
         </div>
@@ -84,20 +81,20 @@
         
         <!-- Panel Izquierdo: Herramientas -->
         <div id="panel-tools" class="sidebar">
-            <div class="panel-header">
-                <span>Herramientas</span>
-                <button id="btnCloseTools" class="close-btn">×</button>
-            </div>
+            <div class="panel-header"><span>Herramientas</span><button id="btnCloseTools" class="close-btn">×</button></div>
             <div class="tools-grid">
+				<button id="btnExportPNG" class="btn" style="background: #28a745;">💾 PNG</button>
+				<button id="btnExportJPG" class="btn" style="background: #007bff;">💾 JPG</button>
                 <div class="tool-item active" id="tool-select"><span class="icon">👆</span> Seleccionar</div>
-                <div class="tool-item" id="tool-pan"><span class="icon">✋</span> Mover Vista</div>
-                <div class="tool-item" id="tool-clone"><span class="icon">👯</span> Clonar</div>
-                <div class="tool-item" id="tool-crop"><span class="icon">✂️</span> Lienzo</div>
-                <div class="tool-item" id="tool-lasso"><span class="icon">🖍️</span> Lazo</div>
-                <div class="tool-item" id="tool-filters"><span class="icon">🎨</span> Filtros</div>
-                <div class="tool-item" id="tool-shapes"><span class="icon">🔼</span> Formas</div>
+                <div class="tool-item" id="tool-pan"><span class="icon">✋</span> Cámara</div>
+                <div class="tool-item" id="tool-color"><span class="icon">🎨</span> Color</div>
                 <div class="tool-item" id="tool-text"><span class="icon">T</span> Texto</div>
-                <div class="tool-item" id="tool-ai" style="grid-column: 1 / -1;"><span class="icon">🪄</span> Fondo IA</div>
+                <div class="tool-item" id="tool-shapes"><span class="icon">🔼</span> Formas</div>
+                <div class="tool-item" id="tool-filters"><span class="icon">🌟</span> Ajustes</div>
+                <div class="tool-item" id="tool-clone"><span class="icon">👯</span> Clonar</div>
+                <div class="tool-item" id="tool-lasso"><span class="icon">🖍️</span> Lazo</div>
+                <div class="tool-item" id="tool-crop"><span class="icon">✂️</span> Lienzo</div>
+                <div class="tool-item" id="tool-ai"><span class="icon">🪄</span> Fondo IA</div>
             </div>
         </div>
 
@@ -110,53 +107,38 @@
             <ul id="layers-list"></ul>
         </div>
         
-        <!-- Otras barras flotantes (Clonación, Recorte, Lazo, Filtros) -->
-        <div id="tool-options-bar" class="floating-bar" style="border-radius: 50px;">
-            <span id="clone-status" style="font-size: 13px; font-weight: bold; color: #00bfff;">🎯 Fija el Origen</span>
-            <div style="width: 1px; height: 20px; background: #555;"></div>
-            <label style="font-size: 12px; display:flex; align-items:center; gap:5px; margin: 0;">Tamaño: <input type="range" id="clone-size" min="5" max="100" value="30" style="width: 80px;"></label>
-            <button id="btn-reset-clone" class="btn" style="padding: 5px 10px; font-size: 12px; background: #444;">Resetear</button>
-            <button id="btn-close-tool" class="btn" style="padding: 5px 10px; font-size: 12px; background: #a03030;">Terminar</button>
-        </div>
-
-        <div id="tool-crop-bar" class="floating-bar" style="border-radius: 50px;">
-            <span style="font-size: 13px; font-weight: bold; color: #00bfff;">✂️ Ajusta el área</span>
-            <button id="btn-apply-crop" class="btn" style="padding: 5px 10px; font-size: 12px; background: #28a745; display: none;">Aplicar</button>
-            <button id="btn-cancel-crop" class="btn" style="padding: 5px 10px; font-size: 12px; background: #a03030;">Cancelar</button>
-        </div>
-
-        <div id="tool-lasso-bar" class="floating-bar" style="border-radius: 50px;">
-            <span id="lasso-status" style="font-size: 13px; font-weight: bold; color: #00bfff;">🖍️ Dibuja el área</span>
-            <select id="lasso-mode" class="btn" style="background: #222; padding: 5px;">
-                <option value="keep">Mantener selección</option>
-                <option value="invert">Eliminar selección</option>
-            </select>
-            <button id="btn-cancel-lasso" class="btn" style="padding: 5px 10px; font-size: 12px; background: #a03030;">Cancelar</button>
-        </div>
-
-        <div id="tool-filters-bar" class="floating-bar" style="flex-direction: column; align-items: stretch; width: 250px;">
+        <!-- BARRAS FLOTANTES -->
+        
+        <!-- 1. Panel de COLOR MAESTRO -->
+        <div id="tool-color-bar" class="floating-bar" style="flex-direction: column; align-items: stretch; width: 250px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <span style="font-size: 13px; font-weight: bold; color: #00bfff;">🎨 Ajustes de Color</span>
-                <button id="btn-close-filters" class="close-btn" style="padding: 0;">×</button>
+                <span id="color-status" style="font-size: 13px; font-weight: bold; color: #00bfff;">🎨 Panel de Color</span>
+                <button id="btn-close-color" class="close-btn" style="padding: 0;">×</button>
             </div>
-            <div style="display: flex; gap: 5px; margin-bottom: 15px;">
-                <button id="btn-filter-gray" class="btn" style="flex:1; font-size:11px; padding:6px;">B/N</button>
-                <button id="btn-filter-sepia" class="btn" style="flex:1; font-size:11px; padding:6px;">Sepia</button>
-                <button id="btn-filter-invert" class="btn" style="flex:1; font-size:11px; padding:6px;">Invertir</button>
+            
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center;">
+                <input type="color" id="global-color-picker" value="#00bfff" style="flex: 1; height: 35px; border: none; cursor: pointer; border-radius: 5px;">
+                <button id="btn-eyedropper" class="btn" style="padding: 8px; font-size: 12px; background: #444;" title="Capturar color">💧 Pipeta</button>
             </div>
-            <label style="font-size: 12px; display:flex; justify-content:space-between; margin-bottom: 8px;">Brillo: <input type="range" id="filter-brightness" min="-0.5" max="0.5" step="0.02" value="0" style="width: 140px;"></label>
-            <label style="font-size: 12px; display:flex; justify-content:space-between; margin-bottom: 8px;">Contraste: <input type="range" id="filter-contrast" min="-0.5" max="0.5" step="0.02" value="0" style="width: 140px;"></label>
-            <label style="font-size: 12px; display:flex; justify-content:space-between; margin-bottom: 8px;">Saturación: <input type="range" id="filter-saturation" min="-1" max="1" step="0.05" value="0" style="width: 140px;"></label>
-            <label style="font-size: 12px; display:flex; justify-content:space-between; margin-bottom: 15px;">Opacidad: <input type="range" id="filter-opacity" min="0" max="1" step="0.05" value="1" style="width: 140px;"></label>
-            <button id="btn-reset-filters" class="btn" style="background: #a03030; width: 100%; font-size: 12px; margin-bottom: 15px;">Borrar Filtros</button>
-            <div style="display: flex; gap: 5px; border-top: 1px solid #444; padding-top: 15px;">
-                <button id="btn-flip-x" class="btn" style="flex:1; font-size:11px;">Voltear H</button>
-                <button id="btn-flip-y" class="btn" style="flex:1; font-size:11px;">Voltear V</button>
-                <button id="btn-rotate-90" class="btn" style="flex:1; font-size:11px;">Rotar 90°</button>
+
+            <div style="margin-bottom: 15px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
+                <div class="color-swatch" style="background: #ffffff;" data-color="#ffffff"></div>
+                <div class="color-swatch" style="background: #000000;" data-color="#000000"></div>
+                <div class="color-swatch" style="background: #ff0000;" data-color="#ff0000"></div>
+                <div class="color-swatch" style="background: #00ff00;" data-color="#00ff00"></div>
+                <div class="color-swatch" style="background: #0000ff;" data-color="#0000ff"></div>
+                <div class="color-swatch" style="background: #ffff00;" data-color="#ffff00"></div>
+                <div class="color-swatch" style="background: #ff00ff;" data-color="#ff00ff"></div>
+                <div class="color-swatch" style="background: transparent; border: 2px dashed #ff4444;" data-color="transparent" title="Transparente"></div>
             </div>
+
+            <select id="color-apply-target" class="btn" style="background: #222; width: 100%;">
+                <option value="fill">Modificar: Relleno</option>
+                <option value="stroke">Modificar: Contorno</option>
+            </select>
         </div>
 
-        <!-- NUEVA BARRA: FORMAS -->
+        <!-- Barras anteriores (Formas, Texto, Filtros, Clonar, Lazo, Recorte) -->
         <div id="tool-shapes-bar" class="floating-bar" style="flex-direction: column; align-items: stretch; width: 250px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                 <span style="font-size: 13px; font-weight: bold; color: #00bfff;">🔼 Añadir Forma</span>
@@ -167,48 +149,56 @@
                 <option value="rectangle">Rectángulo</option>
                 <option value="circle">Círculo</option>
                 <option value="triangle">Triángulo</option>
-                <option value="oval">Óvalo</option>
-                <option value="semicircle">Semicírculo</option>
                 <option value="star">Estrella</option>
             </select>
             <div style="display: flex; gap: 10px; margin-bottom: 10px; align-items: center;">
-                <input type="color" id="shape-color" value="#00bfff" style="width: 40px; height: 30px; border: none; cursor: pointer;">
                 <select id="shape-fill-type" class="btn" style="background: #222; flex: 1; padding: 5px;">
                     <option value="fill">Relleno</option>
                     <option value="outline">Solo Contorno</option>
                 </select>
             </div>
-            <label id="shape-stroke-container" style="font-size: 12px; display:none; justify-content:space-between; margin-bottom: 15px; align-items:center;">
-                Grosor: <input type="range" id="shape-stroke-width" min="1" max="30" value="5" style="width: 140px;">
-            </label>
-            <button id="btn-add-shape" class="btn" style="background: #28a745; width: 100%;">+ Insertar Forma</button>
+            <label id="shape-stroke-container" style="font-size: 12px; display:none; justify-content:space-between; margin-bottom: 15px; align-items:center;">Grosor contorno: <input type="range" id="shape-stroke-width" min="1" max="30" value="5" style="width: 120px;"></label>
+            <button id="btn-add-shape" class="btn" style="background: #28a745; width: 100%;">+ Insertar</button>
+            <div style="text-align: center; margin-top: 10px; font-size: 11px; color: #aaa;">(Usa el panel de Color para pintarla)</div>
         </div>
 
-        <!-- NUEVA BARRA: TEXTO -->
         <div id="tool-text-bar" class="floating-bar" style="flex-direction: column; align-items: stretch; width: 250px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                 <span style="font-size: 13px; font-weight: bold; color: #00bfff;">T Añadir Texto</span>
                 <button id="btn-close-text" class="close-btn" style="padding: 0;">×</button>
             </div>
             <div style="display: flex; gap: 10px; margin-bottom: 10px; align-items: center;">
-                <input type="color" id="text-color" value="#ffffff" style="width: 40px; height: 30px; border: none; cursor: pointer;">
                 <select id="text-fill-type" class="btn" style="background: #222; flex: 1; padding: 5px;">
-                    <option value="fill">Relleno</option>
+                    <option value="fill">Normal</option>
                     <option value="outline">Solo Contorno</option>
                 </select>
             </div>
-            <label id="text-stroke-container" style="font-size: 12px; display:none; justify-content:space-between; margin-bottom: 15px; align-items:center;">
-                Grosor: <input type="range" id="text-stroke-width" min="1" max="15" value="2" style="width: 140px;">
-            </label>
+            <label id="text-stroke-container" style="font-size: 12px; display:none; justify-content:space-between; margin-bottom: 15px; align-items:center;">Grosor contorno: <input type="range" id="text-stroke-width" min="1" max="15" value="2" style="width: 120px;"></label>
             <button id="btn-add-text" class="btn" style="background: #28a745; width: 100%;">+ Insertar Texto</button>
+            <div style="text-align: center; margin-top: 10px; font-size: 11px; color: #aaa;">(Usa el panel de Color para pintarlo)</div>
         </div>
+
+        <div id="tool-filters-bar" class="floating-bar" style="flex-direction: column; align-items: stretch; width: 250px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;"><span style="font-size: 13px; font-weight: bold; color: #00bfff;">🌟 Ajustes Fotográficos</span><button id="btn-close-filters" class="close-btn" style="padding: 0;">×</button></div>
+            <div style="display: flex; gap: 5px; margin-bottom: 15px;"><button id="btn-filter-gray" class="btn" style="flex:1; font-size:11px; padding:6px;">B/N</button><button id="btn-filter-sepia" class="btn" style="flex:1; font-size:11px; padding:6px;">Sepia</button><button id="btn-filter-invert" class="btn" style="flex:1; font-size:11px; padding:6px;">Invertir</button></div>
+            <label style="font-size: 12px; display:flex; justify-content:space-between; margin-bottom: 8px;">Brillo: <input type="range" id="filter-brightness" min="-0.5" max="0.5" step="0.02" value="0" style="width: 140px;"></label>
+            <label style="font-size: 12px; display:flex; justify-content:space-between; margin-bottom: 8px;">Contraste: <input type="range" id="filter-contrast" min="-0.5" max="0.5" step="0.02" value="0" style="width: 140px;"></label>
+            <label style="font-size: 12px; display:flex; justify-content:space-between; margin-bottom: 8px;">Saturación: <input type="range" id="filter-saturation" min="-1" max="1" step="0.05" value="0" style="width: 140px;"></label>
+            <label style="font-size: 12px; display:flex; justify-content:space-between; margin-bottom: 15px;">Opacidad: <input type="range" id="filter-opacity" min="0" max="1" step="0.05" value="1" style="width: 140px;"></label>
+            <button id="btn-reset-filters" class="btn" style="background: #a03030; width: 100%; font-size: 12px; margin-bottom: 15px;">Borrar Ajustes</button>
+            <div style="display: flex; gap: 5px; border-top: 1px solid #444; padding-top: 15px;"><button id="btn-flip-x" class="btn" style="flex:1; font-size:11px;">Voltear H</button><button id="btn-flip-y" class="btn" style="flex:1; font-size:11px;">Voltear V</button><button id="btn-rotate-90" class="btn" style="flex:1; font-size:11px;">Rotar 90°</button></div>
+        </div>
+
+        <!-- Barras previas truncadas por limpieza visual, mantienen su HTML original -->
+        <div id="tool-options-bar" class="floating-bar" style="border-radius: 50px;"><span id="clone-status" style="font-size: 13px; font-weight: bold; color: #00bfff;">🎯 Fija el Origen</span><div style="width: 1px; height: 20px; background: #555;"></div><label style="font-size: 12px; display:flex; align-items:center; gap:5px; margin: 0;">Tamaño: <input type="range" id="clone-size" min="5" max="100" value="30" style="width: 80px;"></label><button id="btn-reset-clone" class="btn" style="padding: 5px 10px; font-size: 12px; background: #444;">Resetear</button><button id="btn-close-tool" class="btn" style="padding: 5px 10px; font-size: 12px; background: #a03030;">Terminar</button></div>
+        <div id="tool-crop-bar" class="floating-bar" style="border-radius: 50px;"><span style="font-size: 13px; font-weight: bold; color: #00bfff;">✂️ Ajusta el área</span><button id="btn-apply-crop" class="btn" style="padding: 5px 10px; font-size: 12px; background: #28a745; display: none;">Aplicar</button><button id="btn-cancel-crop" class="btn" style="padding: 5px 10px; font-size: 12px; background: #a03030;">Cancelar</button></div>
+        <div id="tool-lasso-bar" class="floating-bar" style="border-radius: 50px;"><span id="lasso-status" style="font-size: 13px; font-weight: bold; color: #00bfff;">🖍️ Dibuja el área</span><select id="lasso-mode" class="btn" style="background: #222; padding: 5px;"><option value="keep">Mantener selección</option><option value="invert">Eliminar selección</option></select><button id="btn-cancel-lasso" class="btn" style="padding: 5px 10px; font-size: 12px; background: #a03030;">Cancelar</button></div>
 
     </div>
 
     <script type="module">
         import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.16.0';
-        env.allowLocalModels = false;
-        window.transformers = { pipeline };
+        env.allowLocalModels = false; window.transformers = { pipeline };
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
     <script src="app.js"></script>
