@@ -50,6 +50,13 @@
 
         @media (max-width: 600px) { .btn span.text { display: none; } .sidebar { width: 80%; max-width: 300px; } }
     </style>
+	<!-- Cargar Transformers.js -->
+	<script type="module">
+		import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.16.0';
+		// Configuramos para que no intente buscar modelos locales raros
+		env.allowLocalModels = false;
+		window.transformers = { pipeline };
+	</script>
 </head>
 <body>
 
@@ -85,6 +92,7 @@
                 <div class="tool-item" id="tool-lasso"><span class="icon">🖍️</span> Lazo</div>
                 <div class="tool-item" id="tool-filters"><span class="icon">🎨</span> Filtros</div>
                 <div class="tool-item"><span class="icon">🪄</span> Fondo IA</div>
+				<div class="tool-item" id="tool-ai"><span class="icon">🪄</span> Fondo IA</div>
             </div>
         </div>
 
@@ -145,12 +153,6 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
-	<script type="module">
-		import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.16.0';
-		// Desactivamos el almacenamiento local para modelos pesados si es necesario
-		env.allowLocalModels = false;
-		window.transformers = { pipeline };
-	</script>
     <script src="app.js"></script>
 </body>
 </html>

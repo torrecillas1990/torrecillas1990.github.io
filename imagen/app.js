@@ -477,86 +477,6 @@ document.getElementById('btn-filter-sepia').addEventListener('click', () => appl
 document.getElementById('btn-filter-invert').addEventListener('click', () => applyToggleFilter('Invert'));
 
 // ==========================================
-// 11. HERRAMIENTA: BORRADO DE FONDO (IA OFFLINE)
-// ==========================================
-let isAIPending = false;
-
-async function removeBackground(imgElement) {
-    if (isAIPending) return;
-    
-    // 1. Mostrar estado de carga (podrías añadir un spinner aquí)
-    console.log("Cargando IA de segmentación...");
-    isAIPending = true;
-    isMaskProcessing = true;
-
-    try {
-        // 2. Cargar pipeline de segmentación
-        const segmenter = await window.transformers.pipeline('image-segmentation', 'briaai/RMBG-1.4');
-        
-        // 3. Ejecutar IA
-        const output = await segmenter(imgElement.src);
-        
-        // 4. Crear máscara de recorte
-        const maskCanvas = document.createElement('canvas');
-        maskCanvas.width = imgElement.naturalWidth;
-        maskCanvas.height = imgElement.naturalHeight;
-        const ctx = maskCanvas.getContext('2d');
-        ctx.drawImage(output, 0, 0);
-
-        // 5. Aplicar máscara al objeto original (usando destination-in)
-        const finalC = document.createElement('canvas');
-        finalC.width = imgElement.naturalWidth;
-        finalC.height = imgElement.naturalHeight;
-        const fCtx = finalC.getContext('2d');
-        
-        fCtx.drawImage(imgElement, 0, 0);
-        fCtx.globalCompositeOperation = 'destination-in';
-        fCtx.drawImage(maskCanvas, 0, 0);
-
-        return finalC.toDataURL('image/png');
-    } catch (err) {
-        console.error("Error en la IA:", err);
-        return null;
-    } finally {
-        isAIPending = false;
-        isMaskProcessing = false;
-    }
-}
-
-// Conectar con el botón de herramientas
-document.getElementById('tool-ai-bg').addEventListener('click', async () => {
-    const activeObj = canvas.getActiveObject();
-    if (!activeObj || activeObj.type !== 'image') {
-        return alert("Selecciona una foto primero.");
-    }
-
-    const confirm = window.confirm("¿Borrar el fondo? Esto puede tardar unos segundos.");
-    if (!confirm) return;
-
-    // Convertir objeto Fabric a elemento imagen natural
-    const imgEl = new Image();
-    imgEl.src = activeObj.toDataURL();
-    
-    imgEl.onload = async () => {
-        const resultDataUrl = await removeBackground(imgEl);
-        if (resultDataUrl) {
-            // Reemplazar la capa original por la recortada
-            fabric.Image.fromURL(resultDataUrl, (newImg) => {
-                newImg.set({
-                    left: activeObj.left, top: activeObj.top,
-                    scaleX: activeObj.scaleX, scaleY: activeObj.scaleY
-                });
-                canvas.remove(activeObj);
-                canvas.add(newImg);
-                canvas.setActiveObject(newImg);
-                canvas.renderAll();
-                saveHistory();
-            });
-        }
-    };
-});
-
-// ==========================================
 // 12. HERRAMIENTA: EXPORTACIÓN
 // ==========================================
 
@@ -592,6 +512,217 @@ function exportCanvas(format) {
 // Conectar botones
 document.getElementById('btnExportPNG').addEventListener('click', () => exportCanvas('png'));
 document.getElementById('btnExportJPG').addEventListener('click', () => exportCanvas('jpeg'));
+
+// ==========================================
+// 13. HERRAMIENTA: BORRADO DE FONDO (IA OFFLINE)
+// ==========================================
+
+async function runBackgroundRemoval(imgElement) {
+    // 1. Cargamos el pipeline (se cachea automáticamente por el navegador)
+    const segmenter = await window.transformers.pipeline('image-segmentation', 'briaai/RMBG-1.4');
+    
+    // 2. Ejecutar segmentación
+    const output = await segmenter(imgElement.src);
+    
+    // 3. Crear máscara
+    const maskCanvas = document.createElement('canvas');
+    maskCanvas.width = imgElement.naturalWidth;
+    maskCanvas.height = imgElement.naturalHeight;
+    const ctx = maskCanvas.getContext('2d');
+    ctx.drawImage(output, 0, 0);
+
+    // 4. Fusionar (Imagen Original + Máscara)
+    const finalC = document.createElement('canvas');
+    finalC.width = imgElement.naturalWidth;
+    finalC.height = imgElement.naturalHeight;
+    const fCtx = finalC.getContext('2d');
+    
+    fCtx.drawImage(imgElement, 0, 0);
+    fCtx.globalCompositeOperation = 'destination-in';
+    fCtx.drawImage(maskCanvas, 0, 0);
+
+    return finalC.toDataURL('image/png');
+}
+
+// Botón de IA en el panel de herramientas
+document.getElementById('tool-ai').addEventListener('click', async () => {
+    const activeObj = canvas.getActiveObject();
+    if (!activeObj || activeObj.type !== 'image') {
+        return alert("Selecciona una capa de imagen (foto) primero.");
+    }
+
+    const confirm = window.confirm("La IA procesará la imagen (primera vez puede tardar un poco). ¿Continuar?");
+    if (!confirm) return;
+
+    // Bloqueo de UI mientras trabaja
+    isMaskProcessing = true; 
+    document.body.style.cursor = 'wait';
+    alert("IA trabajando... Por favor, espera unos segundos.");
+
+    const imgEl = new Image();
+    imgEl.src = activeObj.toDataURL();
+    
+    imgEl.onload = async () => {
+        try {
+            const resultDataUrl = await runBackgroundRemoval(imgEl);
+            
+            // Reemplazar capa
+            fabric.Image.fromURL(resultDataUrl, (newImg) => {
+                newImg.set({
+                    left: activeObj.left, top: activeObj.top,
+                    scaleX: activeObj.scaleX, scaleY: activeObj.scaleY,
+                    name: activeObj.name + " (Sin Fondo)"
+                });
+                canvas.remove(activeObj);
+                canvas.add(newImg);
+                canvas.setActiveObject(newImg);
+                canvas.renderAll();
+                
+                isMaskProcessing = false;
+                document.body.style.cursor = 'default';
+                saveHistory();
+                updateLayersPanel();
+            });
+        } catch (err) {
+            alert("Error al procesar la IA: " + err.message);
+            isMaskProcessing = false;
+            document.body.style.cursor = 'default';
+        }
+    };
+});
+
+// Helper para encontrar el botón por texto (pequeño parche para el querySelector)
+// Si prefieres, añade un ID 'tool-ai' al div correspondiente en el index.html
+
+// ==========================================
+// 14. SISTEMA DE GUÍAS MAGNÉTICAS (SMART GUIDES)
+// ==========================================
+
+const snapZone = 15; // Distancia en píxeles para que actúe el imán
+let verticalGuide = null;
+let horizontalGuide = null;
+
+canvas.on('object:moving', function(options) {
+    const obj = options.target;
+    
+    // Reiniciar guías en cada frame de movimiento
+    verticalGuide = null;
+    horizontalGuide = null;
+
+    const canvasWidth = canvas.width;
+    const canvasHeight = canvas.height;
+
+    // Puntos de anclaje del lienzo (Izquierda, Centro, Derecha / Arriba, Medio, Abajo)
+    const snapPointsX = [0, canvasWidth / 2, canvasWidth];
+    const snapPointsY = [0, canvasHeight / 2, canvasHeight];
+
+    // Dimensiones de la capa actual
+    const objW = obj.getScaledWidth();
+    const objH = obj.getScaledHeight();
+
+    // Calcular las coordenadas absolutas de la capa (Bordes y Centro)
+    let objLeft, objCenterX, objRight;
+    let objTop, objCenterY, objBottom;
+
+    if (obj.originX === 'center') {
+        objCenterX = obj.left;
+        objLeft = obj.left - objW / 2;
+        objRight = obj.left + objW / 2;
+    } else {
+        objLeft = obj.left;
+        objCenterX = obj.left + objW / 2;
+        objRight = obj.left + objW;
+    }
+
+    if (obj.originY === 'center') {
+        objCenterY = obj.top;
+        objTop = obj.top - objH / 2;
+        objBottom = obj.top + objH / 2;
+    } else {
+        objTop = obj.top;
+        objCenterY = obj.top + objH / 2;
+        objBottom = obj.top + objH;
+    }
+
+    // --- Lógica del Imán X (Líneas Verticales) ---
+    let snappedX = false;
+    for (let targetX of snapPointsX) {
+        if (!snappedX && Math.abs(targetX - objCenterX) < snapZone) {
+            obj.set('left', obj.originX === 'center' ? targetX : targetX - objW/2);
+            verticalGuide = targetX; snappedX = true;
+        }
+        if (!snappedX && Math.abs(targetX - objLeft) < snapZone) {
+            obj.set('left', obj.originX === 'center' ? targetX + objW/2 : targetX);
+            verticalGuide = targetX; snappedX = true;
+        }
+        if (!snappedX && Math.abs(targetX - objRight) < snapZone) {
+            obj.set('left', obj.originX === 'center' ? targetX - objW/2 : targetX - objW);
+            verticalGuide = targetX; snappedX = true;
+        }
+    }
+
+    // --- Lógica del Imán Y (Líneas Horizontales) ---
+    let snappedY = false;
+    for (let targetY of snapPointsY) {
+        if (!snappedY && Math.abs(targetY - objCenterY) < snapZone) {
+            obj.set('top', obj.originY === 'center' ? targetY : targetY - objH/2);
+            horizontalGuide = targetY; snappedY = true;
+        }
+        if (!snappedY && Math.abs(targetY - objTop) < snapZone) {
+            obj.set('top', obj.originY === 'center' ? targetY + objH/2 : targetY);
+            horizontalGuide = targetY; snappedY = true;
+        }
+        if (!snappedY && Math.abs(targetY - objBottom) < snapZone) {
+            obj.set('top', obj.originY === 'center' ? targetY - objH/2 : targetY - objH);
+            horizontalGuide = targetY; snappedY = true;
+        }
+    }
+});
+
+// Al soltar el ratón, borramos las guías
+canvas.on('mouse:up', function() {
+    verticalGuide = null;
+    horizontalGuide = null;
+    canvas.renderAll();
+});
+
+// Dibujar las líneas sobre el lienzo
+canvas.on('after:render', function() {
+    if (verticalGuide !== null || horizontalGuide !== null) {
+        // Usamos el contexto del lienzo para pintar sin crear objetos en la historia
+        const ctx = canvas.contextContainer;
+        ctx.save();
+        
+        // Estilo de la guía (Cian brillante como en Photoshop)
+        ctx.strokeStyle = '#00bfff';
+        ctx.lineWidth = 1;
+        
+        // Hacemos que la línea se dibuje punteada o con trazos (5px línea, 5px hueco)
+        // Para deshacer la escala del zoom y que la línea siempre se vea fina:
+        ctx.setTransform(1, 0, 0, 1, 0, 0); 
+        
+        // Transformar las coordenadas relativas al zoom y paneo actual
+        const vpt = canvas.viewportTransform;
+        
+        if (verticalGuide !== null) {
+            const drawX = verticalGuide * vpt[0] + vpt[4];
+            ctx.beginPath();
+            ctx.moveTo(drawX, 0);
+            ctx.lineTo(drawX, canvas.height * vpt[3] + vpt[5]); // Ajuste para el zoom
+            ctx.stroke();
+        }
+        
+        if (horizontalGuide !== null) {
+            const drawY = horizontalGuide * vpt[3] + vpt[5];
+            ctx.beginPath();
+            ctx.moveTo(0, drawY);
+            ctx.lineTo(canvas.width * vpt[0] + vpt[4], drawY);
+            ctx.stroke();
+        }
+        
+        ctx.restore();
+    }
+});
 
 // ==========================================
 // ARRANQUE: Añadir Capa Base Inicial
