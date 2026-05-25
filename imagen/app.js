@@ -121,7 +121,6 @@ canvas.on('selection:created', updateLayersPanel); canvas.on('selection:updated'
 let isPanMode = false, isCloneMode = false, isCropMode = false, isLassoMode = false, isEyedropperMode = false, isEraserMode = false;
 let cloneSource = { x: 0, y: 0 }, cloneImageSnapshot = null, cloneDeltaX = 0, cloneDeltaY = 0, isCloneDeltaSet = false, isSettingCloneSource = false, myCloneBrush = null;
 let cropRect = null, cropOrigX = 0, cropOrigY = 0, isDrawingCrop = false, lassoTarget = null, eraserTarget = null;
-// Banderas de previsualización
 let showEraserPreview = false, showClonePreview = false, isCloningActive = false;
 let currentMouseX = 0, currentMouseY = 0;
 
@@ -156,11 +155,10 @@ document.querySelectorAll('.close-btn').forEach(btn => btn.addEventListener('cli
 document.getElementById('tool-clone').addEventListener('click', () => { closeAllTools(); setActiveUI('tool-clone'); canvas.discardActiveObject(); isCloneMode = true; isSettingCloneSource = true; isCloneDeltaSet = false; document.getElementById('tool-options-bar').style.display = 'flex'; document.getElementById('clone-status').innerText = '🎯 Fija el Origen'; canvas.defaultCursor = 'crosshair'; });
 document.getElementById('btn-reset-clone').addEventListener('click', () => { isSettingCloneSource = true; isCloneDeltaSet = false; canvas.isDrawingMode = false; canvas.defaultCursor = 'crosshair'; document.getElementById('clone-status').innerText = '🎯 Fija el Origen'; });
 document.getElementById('btn-close-tool').addEventListener('click', () => { closeAllTools(); setActiveUI('tool-select'); });
-document.getElementById('clone-size').addEventListener('input', e => { 
-    if (myCloneBrush) myCloneBrush.width = parseInt(e.target.value, 10); 
-    if (isCloneMode) { showClonePreview = true; canvas.requestRenderAll(); }
-});
+document.getElementById('clone-size').addEventListener('input', e => { if (myCloneBrush) myCloneBrush.width = parseInt(e.target.value, 10); if (isCloneMode) { showClonePreview = true; canvas.requestRenderAll(); } });
 document.getElementById('clone-size').addEventListener('change', () => { showClonePreview = false; canvas.requestRenderAll(); });
+document.getElementById('clone-hardness').addEventListener('input', () => { if (isCloneMode) { showClonePreview = true; canvas.requestRenderAll(); } });
+document.getElementById('clone-hardness').addEventListener('change', () => { showClonePreview = false; canvas.requestRenderAll(); });
 
 document.getElementById('tool-crop').addEventListener('click', () => { closeAllTools(); setActiveUI('tool-crop'); canvas.discardActiveObject(); isCropMode = true; canvas.selection = false; canvas.defaultCursor = 'crosshair'; canvas.getObjects().forEach(o => { o.selectable = false; o.evented = false; }); document.getElementById('tool-crop-bar').style.display = 'flex'; document.getElementById('btn-apply-crop').style.display = 'none'; });
 document.getElementById('btn-cancel-crop').addEventListener('click', () => { closeAllTools(); setActiveUI('tool-select'); });
@@ -169,174 +167,42 @@ document.getElementById('btn-apply-crop').addEventListener('click', () => { if (
 document.getElementById('tool-lasso').addEventListener('click', () => { lassoTarget = canvas.getActiveObject(); if (!lassoTarget) return alert('Selecciona primero la capa a recortar.'); closeAllTools(); setActiveUI('tool-lasso'); isLassoMode = true; canvas.isDrawingMode = true; canvas.freeDrawingBrush = new fabric.PencilBrush(canvas); canvas.freeDrawingBrush.color = 'rgba(0,191,255,0.7)'; canvas.freeDrawingBrush.width = 4; document.getElementById('tool-lasso-bar').style.display = 'flex'; });
 document.getElementById('btn-cancel-lasso').addEventListener('click', () => { closeAllTools(); setActiveUI('tool-select'); });
 
-// --- Borrador Inteligente ---
 document.getElementById('tool-eraser').addEventListener('click', () => { 
-    eraserTarget = canvas.getActiveObject();
-    if (!eraserTarget) return alert('Por favor, selecciona primero la capa que quieres borrar.');
+    eraserTarget = canvas.getActiveObject(); if (!eraserTarget) return alert('Por favor, selecciona primero la capa que quieres borrar.');
     closeAllTools(); setActiveUI('tool-eraser'); isEraserMode = true; canvas.isDrawingMode = true; 
     canvas.freeDrawingBrush = new fabric.PencilBrush(canvas); canvas.freeDrawingBrush.color = 'rgba(255, 0, 0, 0.4)'; 
     canvas.freeDrawingBrush.width = parseInt(document.getElementById('eraser-size').value, 10); 
     document.getElementById('tool-eraser-bar').style.display = 'flex'; 
 });
 document.getElementById('btn-cancel-eraser').addEventListener('click', () => { closeAllTools(); setActiveUI('tool-select'); });
-
-document.getElementById('eraser-size').addEventListener('input', e => { 
-    if (isEraserMode) { canvas.freeDrawingBrush.width = parseInt(e.target.value, 10); showEraserPreview = true; canvas.requestRenderAll(); } 
-});
+document.getElementById('eraser-size').addEventListener('input', e => { if (isEraserMode) { canvas.freeDrawingBrush.width = parseInt(e.target.value, 10); showEraserPreview = true; canvas.requestRenderAll(); } });
 document.getElementById('eraser-size').addEventListener('change', () => { showEraserPreview = false; canvas.requestRenderAll(); });
-
+document.getElementById('eraser-hardness').addEventListener('input', () => { if (isEraserMode) { showEraserPreview = true; canvas.requestRenderAll(); } });
+document.getElementById('eraser-hardness').addEventListener('change', () => { showEraserPreview = false; canvas.requestRenderAll(); });
 
 // ==========================================
 // 8. PANEL DE COLOR Y PIPETA
 // ==========================================
 const globalColorPicker = document.getElementById('global-color-picker');
 const colorTargetType = document.getElementById('color-apply-target');
-
-document.getElementById('tool-color').addEventListener('click', () => { 
-    closeAllTools(); setActiveUI('tool-color'); 
-    const obj = canvas.getActiveObject();
-    if (obj && (obj.type === 'i-text' || ['rect', 'circle', 'triangle', 'ellipse', 'path', 'polygon'].includes(obj.type))) {
-        const currentColor = colorTargetType.value === 'fill' ? obj.fill : obj.stroke;
-        if (currentColor && currentColor !== 'transparent') globalColorPicker.value = currentColor;
-    }
-    document.getElementById('tool-color-bar').style.display = 'flex'; 
-});
-
-function applyGlobalColor(hexColor) {
-    if(hexColor !== 'transparent') globalColorPicker.value = hexColor;
-    const obj = canvas.getActiveObject();
-    if (obj && (obj.type === 'i-text' || ['rect', 'circle', 'triangle', 'ellipse', 'path', 'polygon'].includes(obj.type))) {
-        if (colorTargetType.value === 'fill') obj.set('fill', hexColor);
-        else { obj.set('stroke', hexColor); if (hexColor !== 'transparent' && obj.strokeWidth === 0) obj.set('strokeWidth', 3); }
-        canvas.renderAll(); saveHistory();
-    }
-}
-
-globalColorPicker.addEventListener('input', (e) => applyGlobalColor(e.target.value));
-colorTargetType.addEventListener('change', () => {
-    const obj = canvas.getActiveObject();
-    if (obj) { const col = colorTargetType.value === 'fill' ? obj.fill : obj.stroke; if (col && col !== 'transparent') globalColorPicker.value = col; }
-});
+document.getElementById('tool-color').addEventListener('click', () => { closeAllTools(); setActiveUI('tool-color'); const obj = canvas.getActiveObject(); if (obj && (obj.type === 'i-text' || ['rect', 'circle', 'triangle', 'ellipse', 'path', 'polygon'].includes(obj.type))) { const currentColor = colorTargetType.value === 'fill' ? obj.fill : obj.stroke; if (currentColor && currentColor !== 'transparent') globalColorPicker.value = currentColor; } document.getElementById('tool-color-bar').style.display = 'flex'; });
+function applyGlobalColor(hexColor) { if(hexColor !== 'transparent') globalColorPicker.value = hexColor; const obj = canvas.getActiveObject(); if (obj && (obj.type === 'i-text' || ['rect', 'circle', 'triangle', 'ellipse', 'path', 'polygon'].includes(obj.type))) { if (colorTargetType.value === 'fill') obj.set('fill', hexColor); else { obj.set('stroke', hexColor); if (hexColor !== 'transparent' && obj.strokeWidth === 0) obj.set('strokeWidth', 3); } canvas.renderAll(); saveHistory(); } }
+globalColorPicker.addEventListener('input', (e) => applyGlobalColor(e.target.value)); colorTargetType.addEventListener('change', () => { const obj = canvas.getActiveObject(); if (obj) { const col = colorTargetType.value === 'fill' ? obj.fill : obj.stroke; if (col && col !== 'transparent') globalColorPicker.value = col; } });
 document.querySelectorAll('.color-swatch').forEach(swatch => { swatch.addEventListener('click', (e) => applyGlobalColor(e.target.dataset.color)); });
-
-document.getElementById('btn-eyedropper').addEventListener('click', async () => {
-    if (window.EyeDropper) {
-        try { const dropper = new EyeDropper(); const result = await dropper.open(); applyGlobalColor(result.sRGBHex); } catch (e) {}
-    } else {
-        isEyedropperMode = true; canvas.defaultCursor = 'crosshair';
-        document.getElementById('color-status').innerText = '🎯 Haz clic para capturar'; document.getElementById('color-status').style.color = '#ff0000';
-    }
-});
+document.getElementById('btn-eyedropper').addEventListener('click', async () => { if (window.EyeDropper) { try { const dropper = new EyeDropper(); const result = await dropper.open(); applyGlobalColor(result.sRGBHex); } catch (e) {} } else { isEyedropperMode = true; canvas.defaultCursor = 'crosshair'; document.getElementById('color-status').innerText = '🎯 Haz clic para capturar'; document.getElementById('color-status').style.color = '#ff0000'; } });
 
 // ==========================================
 // 9. FORMAS Y TEXTO (VECTORIAL)
 // ==========================================
 document.getElementById('tool-shapes').addEventListener('click', () => { closeAllTools(); setActiveUI('tool-shapes'); document.getElementById('tool-shapes-bar').style.display = 'flex'; });
 document.getElementById('shape-fill-type').addEventListener('change', (e) => { document.getElementById('shape-stroke-container').style.display = e.target.value === 'outline' ? 'flex' : 'none'; });
-document.getElementById('btn-add-shape').addEventListener('click', () => {
-    const type = document.getElementById('shape-type').value; const isOutline = document.getElementById('shape-fill-type').value === 'outline'; const strokeW = parseInt(document.getElementById('shape-stroke-width').value, 10); const color = globalColorPicker.value;
-    const options = { left: canvas.width / 2, top: canvas.height / 2, originX: 'center', originY: 'center', fill: isOutline ? 'transparent' : color, stroke: isOutline ? color : null, strokeWidth: isOutline ? strokeW : 0, transparentCorners: false, cornerColor: 'white', cornerStrokeColor: 'black', borderColor: 'white' };
-    let shape;
-    switch(type) {
-        case 'square': shape = new fabric.Rect({ ...options, width: 100, height: 100 }); break;
-        case 'rectangle': shape = new fabric.Rect({ ...options, width: 150, height: 100 }); break;
-        case 'circle': shape = new fabric.Circle({ ...options, radius: 50 }); break;
-        case 'triangle': shape = new fabric.Triangle({ ...options, width: 100, height: 100 }); break;
-        case 'star': shape = new fabric.Polygon([{x:50,y:0},{x:61,y:35},{x:98,y:35},{x:68,y:57},{x:79,y:91},{x:50,y:70},{x:21,y:91},{x:32,y:57},{x:2,y:35},{x:39,y:35}], options); break;
-    }
-    shape.name = 'Forma Vectorial'; canvas.add(shape); canvas.setActiveObject(shape); canvas.renderAll();
-});
-
+document.getElementById('btn-add-shape').addEventListener('click', () => { const type = document.getElementById('shape-type').value; const isOutline = document.getElementById('shape-fill-type').value === 'outline'; const strokeW = parseInt(document.getElementById('shape-stroke-width').value, 10); const color = globalColorPicker.value; const options = { left: canvas.width / 2, top: canvas.height / 2, originX: 'center', originY: 'center', fill: isOutline ? 'transparent' : color, stroke: isOutline ? color : null, strokeWidth: isOutline ? strokeW : 0, transparentCorners: false, cornerColor: 'white', cornerStrokeColor: 'black', borderColor: 'white' }; let shape; switch(type) { case 'square': shape = new fabric.Rect({ ...options, width: 100, height: 100 }); break; case 'rectangle': shape = new fabric.Rect({ ...options, width: 150, height: 100 }); break; case 'circle': shape = new fabric.Circle({ ...options, radius: 50 }); break; case 'triangle': shape = new fabric.Triangle({ ...options, width: 100, height: 100 }); break; case 'star': shape = new fabric.Polygon([{x:50,y:0},{x:61,y:35},{x:98,y:35},{x:68,y:57},{x:79,y:91},{x:50,y:70},{x:21,y:91},{x:32,y:57},{x:2,y:35},{x:39,y:35}], options); break; } shape.name = 'Forma Vectorial'; canvas.add(shape); canvas.setActiveObject(shape); canvas.renderAll(); });
 document.getElementById('tool-text').addEventListener('click', () => { closeAllTools(); setActiveUI('tool-text'); document.getElementById('tool-text-bar').style.display = 'flex'; });
 document.getElementById('text-fill-type').addEventListener('change', (e) => { document.getElementById('text-stroke-container').style.display = e.target.value === 'outline' ? 'flex' : 'none'; });
-document.getElementById('btn-add-text').addEventListener('click', () => {
-    const isOutline = document.getElementById('text-fill-type').value === 'outline'; const strokeW = parseInt(document.getElementById('text-stroke-width').value, 10); const color = globalColorPicker.value;
-    const options = { left: canvas.width / 2, top: canvas.height / 2, originX: 'center', originY: 'center', fontFamily: 'sans-serif', fontSize: 60, fontWeight: 'bold', fill: isOutline ? 'transparent' : color, stroke: isOutline ? color : null, strokeWidth: isOutline ? strokeW : 0, transparentCorners: false, cornerColor: 'white', cornerStrokeColor: 'black', borderColor: 'white', name: 'Texto' };
-    const text = new fabric.IText('Doble clic', options); canvas.add(text); canvas.setActiveObject(text); canvas.renderAll();
-});
+document.getElementById('btn-add-text').addEventListener('click', () => { const isOutline = document.getElementById('text-fill-type').value === 'outline'; const strokeW = parseInt(document.getElementById('text-stroke-width').value, 10); const color = globalColorPicker.value; const options = { left: canvas.width / 2, top: canvas.height / 2, originX: 'center', originY: 'center', fontFamily: 'sans-serif', fontSize: 60, fontWeight: 'bold', fill: isOutline ? 'transparent' : color, stroke: isOutline ? color : null, strokeWidth: isOutline ? strokeW : 0, transparentCorners: false, cornerColor: 'white', cornerStrokeColor: 'black', borderColor: 'white', name: 'Texto' }; const text = new fabric.IText('Doble clic', options); canvas.add(text); canvas.setActiveObject(text); canvas.renderAll(); });
 
 // ==========================================
-// 10. FILTROS Y TRANSFORMACIONES
-// ==========================================
-let activeFilterObject = null;
-document.getElementById('tool-filters').addEventListener('click', () => {
-    activeFilterObject = canvas.getActiveObject();
-    if (!activeFilterObject || activeFilterObject.type !== 'image') return alert('Por favor, selecciona una foto para aplicar filtros.');
-    closeAllTools(); setActiveUI('tool-filters');
-    const filters = activeFilterObject.filters || [];
-    document.getElementById('filter-brightness').value = filters[0] ? filters[0].brightness : 0;
-    document.getElementById('filter-contrast').value   = filters[1] ? filters[1].contrast : 0;
-    document.getElementById('filter-saturation').value = filters[2] ? filters[2].saturation : 0;
-    document.getElementById('filter-opacity').value = activeFilterObject.opacity;
-    document.getElementById('tool-filters-bar').style.display = 'flex';
-});
-
-const opacitySlider = document.getElementById('filter-opacity');
-opacitySlider.addEventListener('input', (e) => { if (!activeFilterObject) return; activeFilterObject.set('opacity', parseFloat(e.target.value)); canvas.renderAll(); });
-opacitySlider.addEventListener('change', saveHistory);
-
-document.getElementById('btn-reset-filters').addEventListener('click', () => {
-    if(!activeFilterObject) return; activeFilterObject.filters = []; activeFilterObject.applyFilters(); activeFilterObject.set('opacity', 1); canvas.renderAll();
-    document.getElementById('filter-brightness').value = document.getElementById('filter-contrast').value = document.getElementById('filter-saturation').value = 0; document.getElementById('filter-opacity').value = 1; saveHistory();
-});
-function applySliderFilter(index, filterClass, prop, value) {
-    if (!activeFilterObject) return; const floatVal = parseFloat(value);
-    if (floatVal === 0) activeFilterObject.filters[index] = null; else { const options = {}; options[prop] = floatVal; activeFilterObject.filters[index] = new fabric.Image.filters[filterClass](options); }
-    activeFilterObject.applyFilters(); canvas.renderAll();
-}
-document.getElementById('filter-brightness').addEventListener('input', (e) => applySliderFilter(0, 'Brightness', 'brightness', e.target.value)); document.getElementById('filter-contrast').addEventListener('input', (e) => applySliderFilter(1, 'Contrast', 'contrast', e.target.value)); document.getElementById('filter-saturation').addEventListener('input', (e) => applySliderFilter(2, 'Saturation', 'saturation', e.target.value));
-document.getElementById('filter-brightness').addEventListener('change', saveHistory); document.getElementById('filter-contrast').addEventListener('change', saveHistory); document.getElementById('filter-saturation').addEventListener('change', saveHistory);
-
-function applyToggleFilter(filterClass) {
-    if (!activeFilterObject) return; const existingIndex = activeFilterObject.filters.findIndex(f => f && f.type === filterClass);
-    if (existingIndex > -1) activeFilterObject.filters[existingIndex] = null; else activeFilterObject.filters.push(new fabric.Image.filters[filterClass]());
-    activeFilterObject.applyFilters(); canvas.renderAll(); saveHistory();
-}
-document.getElementById('btn-filter-gray').addEventListener('click', () => applyToggleFilter('Grayscale')); document.getElementById('btn-filter-sepia').addEventListener('click', () => applyToggleFilter('Sepia')); document.getElementById('btn-filter-invert').addEventListener('click', () => applyToggleFilter('Invert'));
-document.getElementById('btn-flip-x').addEventListener('click', () => { if (!activeFilterObject) return; activeFilterObject.set('flipX', !activeFilterObject.flipX); canvas.renderAll(); saveHistory(); });
-document.getElementById('btn-flip-y').addEventListener('click', () => { if (!activeFilterObject) return; activeFilterObject.set('flipY', !activeFilterObject.flipY); canvas.renderAll(); saveHistory(); });
-document.getElementById('btn-rotate-90').addEventListener('click', () => { if (!activeFilterObject) return; activeFilterObject.rotate(activeFilterObject.angle + 90); canvas.renderAll(); saveHistory(); });
-document.getElementById('btn-close-filters').addEventListener('click', () => { closeAllTools(); setActiveUI('tool-select'); });
-
-// ==========================================
-// 11. IA OFFLINE (BORRADO DE FONDO) Y AUTO-MEJORAR
-// ==========================================
-document.getElementById('tool-ai').addEventListener('click', async () => {
-    const activeObj = canvas.getActiveObject(); if (!activeObj || activeObj.type !== 'image') return alert("Selecciona una foto primero.");
-    if (!window.confirm("La IA procesará la imagen (la primera vez descargará el modelo). ¿Continuar?")) return;
-    isMaskProcessing = true; document.body.style.cursor = 'wait'; const imgEl = new Image(); imgEl.src = activeObj.toDataURL();
-    imgEl.onload = async () => {
-        try {
-            const segmenter = await window.transformers.pipeline('image-segmentation', 'briaai/RMBG-1.4'); const output = await segmenter(imgEl.src);
-            const maskCanvas = document.createElement('canvas'); maskCanvas.width = imgEl.naturalWidth; maskCanvas.height = imgEl.naturalHeight; maskCanvas.getContext('2d').drawImage(output, 0, 0);
-            const finalC = document.createElement('canvas'); finalC.width = imgEl.naturalWidth; finalC.height = imgEl.naturalHeight; const fCtx = finalC.getContext('2d');
-            fCtx.drawImage(imgEl, 0, 0); fCtx.globalCompositeOperation = 'destination-in'; fCtx.drawImage(maskCanvas, 0, 0);
-            fabric.Image.fromURL(finalC.toDataURL('image/png'), (newImg) => {
-                newImg.set({ left: activeObj.left, top: activeObj.top, scaleX: activeObj.scaleX, scaleY: activeObj.scaleY, name: activeObj.name + " (Sin Fondo)" });
-                canvas.remove(activeObj); canvas.add(newImg); canvas.setActiveObject(newImg); canvas.renderAll();
-                isMaskProcessing = false; document.body.style.cursor = 'default'; saveHistory(); updateLayersPanel();
-            });
-        } catch (err) { alert("Error en la IA: " + err.message); isMaskProcessing = false; document.body.style.cursor = 'default'; }
-    };
-});
-
-// Botón de Auto-Mejorar (Opcional si has añadido el botón en tu HTML)
-const btnEnhance = document.getElementById('tool-enhance');
-if (btnEnhance) {
-    btnEnhance.addEventListener('click', function() {
-        const activeObj = canvas.getActiveObject(); if (!activeObj || activeObj.type !== 'image') return alert("Selecciona una foto para mejorarla.");
-        if (!activeObj.filters) activeObj.filters = [];
-        activeObj.filters[3] = new fabric.Image.filters.Convolve({ matrix: [0, -0.8, 0, -0.8, 4.2, -0.8, 0, -0.8, 0] });
-        activeObj.filters[1] = new fabric.Image.filters.Contrast({ contrast: 0.14 });
-        activeObj.filters[2] = new fabric.Image.filters.Saturation({ saturation: 0.18 });
-        activeObj.applyFilters(); canvas.renderAll(); saveHistory();
-        const originalText = btnEnhance.innerHTML; btnEnhance.innerHTML = "✨ ¡Mejorada!"; btnEnhance.style.background = "#28a745";
-        setTimeout(() => { btnEnhance.innerHTML = originalText; btnEnhance.style.background = ""; }, 2000);
-    });
-}
-
-// ==========================================
-// 12. MOTOR CENTRALIZADO DE RATÓN (UNIFICACIÓN TOTAL)
+// 10. MOTOR CENTRALIZADO DE RATÓN (UNIFICACIÓN)
 // ==========================================
 document.getElementById('btnResetView').addEventListener('click', () => { canvas.setViewportTransform([1, 0, 0, 1, 0, 0]); canvas.renderAll(); });
 canvas.on('mouse:wheel', function(opt) { var delta = opt.e.deltaY; var zoom = canvas.getZoom(); zoom *= 0.999 ** delta; if (zoom > 20) zoom = 20; if (zoom < 0.1) zoom = 0.1; canvas.zoomToPoint({ x: opt.e.offsetX, y: opt.e.offsetY }, zoom); opt.e.preventDefault(); opt.e.stopPropagation(); });
@@ -344,38 +210,46 @@ canvas.on('mouse:wheel', function(opt) { var delta = opt.e.deltaY; var zoom = ca
 let isDraggingCamera = false, lastPosX = 0, lastPosY = 0;
 
 canvas.on('mouse:down', function(opt) {
-    const pointer = canvas.getPointer(opt.e);
-    currentMouseX = pointer.x;
-    currentMouseY = pointer.y;
+    const pointer = canvas.getPointer(opt.e); currentMouseX = pointer.x; currentMouseY = pointer.y;
 
     if (opt.e.altKey === true || isPanMode) { isDraggingCamera = true; canvas.selection = false; lastPosX = opt.e.clientX || (opt.e.touches && opt.e.touches[0].clientX); lastPosY = opt.e.clientY || (opt.e.touches && opt.e.touches[0].clientY); canvas.defaultCursor = 'grabbing'; return; }
     
     if (isEyedropperMode) {
-        const e = opt.e; const rect = canvas.lowerCanvasEl.getBoundingClientRect(); const clientX = e.clientX || (e.touches && e.touches[0].clientX); const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-        const x = (clientX - rect.left) * (canvas.lowerCanvasEl.width / rect.width); const y = (clientY - rect.top) * (canvas.lowerCanvasEl.height / rect.height);
-        const p = canvas.lowerCanvasEl.getContext('2d', { willReadFrequently: true }).getImageData(x, y, 1, 1).data;
+        const e = opt.e; const rect = canvas.lowerCanvasEl.getBoundingClientRect(); const clientX = e.clientX || (e.touches && e.touches[0].clientX); const clientY = e.clientY || (e.touches && e.touches[0].clientY); const x = (clientX - rect.left) * (canvas.lowerCanvasEl.width / rect.width); const y = (clientY - rect.top) * (canvas.lowerCanvasEl.height / rect.height); const p = canvas.lowerCanvasEl.getContext('2d', { willReadFrequently: true }).getImageData(x, y, 1, 1).data;
         if (p[3] === 0) applyGlobalColor('transparent'); else applyGlobalColor("#" + ("000000" + ((p[0] << 16) | (p[1] << 8) | p[2]).toString(16)).slice(-6));
         isEyedropperMode = false; canvas.defaultCursor = 'default'; document.getElementById('color-status').innerText = '🎨 Panel de Color'; document.getElementById('color-status').style.color = '#00bfff'; return;
     }
     
+    // --- LÓGICA DE CLONADOR CORREGIDA ---
     if (isCloneMode) {
         if (isSettingCloneSource) {
             cloneSource = { x: pointer.x, y: pointer.y }; isSettingCloneSource = false;
-            const img = new Image(); img.src = canvas.toDataURL({ format: 'png', multiplier: 1 });
+            
+            // Forzar captura a pantalla completa sin zoom
+            const originalVpt = canvas.viewportTransform.slice(); canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+            const img = new Image(); img.src = canvas.toDataURL({ format: 'png' });
+            canvas.setViewportTransform(originalVpt);
+            
             img.onload = () => {
                 cloneImageSnapshot = img; document.getElementById('clone-status').innerText = '🖌️ Pintando...'; canvas.defaultCursor = 'default';
-                if (!myCloneBrush) {
-                    myCloneBrush = new fabric.PatternBrush(canvas); const originalDown = myCloneBrush.onMouseDown.bind(myCloneBrush);
-                    myCloneBrush.onMouseDown = function(ptr, options) {
-                        if (isCloneMode && cloneImageSnapshot && !isCloneDeltaSet) { cloneDeltaX = ptr.x - cloneSource.x; cloneDeltaY = ptr.y - cloneSource.y; isCloneDeltaSet = true; const tempC = document.createElement('canvas'); tempC.width = canvas.width; tempC.height = canvas.height; tempC.getContext('2d').drawImage(cloneImageSnapshot, cloneDeltaX, cloneDeltaY); this.source = tempC; }
-                        originalDown(ptr, options);
-                    };
-                }
-                myCloneBrush.width = parseInt(document.getElementById('clone-size').value, 10); canvas.freeDrawingBrush = myCloneBrush; canvas.isDrawingMode = true;
+                myCloneBrush = new fabric.PatternBrush(canvas);
+                
+                // Sobrescribir el pincel para que calcule la distancia el primer instante de dibujar
+                const originalDown = myCloneBrush.onMouseDown.bind(myCloneBrush);
+                myCloneBrush.onMouseDown = function(ptr, options) {
+                    if (isCloneMode && cloneImageSnapshot && !isCloneDeltaSet) { 
+                        cloneDeltaX = ptr.x - cloneSource.x; cloneDeltaY = ptr.y - cloneSource.y; isCloneDeltaSet = true; 
+                        const tempC = document.createElement('canvas'); tempC.width = canvas.width; tempC.height = canvas.height;
+                        tempC.getContext('2d').drawImage(cloneImageSnapshot, cloneDeltaX, cloneDeltaY); this.source = tempC; 
+                    }
+                    originalDown(ptr, options);
+                };
+                
+                myCloneBrush.width = parseInt(document.getElementById('clone-size').value, 10); 
+                canvas.freeDrawingBrush = myCloneBrush; canvas.isDrawingMode = true;
             };
         } else {
             isCloningActive = true;
-            canvas.requestRenderAll();
         }
     }
     
@@ -383,14 +257,9 @@ canvas.on('mouse:down', function(opt) {
 });
 
 canvas.on('mouse:move', function(opt) {
-    const pointer = canvas.getPointer(opt.e);
-    currentMouseX = pointer.x;
-    currentMouseY = pointer.y;
-
+    const pointer = canvas.getPointer(opt.e); currentMouseX = pointer.x; currentMouseY = pointer.y;
     if (isDraggingCamera) { let e = opt.e; let clientX = e.clientX || (e.touches && e.touches[0].clientX); let clientY = e.clientY || (e.touches && e.touches[0].clientY); let vpt = canvas.viewportTransform; vpt[4] += clientX - lastPosX; vpt[5] += clientY - lastPosY; canvas.requestRenderAll(); lastPosX = clientX; lastPosY = clientY; return; }
-    
-    if (isCloneMode && isCloningActive) canvas.requestRenderAll(); // Forzar dibujo de la mirilla origen de clonación
-
+    if (isCloneMode && isCloningActive) canvas.requestRenderAll();
     if (!isCropMode || !isDrawingCrop || !cropRect) return; const w = pointer.x - cropOrigX; const h = pointer.y - cropOrigY; cropRect.set({ left: w < 0 ? pointer.x : cropOrigX, top: h < 0 ? pointer.y : cropOrigY, width: Math.abs(w), height: Math.abs(h) }); canvas.renderAll();
 });
 
@@ -401,16 +270,61 @@ canvas.on('mouse:up', function() {
     verticalGuide = null; horizontalGuide = null; canvas.requestRenderAll();
 });
 
+// ==========================================
+// 11. MOTOR DE MÁSCARAS (DUREZA CLONADOR Y BORRADOR)
+// ==========================================
 canvas.on('path:created', function(opt) {
-    if (isCloneMode) { opt.path.name = 'Clonación'; updateLayersPanel(); saveHistory(); } 
+    const path = opt.path;
+
+    if (isCloneMode) { 
+        const hEl = document.getElementById('clone-hardness');
+        const hardness = hEl ? parseInt(hEl.value, 10) : 100;
+        
+        // Si el clonador está al 100% de dureza, guardamos el trazo nativo.
+        if (hardness >= 99) {
+            path.name = 'Clonación'; updateLayersPanel(); saveHistory(); 
+        } else {
+            // Clonador con difuminado suave
+            isMaskProcessing = true; canvas.remove(path);
+            
+            const originalVpt = canvas.viewportTransform.slice(); canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+            const visibilityMap = new Map(); canvas.getObjects().forEach(obj => { visibilityMap.set(obj, obj.visible); obj.visible = false; });
+            
+            path.set({ stroke: 'black', opacity: 1, fill: 'transparent' });
+            path.visible = true; canvas.add(path); canvas.renderAll(); const pathDataUrl = canvas.toDataURL({ format: 'png' }); canvas.remove(path);
+            canvas.getObjects().forEach(obj => { obj.visible = visibilityMap.get(obj); }); canvas.setViewportTransform(originalVpt); canvas.renderAll();
+            
+            const pathImg = new Image(); pathImg.src = pathDataUrl;
+            pathImg.onload = () => {
+                const tempC = document.createElement('canvas'); tempC.width = canvas.width; tempC.height = canvas.height; const ctx = tempC.getContext('2d');
+                ctx.drawImage(cloneImageSnapshot, cloneDeltaX, cloneDeltaY);
+                
+                const blurPx = Math.max(0, (100 - hardness) / 4); 
+                const maskC = document.createElement('canvas'); maskC.width = canvas.width; maskC.height = canvas.height; const mCtx = maskC.getContext('2d');
+                if (blurPx > 0) mCtx.filter = `blur(${blurPx}px)`;
+                mCtx.drawImage(pathImg, 0, 0);
+
+                ctx.globalCompositeOperation = 'destination-in';
+                ctx.drawImage(maskC, 0, 0);
+                
+                fabric.Image.fromURL(tempC.toDataURL('image/png'), function(finalImg) {
+                    finalImg.set({ left: 0, top: 0, name: 'Clonación Suave' });
+                    canvas.add(finalImg); canvas.setActiveObject(finalImg);
+                    canvas.isDrawingMode = true; // reactivamos pincel
+                    isMaskProcessing = false; saveHistory(); updateLayersPanel();
+                });
+            };
+        }
+    } 
     else if (isLassoMode || isEraserMode) {
-        isMaskProcessing = true; const path = opt.path; canvas.remove(path); 
+        isMaskProcessing = true; canvas.remove(path); 
         if (isLassoMode) path.set({ fill: 'black', stroke: 'transparent' });
         if (isEraserMode) path.set({ stroke: 'black', opacity: 1, fill: 'transparent' });
         
         const targetLayer = isLassoMode ? lassoTarget : eraserTarget;
         const originalVpt = canvas.viewportTransform.slice(); canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
         const visibilityMap = new Map(); canvas.getObjects().forEach(obj => { visibilityMap.set(obj, obj.visible); obj.visible = false; });
+        
         targetLayer.visible = true; canvas.renderAll(); const imgDataUrl = canvas.toDataURL({ format: 'png' });
         targetLayer.visible = false; path.visible = true; canvas.add(path); canvas.renderAll(); const pathDataUrl = canvas.toDataURL({ format: 'png' }); canvas.remove(path);
         canvas.getObjects().forEach(obj => { obj.visible = visibilityMap.get(obj); }); canvas.setViewportTransform(originalVpt); canvas.renderAll();
@@ -419,35 +333,25 @@ canvas.on('path:created', function(opt) {
         imgObj.onload = () => {
             const pathObj = new Image(); pathObj.src = pathDataUrl;
             pathObj.onload = () => {
-                // 1. Preparar lienzo temporal
-                const tempC = document.createElement('canvas'); tempC.width = canvas.width; tempC.height = canvas.height; 
-                const ctx = tempC.getContext('2d'); 
-                ctx.drawImage(imgObj, 0, 0); 
+                const tempC = document.createElement('canvas'); tempC.width = canvas.width; tempC.height = canvas.height; const ctx = tempC.getContext('2d'); ctx.drawImage(imgObj, 0, 0); 
                 
-                // 2. Calcular Dureza (Desenfoque)
-                let hardness = isEraserMode ? parseInt(document.getElementById('eraser-hardness').value, 10) : 100;
-                let blurPx = Math.max(0, (100 - hardness) / 3); 
+                const hardnessEl = document.getElementById(isEraserMode ? 'eraser-hardness' : 'clone-hardness');
+                const hardness = hardnessEl ? parseInt(hardnessEl.value, 10) : 100;
+                const blurPx = Math.max(0, (100 - hardness) / 4); 
                 
-                // 3. Crear máscara con el filtro de desenfoque aplicado
-                const maskC = document.createElement('canvas'); 
-                maskC.width = canvas.width; maskC.height = canvas.height; 
-                const mCtx = maskC.getContext('2d');
+                const maskC = document.createElement('canvas'); maskC.width = canvas.width; maskC.height = canvas.height; const mCtx = maskC.getContext('2d');
                 if (blurPx > 0) mCtx.filter = `blur(${blurPx}px)`;
                 mCtx.drawImage(pathObj, 0, 0);
 
-                // 4. Aplicar máscara al lienzo principal
                 if (isEraserMode) ctx.globalCompositeOperation = 'destination-out';
                 else if (isLassoMode) { const mode = document.getElementById('lasso-mode').value; ctx.globalCompositeOperation = (mode === 'invert') ? 'destination-out' : 'destination-in'; }
-                
                 ctx.drawImage(maskC, 0, 0);
                 
                 const finalC = document.createElement('canvas'); finalC.width = canvas.width; finalC.height = canvas.height; finalC.getContext('2d').drawImage(tempC, 0, 0);
-                
-                // 5. Finalizar y reemplazar capa
                 fabric.Image.fromURL(finalC.toDataURL('image/png'), function(finalImg) {
                     finalImg.set({ left: 0, top: 0, name: targetLayer.name + (isEraserMode ? ' (Borrado)' : '') });
                     const zIndex = canvas.getObjects().indexOf(targetLayer); canvas.remove(targetLayer); canvas.insertAt(finalImg, zIndex, false); canvas.setActiveObject(finalImg); 
-                    if (isLassoMode) { closeAllTools(); setActiveUI('tool-select'); } else if (isEraserMode) { eraserTarget = finalImg; }
+                    if (isLassoMode) { closeAllTools(); setActiveUI('tool-select'); } else if (isEraserMode) { eraserTarget = finalImg; canvas.isDrawingMode = true; }
                     isMaskProcessing = false; saveHistory(); updateLayersPanel();
                 });
             };
@@ -456,93 +360,47 @@ canvas.on('path:created', function(opt) {
 });
 
 // ==========================================
-// 13. GUÍAS MAGNÉTICAS Y OVERLAYS EN TIEMPO REAL (PREVIEWS)
+// 12. GUÍAS MAGNÉTICAS Y CÍRCULOS DE DUREZA
 // ==========================================
-const snapZone = 12;
-let verticalGuide = null;
-let horizontalGuide = null;
+const snapZone = 12; let verticalGuide = null; let horizontalGuide = null;
 
 canvas.on('object:moving', function(opt) {
     const obj = opt.target; const canvasW = canvas.width; const canvasH = canvas.height; const centerX = canvasW / 2; const centerY = canvasH / 2;
     let objCenter = obj.getCenterPoint(); let objLeft = objCenter.x - (obj.getScaledWidth() / 2); let objRight = objCenter.x + (obj.getScaledWidth() / 2); let objTop = objCenter.y - (obj.getScaledHeight() / 2); let objBottom = objCenter.y + (obj.getScaledHeight() / 2);
     verticalGuide = null; horizontalGuide = null;
-
     if (Math.abs(objCenter.x - centerX) < snapZone) { obj.set({ left: obj.left - (objCenter.x - centerX) }); verticalGuide = centerX; } 
     else if (Math.abs(objLeft - 0) < snapZone) { obj.set({ left: obj.left - objLeft }); verticalGuide = 0; } 
     else if (Math.abs(objRight - canvasW) < snapZone) { obj.set({ left: obj.left - (objRight - canvasW) }); verticalGuide = canvasW; }
-
     if (Math.abs(objCenter.y - centerY) < snapZone) { obj.set({ top: obj.top - (objCenter.y - centerY) }); horizontalGuide = centerY; } 
     else if (Math.abs(objTop - 0) < snapZone) { obj.set({ top: obj.top - objTop }); horizontalGuide = 0; } 
     else if (Math.abs(objBottom - canvasH) < snapZone) { obj.set({ top: obj.top - (objBottom - canvasH) }); horizontalGuide = canvasH; }
 });
 
 canvas.on('after:render', function(opt) {
-    const ctx = opt.ctx; if (!ctx) return;
-    const vpt = canvas.viewportTransform;
-    
-    // A. GUÍAS MAGNÉTICAS
+    const ctx = opt.ctx; if (!ctx) return; const vpt = canvas.viewportTransform;
     if (verticalGuide !== null || horizontalGuide !== null) {
-        ctx.save();
-        ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset para línea de 1px puro
-        ctx.strokeStyle = '#00bfff'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
-        const htmlCanvas = canvas.getElement();
+        ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.strokeStyle = '#00bfff'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]); const htmlCanvas = canvas.getElement();
         if (verticalGuide !== null) { const drawX = (verticalGuide * vpt[0]) + vpt[4]; ctx.beginPath(); ctx.moveTo(drawX, 0); ctx.lineTo(drawX, htmlCanvas.height); ctx.stroke(); }
         if (horizontalGuide !== null) { const drawY = (horizontalGuide * vpt[3]) + vpt[5]; ctx.beginPath(); ctx.moveTo(0, drawY); ctx.lineTo(htmlCanvas.width, drawY); ctx.stroke(); }
         ctx.restore();
     }
-
-    // B. CÍRCULOS DE PREVISUALIZACIÓN Y CLONADO
+    
     ctx.save();
-    
-    // Perímetro estático en el centro de la pantalla al cambiar el grosor (Borrador o Clonar)
     if (showEraserPreview || showClonePreview) {
-        const centerX = (canvas.width / 2 - vpt[4]) / vpt[0];
-        const centerY = (canvas.height / 2 - vpt[5]) / vpt[3];
-        const radiusId = showEraserPreview ? 'eraser-size' : 'clone-size';
-        const radiusColor = showEraserPreview ? '#ff4444' : '#00bfff';
-        const radius = parseInt(document.getElementById(radiusId).value, 10) / 2;
-
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-        ctx.strokeStyle = radiusColor;
-        ctx.lineWidth = 2 / vpt[0]; // Adaptable al zoom
-        ctx.setLineDash([3, 3]);
-        ctx.stroke();
+        const centerX = (canvas.width / 2 - vpt[4]) / vpt[0]; const centerY = (canvas.height / 2 - vpt[5]) / vpt[3];
+        const radiusId = showEraserPreview ? 'eraser-size' : 'clone-size'; const hardnessId = showEraserPreview ? 'eraser-hardness' : 'clone-hardness'; const radiusColor = showEraserPreview ? '#ff4444' : '#00bfff';
+        const radius = parseInt(document.getElementById(radiusId).value, 10) / 2; const hardness = parseInt(document.getElementById(hardnessId).value, 10); const innerRadius = radius * (hardness / 100);
+        ctx.beginPath(); ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI); ctx.strokeStyle = radiusColor; ctx.lineWidth = 2 / vpt[0]; ctx.setLineDash([3, 3]); ctx.stroke();
+        if (hardness < 100 && innerRadius > 0) { ctx.beginPath(); ctx.arc(centerX, centerY, innerRadius, 0, 2 * Math.PI); ctx.strokeStyle = radiusColor; ctx.lineWidth = 1 / vpt[0]; ctx.setLineDash([1, 4]); ctx.stroke(); }
     }
-
-    // Círculo + Mirilla de Origen del Clonador (mientras pintas)
     if (isCloneMode && isCloningActive && isCloneDeltaSet) {
-        const sourceX = currentMouseX - cloneDeltaX;
-        const sourceY = currentMouseY - cloneDeltaY;
-        const radius = parseInt(document.getElementById('clone-size').value, 10) / 2;
-
-        // Círculo
-        ctx.beginPath();
-        ctx.arc(sourceX, sourceY, radius, 0, 2 * Math.PI);
-        ctx.strokeStyle = 'rgba(0, 191, 255, 0.8)';
-        ctx.lineWidth = 2 / vpt[0];
-        ctx.setLineDash([4, 4]);
-        ctx.stroke();
-
-        // Cruz / Mirilla central
-        ctx.beginPath();
-        ctx.moveTo(sourceX - 5 / vpt[0], sourceY);
-        ctx.lineTo(sourceX + 5 / vpt[0], sourceY);
-        ctx.moveTo(sourceX, sourceY - 5 / vpt[0]);
-        ctx.lineTo(sourceX, sourceY + 5 / vpt[0]);
-        ctx.setLineDash([]);
-        ctx.stroke();
+        const sourceX = currentMouseX - cloneDeltaX; const sourceY = currentMouseY - cloneDeltaY; const radius = parseInt(document.getElementById('clone-size').value, 10) / 2;
+        ctx.beginPath(); ctx.arc(sourceX, sourceY, radius, 0, 2 * Math.PI); ctx.strokeStyle = 'rgba(0, 191, 255, 0.8)'; ctx.lineWidth = 2 / vpt[0]; ctx.setLineDash([4, 4]); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(sourceX - 5 / vpt[0], sourceY); ctx.lineTo(sourceX + 5 / vpt[0], sourceY); ctx.moveTo(sourceX, sourceY - 5 / vpt[0]); ctx.lineTo(sourceX, sourceY + 5 / vpt[0]); ctx.setLineDash([]); ctx.stroke();
     }
-    
     ctx.restore();
 });
 
-// ==========================================
-// ARRANQUE: Añadir Capa Base Inicial
-// ==========================================
-const rectBase = new fabric.Rect({
-    name: 'Capa Base', left: canvas.width / 2 - 100, top: canvas.height / 2 - 100, 
-    fill: '#a8d8ea', width: 200, height: 200, cornerColor: 'white', cornerStrokeColor: 'black', borderColor: 'white', transparentCorners: false
-});
-canvas.add(rectBase); canvas.setActiveObject(rectBase);
-saveHistory();
+// ARRANQUE
+const rectBase = new fabric.Rect({ name: 'Capa Base', left: canvas.width / 2 - 100, top: canvas.height / 2 - 100, fill: '#a8d8ea', width: 200, height: 200, cornerColor: 'white', cornerStrokeColor: 'black', borderColor: 'white', transparentCorners: false });
+canvas.add(rectBase); canvas.setActiveObject(rectBase); saveHistory();
