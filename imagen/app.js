@@ -58,6 +58,14 @@ function updateLayersPanel() {
         });
         const nameSpan = document.createElement('span'); nameSpan.className = 'layer-name'; nameSpan.textContent = obj.name || `${obj.type.charAt(0).toUpperCase() + obj.type.slice(1)} ${i + 1}`;
         const actionsDiv = document.createElement('div'); actionsDiv.className = 'layer-actions';
+		const btnMerge = document.createElement('button');
+		btnMerge.innerHTML = '🔗';
+		btnMerge.title = 'Fusionar con la de abajo';
+		// Solo mostramos el botón si no es la capa inferior (índice 0)
+		if (i > 0) {
+			btnMerge.onclick = () => mergeLayerDown(obj);
+			actionsDiv.appendChild(btnMerge);
+		}
         const btnVisibility = document.createElement('button'); btnVisibility.textContent = obj.visible ? '👁️' : '🙈'; btnVisibility.onclick = () => { obj.set('visible', !obj.visible); canvas.renderAll(); updateLayersPanel(); saveHistory(); };
         const btnUp = document.createElement('button'); btnUp.innerHTML = '↑'; btnUp.onclick = () => { canvas.bringForward(obj); canvas.renderAll(); updateLayersPanel(); saveHistory(); };
         const btnDown = document.createElement('button'); btnDown.innerHTML = '↓'; btnDown.onclick = () => { canvas.sendBackwards(obj); canvas.renderAll(); updateLayersPanel(); saveHistory(); };
@@ -65,6 +73,53 @@ function updateLayersPanel() {
         actionsDiv.appendChild(btnVisibility); actionsDiv.appendChild(btnUp); actionsDiv.appendChild(btnDown); actionsDiv.appendChild(btnDelete);
         li.appendChild(nameSpan); li.appendChild(actionsDiv); layersList.appendChild(li);
     }
+}
+
+function mergeLayerDown(topObj) {
+    const objects = canvas.getObjects();
+    const topIdx = objects.indexOf(topObj);
+    if (topIdx <= 0) return; // Seguridad: no hay capa debajo
+
+    const bottomObj = objects[topIdx - 1];
+
+    // 1. Ocultar todo temporalmente para renderizar solo estos dos
+    const visibilityMap = new Map();
+    canvas.getObjects().forEach(obj => {
+        visibilityMap.set(obj, obj.visible);
+        obj.visible = (obj === topObj || obj === bottomObj);
+    });
+
+    // 2. Renderizar a imagen
+    const dataUrl = canvas.toDataURL({
+        format: 'png',
+        left: Math.min(topObj.left, bottomObj.left),
+        top: Math.min(topObj.top, bottomObj.top),
+        width: Math.max(topObj.getScaledWidth(), bottomObj.getScaledWidth()),
+        height: Math.max(topObj.getScaledHeight(), bottomObj.getScaledHeight()),
+        multiplier: 2 // Alta calidad
+    });
+
+    // 3. Restaurar visibilidad
+    canvas.getObjects().forEach(obj => obj.visible = visibilityMap.get(obj));
+
+    // 4. Crear nueva imagen fusionada
+    fabric.Image.fromURL(dataUrl, function(mergedImg) {
+        mergedImg.set({
+            left: Math.min(topObj.left, bottomObj.left),
+            top: Math.min(topObj.top, bottomObj.top),
+            name: 'Capa Fusionada'
+        });
+
+        // 5. Reemplazar
+        canvas.remove(topObj);
+        canvas.remove(bottomObj);
+        canvas.add(mergedImg);
+        canvas.setActiveObject(mergedImg);
+        
+        saveHistory();
+        updateLayersPanel();
+        canvas.renderAll();
+    });
 }
 
 // ==========================================
@@ -399,6 +454,37 @@ canvas.on('after:render', function(opt) {
         ctx.beginPath(); ctx.moveTo(sourceX - 5 / vpt[0], sourceY); ctx.lineTo(sourceX + 5 / vpt[0], sourceY); ctx.moveTo(sourceX, sourceY - 5 / vpt[0]); ctx.lineTo(sourceX, sourceY + 5 / vpt[0]); ctx.setLineDash([]); ctx.stroke();
     }
     ctx.restore();
+});
+
+// WELCOME
+const welcomeOverlay = document.getElementById('welcome-overlay');
+
+// 1. Botón: Importar Imagen
+document.getElementById('welcome-import').addEventListener('click', () => {
+    welcomeOverlay.style.display = 'none'; // Ocultamos el modal
+    document.getElementById('fileInput').click(); // Abrimos el selector de archivos
+});
+
+// 2. Botón: Lienzo Vacío
+document.getElementById('welcome-empty').addEventListener('click', () => {
+    welcomeOverlay.style.display = 'none';
+    
+    // Aquí inicializamos el lienzo base solo si el usuario elige esta opción
+    const rectBase = new fabric.Rect({ 
+        name: 'Capa Base', 
+        left: canvas.width / 2 - 100, 
+        top: canvas.height / 2 - 100, 
+        fill: '#a8d8ea', 
+        width: 200, 
+        height: 200, 
+        cornerColor: 'white', 
+        cornerStrokeColor: 'black', 
+        borderColor: 'white', 
+        transparentCorners: false 
+    });
+    canvas.add(rectBase); 
+    canvas.setActiveObject(rectBase); 
+    saveHistory();
 });
 
 // ARRANQUE
