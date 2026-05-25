@@ -20,7 +20,7 @@
 	<link rel="apple-touch-icon" sizes="167x167" href="./recursos/apple-icon-167x167.png"> <!-- iPad Pro -->
 	
     <style>
-        body { margin: 0; background-color: #1e1e1e; color: white; display: flex; flex-direction: column; height: 100vh; overflow: hidden; font-family: sans-serif; }
+		body { margin: 0; background-color: #1e1e1e; color: white; display: flex; flex-direction: column; height: 100vh; overflow: hidden; font-family: sans-serif; }
         
         #topbar { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #252525; border-bottom: 1px solid #444; z-index: 100; }
         .toolbar-group { display: flex; gap: 8px; align-items: center; }
@@ -45,14 +45,35 @@
         .panel-header { padding: 15px; background: #333; font-weight: bold; border-bottom: 1px solid #444; display: flex; justify-content: space-between; align-items: center; }
         .close-btn { background: none; border: none; color: #aaa; font-size: 20px; cursor: pointer; }
         .close-btn:hover { color: white; }
+		
+		/* --- ESTILOS DE SCROLLBAR PERSONALIZADO (MODO OSCURO) --- */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #1e1e1e; }
+        ::-webkit-scrollbar-thumb { background: #555; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #777; }
 
-        .tools-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px; }
+        /* --- INTERIOR PANEL HERRAMIENTAS (CON SCROLL) --- */
+        .tools-grid { 
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px; 
+            overflow-y: auto; /* Activa el scroll vertical */
+            flex: 1; /* Obliga a que ocupe todo el espacio sobrante debajo del header */
+            align-content: start; /* Hace que los botones se queden arriba y no se estiren */
+            overscroll-behavior: contain; /* Evita arrastrar toda la web entera en móviles */
+        }
+        
         .tool-item { padding: 15px 10px; background: #2a2a2a; border: 1px solid #444; border-radius: 8px; color: white; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 12px; text-align: center;}
         .tool-item:hover { background: #333; }
         .tool-item.active { background: #3a5a78; border-color: #00bfff; }
         .tool-item span.icon { font-size: 20px; }
 
-        #layers-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex: 1; }
+        /* --- INTERIOR PANEL CAPAS (CON SCROLL) --- */
+        #layers-list { 
+            list-style: none; padding: 0; margin: 0; 
+            overflow-y: auto; /* Activa el scroll vertical */
+            flex: 1; /* Ocupa el espacio restante */
+            overscroll-behavior: contain;
+        }
+
         .layer-item { padding: 12px 10px; border-bottom: 1px solid #333; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
         .layer-item:hover { background-color: #2a2a2a; }
         .layer-item.active { background-color: #3a5a78; border-left: 4px solid #00bfff; }
@@ -107,6 +128,7 @@
                 <div class="tool-item" id="tool-lasso"><span class="icon">🖍️</span> Lazo</div>
                 <div class="tool-item" id="tool-crop"><span class="icon">✂️</span> Lienzo</div>
                 <div class="tool-item" id="tool-ai"><span class="icon">🪄</span> Fondo IA</div>
+				<div class="tool-item" id="tool-enhance" style="grid-column: 1 / -1; background: linear-gradient(135deg, #2b4c7e, #1a3050); border-color: #00bfff;"><span class="icon">✨</span> Auto-Mejorar Calidad</div>
             </div>
         </div>
 
@@ -202,17 +224,23 @@
         </div>
 
         <!-- Barras previas truncadas por limpieza visual, mantienen su HTML original -->
-        <div id="tool-options-bar" class="floating-bar" style="border-radius: 50px;"><span id="clone-status" style="font-size: 13px; font-weight: bold; color: #00bfff;">🎯 Fija el Origen</span><div style="width: 1px; height: 20px; background: #555;"></div><label style="font-size: 12px; display:flex; align-items:center; gap:5px; margin: 0;">Tamaño: <input type="range" id="clone-size" min="5" max="100" value="30" style="width: 80px;"></label><button id="btn-reset-clone" class="btn" style="padding: 5px 10px; font-size: 12px; background: #444;">Resetear</button><button id="btn-close-tool" class="btn" style="padding: 5px 10px; font-size: 12px; background: #a03030;">Terminar</button></div>
+        <div id="tool-options-bar" class="floating-bar" style="border-radius: 50px;">
+            <span id="clone-status" style="font-size: 13px; font-weight: bold; color: #00bfff;">🎯 Fija el Origen</span>
+            <div style="width: 1px; height: 20px; background: #555;"></div>
+            <label style="font-size: 12px; display:flex; align-items:center; gap:5px; margin: 0;">Grosor: <input type="range" id="clone-size" min="5" max="150" value="30" style="width: 70px;"></label>
+            <label style="font-size: 12px; display:flex; align-items:center; gap:5px; margin: 0;">Dureza: <input type="range" id="clone-hardness" min="0" max="100" value="50" style="width: 70px;"></label>
+            <button id="btn-reset-clone" class="btn" style="padding: 5px 10px; font-size: 12px; background: #444;">Resetear</button>
+            <button id="btn-close-tool" class="btn" style="padding: 5px 10px; font-size: 12px; background: #a03030;">Terminar</button>
+        </div>
         <div id="tool-crop-bar" class="floating-bar" style="border-radius: 50px;"><span style="font-size: 13px; font-weight: bold; color: #00bfff;">✂️ Ajusta el área</span><button id="btn-apply-crop" class="btn" style="padding: 5px 10px; font-size: 12px; background: #28a745; display: none;">Aplicar</button><button id="btn-cancel-crop" class="btn" style="padding: 5px 10px; font-size: 12px; background: #a03030;">Cancelar</button></div>
         <div id="tool-lasso-bar" class="floating-bar" style="border-radius: 50px;"><span id="lasso-status" style="font-size: 13px; font-weight: bold; color: #00bfff;">🖍️ Dibuja el área</span><select id="lasso-mode" class="btn" style="background: #222; padding: 5px;"><option value="keep">Mantener selección</option><option value="invert">Eliminar selección</option></select><button id="btn-cancel-lasso" class="btn" style="padding: 5px 10px; font-size: 12px; background: #a03030;">Cancelar</button></div>
-		<div id="tool-eraser-bar" class="floating-bar" style="border-radius: 50px;">
-			<span style="font-size: 13px; font-weight: bold; color: #ff4444;">🧽 Pinta para borrar</span>
-			<div style="width: 1px; height: 20px; background: #555;"></div>
-			<label style="font-size: 12px; display:flex; align-items:center; gap:5px; margin: 0;">
-				Grosor: <input type="range" id="eraser-size" min="5" max="150" value="30" style="width: 80px;">
-			</label>
-			<button id="btn-cancel-eraser" class="btn" style="padding: 5px 10px; font-size: 12px; background: #a03030;">Terminar</button>
-		</div>
+        <div id="tool-eraser-bar" class="floating-bar" style="border-radius: 50px;">
+            <span style="font-size: 13px; font-weight: bold; color: #ff4444;">🧽 Pinta para borrar</span>
+            <div style="width: 1px; height: 20px; background: #555;"></div>
+            <label style="font-size: 12px; display:flex; align-items:center; gap:5px; margin: 0;">Grosor: <input type="range" id="eraser-size" min="5" max="150" value="30" style="width: 70px;"></label>
+            <label style="font-size: 12px; display:flex; align-items:center; gap:5px; margin: 0;">Dureza: <input type="range" id="eraser-hardness" min="0" max="100" value="50" style="width: 70px;"></label>
+            <button id="btn-cancel-eraser" class="btn" style="padding: 5px 10px; font-size: 12px; background: #a03030;">Terminar</button>
+        </div>
     </div>
 
     <script type="module">

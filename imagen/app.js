@@ -115,16 +115,15 @@ canvas.on('object:removed', (e) => { if (e.target && e.target.name === 'CropOver
 canvas.on('object:modified', (e) => { if (e.target && e.target.name === 'CropOverlay') return; updateLayersPanel(); saveHistory(); });
 canvas.on('selection:created', updateLayersPanel); canvas.on('selection:updated', updateLayersPanel); canvas.on('selection:cleared', updateLayersPanel);
 
-
-// ==========================================
-// 6. CONTROLADORES DE UI Y HERRAMIENTAS ACTIVAS
-// ==========================================
 // ==========================================
 // 6. CONTROLADORES DE UI Y HERRAMIENTAS ACTIVAS
 // ==========================================
 let isPanMode = false, isCloneMode = false, isCropMode = false, isLassoMode = false, isEyedropperMode = false, isEraserMode = false;
 let cloneSource = { x: 0, y: 0 }, cloneImageSnapshot = null, cloneDeltaX = 0, cloneDeltaY = 0, isCloneDeltaSet = false, isSettingCloneSource = false, myCloneBrush = null;
 let cropRect = null, cropOrigX = 0, cropOrigY = 0, isDrawingCrop = false, lassoTarget = null, eraserTarget = null;
+// Banderas de previsualización
+let showEraserPreview = false, showClonePreview = false, isCloningActive = false;
+let currentMouseX = 0, currentMouseY = 0;
 
 const toolBars = [
     document.getElementById('tool-options-bar'), document.getElementById('tool-crop-bar'),
@@ -136,6 +135,7 @@ const toolBars = [
 function setActiveUI(id) { document.querySelectorAll('.tool-item').forEach(el => el.classList.remove('active')); if(id) document.getElementById(id).classList.add('active'); }
 function closeAllTools() {
     isPanMode = isCloneMode = isCropMode = isLassoMode = isEyedropperMode = isEraserMode = false;
+    showEraserPreview = showClonePreview = isCloningActive = false;
     canvas.isDrawingMode = false; canvas.selection = true; canvas.defaultCursor = 'default';
     toolBars.forEach(b => { if(b) b.style.display = 'none'; });
     if(cropRect) { canvas.remove(cropRect); cropRect = null; }
@@ -156,7 +156,11 @@ document.querySelectorAll('.close-btn').forEach(btn => btn.addEventListener('cli
 document.getElementById('tool-clone').addEventListener('click', () => { closeAllTools(); setActiveUI('tool-clone'); canvas.discardActiveObject(); isCloneMode = true; isSettingCloneSource = true; isCloneDeltaSet = false; document.getElementById('tool-options-bar').style.display = 'flex'; document.getElementById('clone-status').innerText = '🎯 Fija el Origen'; canvas.defaultCursor = 'crosshair'; });
 document.getElementById('btn-reset-clone').addEventListener('click', () => { isSettingCloneSource = true; isCloneDeltaSet = false; canvas.isDrawingMode = false; canvas.defaultCursor = 'crosshair'; document.getElementById('clone-status').innerText = '🎯 Fija el Origen'; });
 document.getElementById('btn-close-tool').addEventListener('click', () => { closeAllTools(); setActiveUI('tool-select'); });
-document.getElementById('clone-size').addEventListener('input', e => { if (myCloneBrush) myCloneBrush.width = parseInt(e.target.value, 10); });
+document.getElementById('clone-size').addEventListener('input', e => { 
+    if (myCloneBrush) myCloneBrush.width = parseInt(e.target.value, 10); 
+    if (isCloneMode) { showClonePreview = true; canvas.requestRenderAll(); }
+});
+document.getElementById('clone-size').addEventListener('change', () => { showClonePreview = false; canvas.requestRenderAll(); });
 
 document.getElementById('tool-crop').addEventListener('click', () => { closeAllTools(); setActiveUI('tool-crop'); canvas.discardActiveObject(); isCropMode = true; canvas.selection = false; canvas.defaultCursor = 'crosshair'; canvas.getObjects().forEach(o => { o.selectable = false; o.evented = false; }); document.getElementById('tool-crop-bar').style.display = 'flex'; document.getElementById('btn-apply-crop').style.display = 'none'; });
 document.getElementById('btn-cancel-crop').addEventListener('click', () => { closeAllTools(); setActiveUI('tool-select'); });
@@ -165,26 +169,22 @@ document.getElementById('btn-apply-crop').addEventListener('click', () => { if (
 document.getElementById('tool-lasso').addEventListener('click', () => { lassoTarget = canvas.getActiveObject(); if (!lassoTarget) return alert('Selecciona primero la capa a recortar.'); closeAllTools(); setActiveUI('tool-lasso'); isLassoMode = true; canvas.isDrawingMode = true; canvas.freeDrawingBrush = new fabric.PencilBrush(canvas); canvas.freeDrawingBrush.color = 'rgba(0,191,255,0.7)'; canvas.freeDrawingBrush.width = 4; document.getElementById('tool-lasso-bar').style.display = 'flex'; });
 document.getElementById('btn-cancel-lasso').addEventListener('click', () => { closeAllTools(); setActiveUI('tool-select'); });
 
-// --- HERRAMIENTA BORRADOR ---
+// --- Borrador Inteligente ---
 document.getElementById('tool-eraser').addEventListener('click', () => { 
     eraserTarget = canvas.getActiveObject();
     if (!eraserTarget) return alert('Por favor, selecciona primero la capa que quieres borrar.');
-    
-    closeAllTools(); 
-    setActiveUI('tool-eraser'); 
-    isEraserMode = true; 
-    canvas.isDrawingMode = true; 
-    
-    // Configuramos un pincel rojo semitransparente para ver lo que borramos
-    canvas.freeDrawingBrush = new fabric.PencilBrush(canvas); 
-    canvas.freeDrawingBrush.color = 'rgba(255, 0, 0, 0.4)'; 
+    closeAllTools(); setActiveUI('tool-eraser'); isEraserMode = true; canvas.isDrawingMode = true; 
+    canvas.freeDrawingBrush = new fabric.PencilBrush(canvas); canvas.freeDrawingBrush.color = 'rgba(255, 0, 0, 0.4)'; 
     canvas.freeDrawingBrush.width = parseInt(document.getElementById('eraser-size').value, 10); 
-    
     document.getElementById('tool-eraser-bar').style.display = 'flex'; 
 });
-
 document.getElementById('btn-cancel-eraser').addEventListener('click', () => { closeAllTools(); setActiveUI('tool-select'); });
-document.getElementById('eraser-size').addEventListener('input', e => { if (isEraserMode) canvas.freeDrawingBrush.width = parseInt(e.target.value, 10); });
+
+document.getElementById('eraser-size').addEventListener('input', e => { 
+    if (isEraserMode) { canvas.freeDrawingBrush.width = parseInt(e.target.value, 10); showEraserPreview = true; canvas.requestRenderAll(); } 
+});
+document.getElementById('eraser-size').addEventListener('change', () => { showEraserPreview = false; canvas.requestRenderAll(); });
+
 
 // ==========================================
 // 8. PANEL DE COLOR Y PIPETA
@@ -296,26 +296,21 @@ document.getElementById('btn-filter-gray').addEventListener('click', () => apply
 document.getElementById('btn-flip-x').addEventListener('click', () => { if (!activeFilterObject) return; activeFilterObject.set('flipX', !activeFilterObject.flipX); canvas.renderAll(); saveHistory(); });
 document.getElementById('btn-flip-y').addEventListener('click', () => { if (!activeFilterObject) return; activeFilterObject.set('flipY', !activeFilterObject.flipY); canvas.renderAll(); saveHistory(); });
 document.getElementById('btn-rotate-90').addEventListener('click', () => { if (!activeFilterObject) return; activeFilterObject.rotate(activeFilterObject.angle + 90); canvas.renderAll(); saveHistory(); });
+document.getElementById('btn-close-filters').addEventListener('click', () => { closeAllTools(); setActiveUI('tool-select'); });
 
 // ==========================================
-// 11. IA OFFLINE (BORRADO DE FONDO)
+// 11. IA OFFLINE (BORRADO DE FONDO) Y AUTO-MEJORAR
 // ==========================================
 document.getElementById('tool-ai').addEventListener('click', async () => {
-    const activeObj = canvas.getActiveObject();
-    if (!activeObj || activeObj.type !== 'image') return alert("Selecciona una foto primero.");
-    if (!window.confirm("La IA procesará la imagen (la primera vez descargará el modelo, lo cual tarda). ¿Continuar?")) return;
-
-    isMaskProcessing = true; document.body.style.cursor = 'wait';
-    const imgEl = new Image(); imgEl.src = activeObj.toDataURL();
-    
+    const activeObj = canvas.getActiveObject(); if (!activeObj || activeObj.type !== 'image') return alert("Selecciona una foto primero.");
+    if (!window.confirm("La IA procesará la imagen (la primera vez descargará el modelo). ¿Continuar?")) return;
+    isMaskProcessing = true; document.body.style.cursor = 'wait'; const imgEl = new Image(); imgEl.src = activeObj.toDataURL();
     imgEl.onload = async () => {
         try {
-            const segmenter = await window.transformers.pipeline('image-segmentation', 'briaai/RMBG-1.4');
-            const output = await segmenter(imgEl.src);
+            const segmenter = await window.transformers.pipeline('image-segmentation', 'briaai/RMBG-1.4'); const output = await segmenter(imgEl.src);
             const maskCanvas = document.createElement('canvas'); maskCanvas.width = imgEl.naturalWidth; maskCanvas.height = imgEl.naturalHeight; maskCanvas.getContext('2d').drawImage(output, 0, 0);
             const finalC = document.createElement('canvas'); finalC.width = imgEl.naturalWidth; finalC.height = imgEl.naturalHeight; const fCtx = finalC.getContext('2d');
             fCtx.drawImage(imgEl, 0, 0); fCtx.globalCompositeOperation = 'destination-in'; fCtx.drawImage(maskCanvas, 0, 0);
-            
             fabric.Image.fromURL(finalC.toDataURL('image/png'), (newImg) => {
                 newImg.set({ left: activeObj.left, top: activeObj.top, scaleX: activeObj.scaleX, scaleY: activeObj.scaleY, name: activeObj.name + " (Sin Fondo)" });
                 canvas.remove(activeObj); canvas.add(newImg); canvas.setActiveObject(newImg); canvas.renderAll();
@@ -324,6 +319,21 @@ document.getElementById('tool-ai').addEventListener('click', async () => {
         } catch (err) { alert("Error en la IA: " + err.message); isMaskProcessing = false; document.body.style.cursor = 'default'; }
     };
 });
+
+// Botón de Auto-Mejorar (Opcional si has añadido el botón en tu HTML)
+const btnEnhance = document.getElementById('tool-enhance');
+if (btnEnhance) {
+    btnEnhance.addEventListener('click', function() {
+        const activeObj = canvas.getActiveObject(); if (!activeObj || activeObj.type !== 'image') return alert("Selecciona una foto para mejorarla.");
+        if (!activeObj.filters) activeObj.filters = [];
+        activeObj.filters[3] = new fabric.Image.filters.Convolve({ matrix: [0, -0.8, 0, -0.8, 4.2, -0.8, 0, -0.8, 0] });
+        activeObj.filters[1] = new fabric.Image.filters.Contrast({ contrast: 0.14 });
+        activeObj.filters[2] = new fabric.Image.filters.Saturation({ saturation: 0.18 });
+        activeObj.applyFilters(); canvas.renderAll(); saveHistory();
+        const originalText = btnEnhance.innerHTML; btnEnhance.innerHTML = "✨ ¡Mejorada!"; btnEnhance.style.background = "#28a745";
+        setTimeout(() => { btnEnhance.innerHTML = originalText; btnEnhance.style.background = ""; }, 2000);
+    });
+}
 
 // ==========================================
 // 12. MOTOR CENTRALIZADO DE RATÓN (UNIFICACIÓN TOTAL)
@@ -334,147 +344,111 @@ canvas.on('mouse:wheel', function(opt) { var delta = opt.e.deltaY; var zoom = ca
 let isDraggingCamera = false, lastPosX = 0, lastPosY = 0;
 
 canvas.on('mouse:down', function(opt) {
-    // A. CÁMARA (PAN)
-    if (opt.e.altKey === true || isPanMode) { 
-        isDraggingCamera = true; canvas.selection = false; 
-        lastPosX = opt.e.clientX || (opt.e.touches && opt.e.touches[0].clientX); 
-        lastPosY = opt.e.clientY || (opt.e.touches && opt.e.touches[0].clientY); 
-        canvas.defaultCursor = 'grabbing'; return; 
-    }
+    const pointer = canvas.getPointer(opt.e);
+    currentMouseX = pointer.x;
+    currentMouseY = pointer.y;
+
+    if (opt.e.altKey === true || isPanMode) { isDraggingCamera = true; canvas.selection = false; lastPosX = opt.e.clientX || (opt.e.touches && opt.e.touches[0].clientX); lastPosY = opt.e.clientY || (opt.e.touches && opt.e.touches[0].clientY); canvas.defaultCursor = 'grabbing'; return; }
     
-    // B. PIPETA MANUAL (FALLBACK)
     if (isEyedropperMode) {
-        const e = opt.e; const rect = canvas.lowerCanvasEl.getBoundingClientRect();
-        const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-        const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-        const x = (clientX - rect.left) * (canvas.lowerCanvasEl.width / rect.width);
-        const y = (clientY - rect.top) * (canvas.lowerCanvasEl.height / rect.height);
+        const e = opt.e; const rect = canvas.lowerCanvasEl.getBoundingClientRect(); const clientX = e.clientX || (e.touches && e.touches[0].clientX); const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+        const x = (clientX - rect.left) * (canvas.lowerCanvasEl.width / rect.width); const y = (clientY - rect.top) * (canvas.lowerCanvasEl.height / rect.height);
         const p = canvas.lowerCanvasEl.getContext('2d', { willReadFrequently: true }).getImageData(x, y, 1, 1).data;
         if (p[3] === 0) applyGlobalColor('transparent'); else applyGlobalColor("#" + ("000000" + ((p[0] << 16) | (p[1] << 8) | p[2]).toString(16)).slice(-6));
-        isEyedropperMode = false; canvas.defaultCursor = 'default';
-        document.getElementById('color-status').innerText = '🎨 Panel de Color'; document.getElementById('color-status').style.color = '#00bfff'; return;
-    }
-
-    // C. CLONAR
-    if (isCloneMode && isSettingCloneSource) {
-        const pointer = canvas.getPointer(opt.e); cloneSource = { x: pointer.x, y: pointer.y }; isSettingCloneSource = false;
-        const img = new Image(); img.src = canvas.toDataURL({ format: 'png', multiplier: 1 });
-        img.onload = () => {
-            cloneImageSnapshot = img; document.getElementById('clone-status').innerText = '🖌️ Pintando...'; canvas.defaultCursor = 'default';
-            if (!myCloneBrush) {
-                myCloneBrush = new fabric.PatternBrush(canvas); const originalDown = myCloneBrush.onMouseDown.bind(myCloneBrush);
-                myCloneBrush.onMouseDown = function(ptr, options) {
-                    if (isCloneMode && cloneImageSnapshot && !isCloneDeltaSet) {
-                        cloneDeltaX = ptr.x - cloneSource.x; cloneDeltaY = ptr.y - cloneSource.y; isCloneDeltaSet = true; 
-                        const tempC = document.createElement('canvas'); tempC.width = canvas.width; tempC.height = canvas.height;
-                        tempC.getContext('2d').drawImage(cloneImageSnapshot, cloneDeltaX, cloneDeltaY); this.source = tempC; 
-                    }
-                    originalDown(ptr, options);
-                };
-            }
-            myCloneBrush.width = parseInt(document.getElementById('clone-size').value, 10); canvas.freeDrawingBrush = myCloneBrush; canvas.isDrawingMode = true;
-        };
+        isEyedropperMode = false; canvas.defaultCursor = 'default'; document.getElementById('color-status').innerText = '🎨 Panel de Color'; document.getElementById('color-status').style.color = '#00bfff'; return;
     }
     
-    // D. RECORTAR LIENZO
-    if (isCropMode && !cropRect) {
-        isDrawingCrop = true; const pointer = canvas.getPointer(opt.e); cropOrigX = pointer.x; cropOrigY = pointer.y;
-        cropRect = new fabric.Rect({ left: cropOrigX, top: cropOrigY, width: 0, height: 0, fill: 'rgba(0,191,255,0.2)', stroke: '#00bfff', strokeWidth: 2, strokeDashArray: [5,5], hasRotatingPoint: false, name: 'CropOverlay' });
-        canvas.add(cropRect); canvas.setActiveObject(cropRect);
+    if (isCloneMode) {
+        if (isSettingCloneSource) {
+            cloneSource = { x: pointer.x, y: pointer.y }; isSettingCloneSource = false;
+            const img = new Image(); img.src = canvas.toDataURL({ format: 'png', multiplier: 1 });
+            img.onload = () => {
+                cloneImageSnapshot = img; document.getElementById('clone-status').innerText = '🖌️ Pintando...'; canvas.defaultCursor = 'default';
+                if (!myCloneBrush) {
+                    myCloneBrush = new fabric.PatternBrush(canvas); const originalDown = myCloneBrush.onMouseDown.bind(myCloneBrush);
+                    myCloneBrush.onMouseDown = function(ptr, options) {
+                        if (isCloneMode && cloneImageSnapshot && !isCloneDeltaSet) { cloneDeltaX = ptr.x - cloneSource.x; cloneDeltaY = ptr.y - cloneSource.y; isCloneDeltaSet = true; const tempC = document.createElement('canvas'); tempC.width = canvas.width; tempC.height = canvas.height; tempC.getContext('2d').drawImage(cloneImageSnapshot, cloneDeltaX, cloneDeltaY); this.source = tempC; }
+                        originalDown(ptr, options);
+                    };
+                }
+                myCloneBrush.width = parseInt(document.getElementById('clone-size').value, 10); canvas.freeDrawingBrush = myCloneBrush; canvas.isDrawingMode = true;
+            };
+        } else {
+            isCloningActive = true;
+            canvas.requestRenderAll();
+        }
     }
+    
+    if (isCropMode && !cropRect) { isDrawingCrop = true; cropOrigX = pointer.x; cropOrigY = pointer.y; cropRect = new fabric.Rect({ left: cropOrigX, top: cropOrigY, width: 0, height: 0, fill: 'rgba(0,191,255,0.2)', stroke: '#00bfff', strokeWidth: 2, strokeDashArray: [5,5], hasRotatingPoint: false, name: 'CropOverlay' }); canvas.add(cropRect); canvas.setActiveObject(cropRect); }
 });
 
 canvas.on('mouse:move', function(opt) {
+    const pointer = canvas.getPointer(opt.e);
+    currentMouseX = pointer.x;
+    currentMouseY = pointer.y;
+
     if (isDraggingCamera) { let e = opt.e; let clientX = e.clientX || (e.touches && e.touches[0].clientX); let clientY = e.clientY || (e.touches && e.touches[0].clientY); let vpt = canvas.viewportTransform; vpt[4] += clientX - lastPosX; vpt[5] += clientY - lastPosY; canvas.requestRenderAll(); lastPosX = clientX; lastPosY = clientY; return; }
-    if (!isCropMode || !isDrawingCrop || !cropRect) return; const pointer = canvas.getPointer(opt.e); const w = pointer.x - cropOrigX; const h = pointer.y - cropOrigY; cropRect.set({ left: w < 0 ? pointer.x : cropOrigX, top: h < 0 ? pointer.y : cropOrigY, width: Math.abs(w), height: Math.abs(h) }); canvas.renderAll();
+    
+    if (isCloneMode && isCloningActive) canvas.requestRenderAll(); // Forzar dibujo de la mirilla origen de clonación
+
+    if (!isCropMode || !isDrawingCrop || !cropRect) return; const w = pointer.x - cropOrigX; const h = pointer.y - cropOrigY; cropRect.set({ left: w < 0 ? pointer.x : cropOrigX, top: h < 0 ? pointer.y : cropOrigY, width: Math.abs(w), height: Math.abs(h) }); canvas.renderAll();
 });
 
 canvas.on('mouse:up', function() {
     if (isDraggingCamera) { canvas.setViewportTransform(canvas.viewportTransform); isDraggingCamera = false; canvas.selection = !isPanMode; canvas.defaultCursor = isPanMode ? 'grab' : 'default'; return; }
     if (isCropMode && isDrawingCrop) { isDrawingCrop = false; cropRect.setCoords(); document.getElementById('btn-apply-crop').style.display = 'block'; canvas.defaultCursor = 'default'; }
-    // Limpieza de Guías Magnéticas al soltar
+    if (isCloneMode) { isCloningActive = false; canvas.requestRenderAll(); }
     verticalGuide = null; horizontalGuide = null; canvas.requestRenderAll();
 });
 
-// Evento que se dispara al terminar de dibujar un trazo (Lazo, Clonar o Borrador)
 canvas.on('path:created', function(opt) {
-    if (isCloneMode) { 
-        opt.path.name = 'Clonación'; updateLayersPanel(); 
-    } 
+    if (isCloneMode) { opt.path.name = 'Clonación'; updateLayersPanel(); saveHistory(); } 
     else if (isLassoMode || isEraserMode) {
-        isMaskProcessing = true; 
-        const path = opt.path; 
-        canvas.remove(path); 
-        
-        // Configurar el path según la herramienta
+        isMaskProcessing = true; const path = opt.path; canvas.remove(path); 
         if (isLassoMode) path.set({ fill: 'black', stroke: 'transparent' });
-        if (isEraserMode) path.set({ stroke: 'black', opacity: 1, fill: 'transparent' }); // Trazo grueso sólido
+        if (isEraserMode) path.set({ stroke: 'black', opacity: 1, fill: 'transparent' });
         
         const targetLayer = isLassoMode ? lassoTarget : eraserTarget;
+        const originalVpt = canvas.viewportTransform.slice(); canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+        const visibilityMap = new Map(); canvas.getObjects().forEach(obj => { visibilityMap.set(obj, obj.visible); obj.visible = false; });
+        targetLayer.visible = true; canvas.renderAll(); const imgDataUrl = canvas.toDataURL({ format: 'png' });
+        targetLayer.visible = false; path.visible = true; canvas.add(path); canvas.renderAll(); const pathDataUrl = canvas.toDataURL({ format: 'png' }); canvas.remove(path);
+        canvas.getObjects().forEach(obj => { obj.visible = visibilityMap.get(obj); }); canvas.setViewportTransform(originalVpt); canvas.renderAll();
         
-        // TRUCO PRO: Guardamos la vista de cámara actual y la reseteamos para capturar a resolución real sin que se rompa al estar haciendo Zoom.
-        const originalVpt = canvas.viewportTransform.slice();
-        canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
-
-        // Ocultamos todo excepto la capa objetivo y tomamos la foto
-        const visibilityMap = new Map(); 
-        canvas.getObjects().forEach(obj => { visibilityMap.set(obj, obj.visible); obj.visible = false; });
-        
-        targetLayer.visible = true; 
-        canvas.renderAll(); 
-        const imgDataUrl = canvas.toDataURL({ format: 'png' });
-        
-        // Hacemos lo mismo con el dibujo que has hecho (el Lazo o el Borrón)
-        targetLayer.visible = false; 
-        path.visible = true; 
-        canvas.add(path); 
-        canvas.renderAll(); 
-        const pathDataUrl = canvas.toDataURL({ format: 'png' }); 
-        canvas.remove(path);
-
-        // Restaurar estado visual y cámara del usuario
-        canvas.getObjects().forEach(obj => { obj.visible = visibilityMap.get(obj); }); 
-        canvas.setViewportTransform(originalVpt);
-        canvas.renderAll();
-        
-        // Motor nativo de fusión de capas
         const imgObj = new Image(); imgObj.src = imgDataUrl;
         imgObj.onload = () => {
             const pathObj = new Image(); pathObj.src = pathDataUrl;
             pathObj.onload = () => {
-                const tempC = document.createElement('canvas'); tempC.width = canvas.width; tempC.height = canvas.height; const ctx = tempC.getContext('2d');
+                // 1. Preparar lienzo temporal
+                const tempC = document.createElement('canvas'); tempC.width = canvas.width; tempC.height = canvas.height; 
+                const ctx = tempC.getContext('2d'); 
                 ctx.drawImage(imgObj, 0, 0); 
                 
-                // Modo de fusión (Agujerear vs Mantener)
-                if (isEraserMode) {
-                    ctx.globalCompositeOperation = 'destination-out'; // La goma agujerea
-                } else if (isLassoMode) {
-                    const mode = document.getElementById('lasso-mode').value;
-                    ctx.globalCompositeOperation = (mode === 'invert') ? 'destination-out' : 'destination-in';
-                }
+                // 2. Calcular Dureza (Desenfoque)
+                let hardness = isEraserMode ? parseInt(document.getElementById('eraser-hardness').value, 10) : 100;
+                let blurPx = Math.max(0, (100 - hardness) / 3); 
                 
-                ctx.drawImage(pathObj, 0, 0);
+                // 3. Crear máscara con el filtro de desenfoque aplicado
+                const maskC = document.createElement('canvas'); 
+                maskC.width = canvas.width; maskC.height = canvas.height; 
+                const mCtx = maskC.getContext('2d');
+                if (blurPx > 0) mCtx.filter = `blur(${blurPx}px)`;
+                mCtx.drawImage(pathObj, 0, 0);
+
+                // 4. Aplicar máscara al lienzo principal
+                if (isEraserMode) ctx.globalCompositeOperation = 'destination-out';
+                else if (isLassoMode) { const mode = document.getElementById('lasso-mode').value; ctx.globalCompositeOperation = (mode === 'invert') ? 'destination-out' : 'destination-in'; }
+                
+                ctx.drawImage(maskC, 0, 0);
+                
                 const finalC = document.createElement('canvas'); finalC.width = canvas.width; finalC.height = canvas.height; finalC.getContext('2d').drawImage(tempC, 0, 0);
                 
+                // 5. Finalizar y reemplazar capa
                 fabric.Image.fromURL(finalC.toDataURL('image/png'), function(finalImg) {
                     finalImg.set({ left: 0, top: 0, name: targetLayer.name + (isEraserMode ? ' (Borrado)' : '') });
-                    
-                    // Respetar el orden (z-index) de la capa
-                    const zIndex = canvas.getObjects().indexOf(targetLayer);
-                    canvas.remove(targetLayer); 
-                    canvas.insertAt(finalImg, zIndex, false);
-                    canvas.setActiveObject(finalImg); 
-                    
-                    if (isLassoMode) {
-                        closeAllTools(); setActiveUI('tool-select');
-                    } else if (isEraserMode) {
-                        // En modo goma NO cerramos la herramienta para que el usuario pueda seguir borrando
-                        eraserTarget = finalImg;
-                    }
-
-                    isMaskProcessing = false; 
-                    saveHistory();
-                    updateLayersPanel();
+                    const zIndex = canvas.getObjects().indexOf(targetLayer); canvas.remove(targetLayer); canvas.insertAt(finalImg, zIndex, false); canvas.setActiveObject(finalImg); 
+                    if (isLassoMode) { closeAllTools(); setActiveUI('tool-select'); } else if (isEraserMode) { eraserTarget = finalImg; }
+                    isMaskProcessing = false; saveHistory(); updateLayersPanel();
                 });
             };
         };
@@ -482,7 +456,7 @@ canvas.on('path:created', function(opt) {
 });
 
 // ==========================================
-// 13. SMART GUIDES PRO (GUÍAS MAGNÉTICAS AVANZADAS)
+// 13. GUÍAS MAGNÉTICAS Y OVERLAYS EN TIEMPO REAL (PREVIEWS)
 // ==========================================
 const snapZone = 12;
 let verticalGuide = null;
@@ -490,9 +464,7 @@ let horizontalGuide = null;
 
 canvas.on('object:moving', function(opt) {
     const obj = opt.target; const canvasW = canvas.width; const canvasH = canvas.height; const centerX = canvasW / 2; const centerY = canvasH / 2;
-    let objCenter = obj.getCenterPoint();
-    let objLeft = objCenter.x - (obj.getScaledWidth() / 2); let objRight = objCenter.x + (obj.getScaledWidth() / 2);
-    let objTop = objCenter.y - (obj.getScaledHeight() / 2); let objBottom = objCenter.y + (obj.getScaledHeight() / 2);
+    let objCenter = obj.getCenterPoint(); let objLeft = objCenter.x - (obj.getScaledWidth() / 2); let objRight = objCenter.x + (obj.getScaledWidth() / 2); let objTop = objCenter.y - (obj.getScaledHeight() / 2); let objBottom = objCenter.y + (obj.getScaledHeight() / 2);
     verticalGuide = null; horizontalGuide = null;
 
     if (Math.abs(objCenter.x - centerX) < snapZone) { obj.set({ left: obj.left - (objCenter.x - centerX) }); verticalGuide = centerX; } 
@@ -505,12 +477,63 @@ canvas.on('object:moving', function(opt) {
 });
 
 canvas.on('after:render', function(opt) {
-    if (verticalGuide === null && horizontalGuide === null) return;
     const ctx = opt.ctx; if (!ctx) return;
-    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.strokeStyle = '#00bfff'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
-    const vpt = canvas.viewportTransform; const htmlCanvas = canvas.getElement();
-    if (verticalGuide !== null) { const drawX = (verticalGuide * vpt[0]) + vpt[4]; ctx.beginPath(); ctx.moveTo(drawX, 0); ctx.lineTo(drawX, htmlCanvas.height); ctx.stroke(); }
-    if (horizontalGuide !== null) { const drawY = (horizontalGuide * vpt[3]) + vpt[5]; ctx.beginPath(); ctx.moveTo(0, drawY); ctx.lineTo(htmlCanvas.width, drawY); ctx.stroke(); }
+    const vpt = canvas.viewportTransform;
+    
+    // A. GUÍAS MAGNÉTICAS
+    if (verticalGuide !== null || horizontalGuide !== null) {
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset para línea de 1px puro
+        ctx.strokeStyle = '#00bfff'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+        const htmlCanvas = canvas.getElement();
+        if (verticalGuide !== null) { const drawX = (verticalGuide * vpt[0]) + vpt[4]; ctx.beginPath(); ctx.moveTo(drawX, 0); ctx.lineTo(drawX, htmlCanvas.height); ctx.stroke(); }
+        if (horizontalGuide !== null) { const drawY = (horizontalGuide * vpt[3]) + vpt[5]; ctx.beginPath(); ctx.moveTo(0, drawY); ctx.lineTo(htmlCanvas.width, drawY); ctx.stroke(); }
+        ctx.restore();
+    }
+
+    // B. CÍRCULOS DE PREVISUALIZACIÓN Y CLONADO
+    ctx.save();
+    
+    // Perímetro estático en el centro de la pantalla al cambiar el grosor (Borrador o Clonar)
+    if (showEraserPreview || showClonePreview) {
+        const centerX = (canvas.width / 2 - vpt[4]) / vpt[0];
+        const centerY = (canvas.height / 2 - vpt[5]) / vpt[3];
+        const radiusId = showEraserPreview ? 'eraser-size' : 'clone-size';
+        const radiusColor = showEraserPreview ? '#ff4444' : '#00bfff';
+        const radius = parseInt(document.getElementById(radiusId).value, 10) / 2;
+
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+        ctx.strokeStyle = radiusColor;
+        ctx.lineWidth = 2 / vpt[0]; // Adaptable al zoom
+        ctx.setLineDash([3, 3]);
+        ctx.stroke();
+    }
+
+    // Círculo + Mirilla de Origen del Clonador (mientras pintas)
+    if (isCloneMode && isCloningActive && isCloneDeltaSet) {
+        const sourceX = currentMouseX - cloneDeltaX;
+        const sourceY = currentMouseY - cloneDeltaY;
+        const radius = parseInt(document.getElementById('clone-size').value, 10) / 2;
+
+        // Círculo
+        ctx.beginPath();
+        ctx.arc(sourceX, sourceY, radius, 0, 2 * Math.PI);
+        ctx.strokeStyle = 'rgba(0, 191, 255, 0.8)';
+        ctx.lineWidth = 2 / vpt[0];
+        ctx.setLineDash([4, 4]);
+        ctx.stroke();
+
+        // Cruz / Mirilla central
+        ctx.beginPath();
+        ctx.moveTo(sourceX - 5 / vpt[0], sourceY);
+        ctx.lineTo(sourceX + 5 / vpt[0], sourceY);
+        ctx.moveTo(sourceX, sourceY - 5 / vpt[0]);
+        ctx.lineTo(sourceX, sourceY + 5 / vpt[0]);
+        ctx.setLineDash([]);
+        ctx.stroke();
+    }
+    
     ctx.restore();
 });
 
