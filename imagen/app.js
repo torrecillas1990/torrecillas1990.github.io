@@ -213,18 +213,23 @@ let cloneSource = { x: 0, y: 0 }, cloneImageSnapshot = null, cloneDeltaX = 0, cl
 let cropRect = null, cropOrigX = 0, cropOrigY = 0, isDrawingCrop = false, lassoTarget = null, eraserTarget = null;
 let showEraserPreview = false, showClonePreview = false, isCloningActive = false;
 let currentMouseX = 0, currentMouseY = 0;
+let isBlurBrushMode = false;
+let blurBrushTarget = null;
+let showBlurPreview = false;
 
 const toolBars = [
     document.getElementById('tool-options-bar'), document.getElementById('tool-crop-bar'),
     document.getElementById('tool-lasso-bar'), document.getElementById('tool-filters-bar'),
     document.getElementById('tool-shapes-bar'), document.getElementById('tool-text-bar'),
-    document.getElementById('tool-color-bar'), document.getElementById('tool-eraser-bar')
+    document.getElementById('tool-color-bar'), document.getElementById('tool-eraser-bar'),
+	document.getElementById('tool-blur-brush-bar')
 ];
 
 function setActiveUI(id) { document.querySelectorAll('.tool-item').forEach(el => el.classList.remove('active')); if(id) document.getElementById(id).classList.add('active'); }
 function closeAllTools() {
     isPanMode = isCloneMode = isCropMode = isLassoMode = isEyedropperMode = isEraserMode = false;
     showEraserPreview = showClonePreview = isCloningActive = false;
+	isBlurBrushMode = false; showBlurPreview = false;
     canvas.isDrawingMode = false; canvas.selection = true; canvas.defaultCursor = 'default';
     toolBars.forEach(b => { if(b) b.style.display = 'none'; });
     if(cropRect) { canvas.remove(cropRect); cropRect = null; }
@@ -315,6 +320,20 @@ document.getElementById('eraser-size').addEventListener('input', e => { if (isEr
 document.getElementById('eraser-size').addEventListener('change', () => { showEraserPreview = false; canvas.requestRenderAll(); });
 document.getElementById('eraser-hardness').addEventListener('input', () => { if (isEraserMode) { showEraserPreview = true; canvas.requestRenderAll(); } });
 document.getElementById('eraser-hardness').addEventListener('change', () => { showEraserPreview = false; canvas.requestRenderAll(); });
+
+document.getElementById('tool-blur-brush').addEventListener('click', () => { 
+    blurBrushTarget = canvas.getActiveObject(); 
+    if (!blurBrushTarget) return alert('Por favor, selecciona primero la capa que quieres suavizar/desenfocar.');
+    closeAllTools(); setActiveUI('tool-blur-brush'); isBlurBrushMode = true; canvas.isDrawingMode = true; 
+    canvas.freeDrawingBrush = new fabric.PencilBrush(canvas); 
+    canvas.freeDrawingBrush.color = 'rgba(0, 191, 255, 0.2)'; // Azul muy transparente para guiarte sin tapar la foto
+    canvas.freeDrawingBrush.width = parseInt(document.getElementById('blur-brush-size').value, 10); 
+    document.getElementById('tool-blur-brush-bar').style.display = 'flex'; 
+});
+document.getElementById('btn-cancel-blur-brush').addEventListener('click', () => { closeAllTools(); setActiveUI('tool-select'); });
+
+document.getElementById('blur-brush-size').addEventListener('input', e => { if (isBlurBrushMode) { canvas.freeDrawingBrush.width = parseInt(e.target.value, 10); showBlurPreview = true; canvas.requestRenderAll(); } });
+document.getElementById('blur-brush-size').addEventListener('change', () => { showBlurPreview = false; canvas.requestRenderAll(); });
 
 // ==========================================
 // 8. PANEL DE COLOR Y PIPETA
@@ -541,6 +560,52 @@ canvas.on('path:created', function(opt) {
                 });
             };
         };
+    } else if (isBlurBrushMode) {
+        isMaskProcessing = true; canvas.remove(path); 
+        path.set({ stroke: 'black', opacity: 1, fill: 'transparent' });
+        
+        const targetLayer = blurBrushTarget;
+        const originalVpt = canvas.viewportTransform.slice(); canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+        const visibilityMap = new Map(); canvas.getObjects().forEach(obj => { visibilityMap.set(obj, obj.visible); obj.visible = false; });
+        
+        targetLayer.visible = true; canvas.renderAll(); const imgDataUrl = canvas.toDataURL({ format: 'png' });
+        targetLayer.visible = false; path.visible = true; canvas.add(path); canvas.renderAll(); const pathDataUrl = canvas.toDataURL({ format: 'png' }); canvas.remove(path);
+        canvas.getObjects().forEach(obj => { obj.visible = visibilityMap.get(obj); }); canvas.setViewportTransform(originalVpt); canvas.renderAll();
+        
+        const imgObj = new Image(); imgObj.src = imgDataUrl;
+        imgObj.onload = () => {
+            const pathObj = new Image(); pathObj.src = pathDataUrl;
+            pathObj.onload = () => {
+                // 1. Lienzo Base (La foto original)
+                const tempC = document.createElement('canvas'); tempC.width = canvas.width; tempC.height = canvas.height; 
+                const ctx = tempC.getContext('2d'); ctx.drawImage(imgObj, 0, 0); 
+                
+                // 2. Lienzo Desenfocado (Aplicamos el filtro Blur a toda la foto temporalmente)
+                const blurC = document.createElement('canvas'); blurC.width = canvas.width; blurC.height = canvas.height; 
+                const blurCtx = blurC.getContext('2d');
+                const intensity = parseInt(document.getElementById('blur-brush-intensity').value, 10);
+                blurCtx.filter = `blur(${intensity}px)`;
+                blurCtx.drawImage(imgObj, 0, 0); 
+                blurCtx.filter = 'none';
+
+                // 3. Máscara: Usamos el trazo que has dibujado para "recortar" solo la parte desenfocada
+                blurCtx.globalCompositeOperation = 'destination-in';
+                blurCtx.drawImage(pathObj, 0, 0);
+
+                // 4. Fusión: Pegamos el trozo desenfocado JUSTO ENCIMA de la foto original intacta
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.drawImage(blurC, 0, 0);
+                
+                // 5. Reemplazamos en el motor
+                const finalC = document.createElement('canvas'); finalC.width = canvas.width; finalC.height = canvas.height; finalC.getContext('2d').drawImage(tempC, 0, 0);
+                fabric.Image.fromURL(finalC.toDataURL('image/png'), function(finalImg) {
+                    finalImg.set({ left: 0, top: 0, name: targetLayer.name });
+                    const zIndex = canvas.getObjects().indexOf(targetLayer); canvas.remove(targetLayer); canvas.insertAt(finalImg, zIndex, false); canvas.setActiveObject(finalImg); 
+                    blurBrushTarget = finalImg; canvas.isDrawingMode = true; // Permite seguir dibujando
+                    isMaskProcessing = false; saveHistory(); updateLayersPanel();
+                });
+            };
+        };
     }
 });
 
@@ -596,12 +661,16 @@ canvas.on('after:render', function(opt) {
     // VISTA PREVIA DE PINCELES (Mantiene su lógica de transformación coordinada)
     ctx.save();
     const vpt = canvas.viewportTransform;
-    if (showEraserPreview || showClonePreview) {
+    if (showEraserPreview || showClonePreview || showBlurPreview) {
         const centerX = (canvas.width / 2 - vpt[4]) / vpt[0]; const centerY = (canvas.height / 2 - vpt[5]) / vpt[3];
         const radiusId = showEraserPreview ? 'eraser-size' : 'clone-size'; const hardnessId = showEraserPreview ? 'eraser-hardness' : 'clone-hardness'; const radiusColor = showEraserPreview ? '#ff4444' : '#00bfff';
         const radius = parseInt(document.getElementById(radiusId).value, 10) / 2; const hardness = parseInt(document.getElementById(hardnessId).value, 10); const innerRadius = radius * (hardness / 100);
         ctx.beginPath(); ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI); ctx.strokeStyle = radiusColor; ctx.lineWidth = 2 / vpt[0]; ctx.setLineDash([3, 3]); ctx.stroke();
         if (hardness < 100 && innerRadius > 0) { ctx.beginPath(); ctx.arc(centerX, centerY, innerRadius, 0, 2 * Math.PI); ctx.strokeStyle = radiusColor; ctx.lineWidth = 1 / vpt[0]; ctx.setLineDash([1, 4]); ctx.stroke(); }
+		radiusId = 'eraser-size';
+        if (showClonePreview) radiusId = 'clone-size';
+        if (showBlurPreview) radiusId = 'blur-brush-size';
+        radius = parseInt(document.getElementById(radiusId).value, 10) / 2;
     }
     if (isCloneMode && isCloningActive && isCloneDeltaSet) {
         const sourceX = currentMouseX - cloneDeltaX; const sourceY = currentMouseY - cloneDeltaY; const radius = parseInt(document.getElementById('clone-size').value, 10) / 2;
@@ -833,6 +902,273 @@ canvas.on('object:scaling', function(opt) {
     if (isCropMode && obj && obj.name === 'CropOverlay') {
         document.getElementById('crop-width').value = Math.round(obj.getScaledWidth());
         document.getElementById('crop-height').value = Math.round(obj.getScaledHeight());
+    }
+});
+
+// ==========================================
+// 17. MOTOR DE FILTROS Y AJUSTES EN TIEMPO REAL
+// ==========================================
+function applyFiltersToActiveObject() {
+    const obj = canvas.getActiveObject();
+    if (!obj || obj.type !== 'image') return;
+
+    // 1. Obtener los valores de los sliders de la UI
+    const brightnessVal = parseFloat(document.getElementById('filter-brightness').value);
+    const contrastVal = parseFloat(document.getElementById('filter-contrast').value);
+    const saturationVal = parseFloat(document.getElementById('filter-saturation').value);
+    const opacityVal = parseFloat(document.getElementById('filter-opacity').value);
+    const blurVal = parseFloat(document.getElementById('filter-blur').value);
+
+    // 2. Limpiar los filtros antiguos de este tipo para evitar duplicados en la matriz
+    obj.filters = obj.filters.filter(f => 
+        f.type !== 'Brightness' && 
+        f.type !== 'Contrast' && 
+        f.type !== 'Saturation' && 
+        f.type !== 'Blur'
+    );
+
+    // 3. Inyectar los filtros si sus valores han variado del estado neutro
+    if (brightnessVal !== 0) {
+        obj.filters.push(new fabric.Image.filters.Brightness({ brightness: brightnessVal }));
+    }
+    if (contrastVal !== 0) {
+        obj.filters.push(new fabric.Image.filters.Contrast({ contrast: contrastVal }));
+    }
+    if (saturationVal !== 0) {
+        obj.filters.push(new fabric.Image.filters.Saturation({ saturation: saturationVal }));
+    }
+    if (blurVal > 0) {
+        obj.filters.push(new fabric.Image.filters.Blur({ blur: blurVal }));
+    }
+
+    // 4. Modificar la opacidad de la capa
+    obj.set('opacity', opacityVal);
+
+    // 5. Compilar los filtros y refrescar
+    obj.applyFilters();
+    canvas.renderAll();
+}
+
+// Vincular los eventos 'input' para que la actualización sea fluida mientras se arrastra el ratón
+document.getElementById('filter-brightness').addEventListener('input', applyFiltersToActiveObject);
+document.getElementById('filter-contrast').addEventListener('input', applyFiltersToActiveObject);
+document.getElementById('filter-saturation').addEventListener('input', applyFiltersToActiveObject);
+document.getElementById('filter-opacity').addEventListener('input', applyFiltersToActiveObject);
+document.getElementById('filter-blur').addEventListener('input', applyFiltersToActiveObject);
+
+// Guardar el estado en el historial únicamente cuando el usuario suelta el control (evento change)
+const filterSliders = ['filter-brightness', 'filter-contrast', 'filter-saturation', 'filter-opacity', 'filter-blur'];
+filterSliders.forEach(id => {
+    document.getElementById(id).addEventListener('change', saveHistory);
+});
+
+// Sincronizar los sliders con los valores reales de la capa cuando el usuario cambia de selección
+canvas.on('selection:created', syncSlidersFromActiveObject);
+canvas.on('selection:updated', syncSlidersFromActiveObject);
+
+function syncSlidersFromActiveObject() {
+    const obj = canvas.getActiveObject();
+    if (!obj || obj.type !== 'image') return;
+
+    // Valores por defecto
+    let b = 0, c = 0, s = 0, bl = 0;
+
+    // Buscar si la capa ya posee filtros aplicados previamente para heredar sus valores
+    obj.filters.forEach(f => {
+        if (f.type === 'Brightness') b = f.brightness;
+        if (f.type === 'Contrast') c = f.contrast;
+        if (f.type === 'Saturation') s = f.saturation;
+        if (f.type === 'Blur') bl = f.blur;
+    });
+
+    // Volcar los datos a los inputs de la interfaz
+    document.getElementById('filter-brightness').value = b;
+    document.getElementById('filter-contrast').value = c;
+    document.getElementById('filter-saturation').value = s;
+    document.getElementById('filter-opacity').value = obj.opacity ?? 1;
+    document.getElementById('filter-blur').value = bl;
+}
+
+// Lógica para el botón "Borrar Ajustes" del panel
+document.getElementById('btn-reset-filters').addEventListener('click', () => {
+    const obj = canvas.getActiveObject();
+    if (!obj || obj.type !== 'image') return;
+
+    // Resetear valores en la interfaz
+    document.getElementById('filter-brightness').value = 0;
+    document.getElementById('filter-contrast').value = 0;
+    document.getElementById('filter-saturation').value = 0;
+    document.getElementById('filter-opacity').value = 1;
+    document.getElementById('filter-blur').value = 0;
+
+    // Limpiar matriz de filtros y restaurar opacidad base
+    obj.filters = obj.filters.filter(f => 
+        f.type !== 'Brightness' && f.type !== 'Contrast' && f.type !== 'Saturation' && f.type !== 'Blur'
+    );
+    obj.set('opacity', 1);
+
+    obj.applyFilters();
+    canvas.renderAll();
+    saveHistory();
+});
+
+// ==========================================
+// 18. APERTURA Y BOTONES RÁPIDOS DEL PANEL DE AJUSTES
+// ==========================================
+
+// 1. Abrir el panel al hacer clic en "Ajustes"
+document.getElementById('tool-filters').addEventListener('click', () => { 
+    const obj = canvas.getActiveObject();
+    if (!obj || obj.type !== 'image') {
+        return alert('Por favor, selecciona primero una capa de imagen (Foto) para usar los ajustes.');
+    }
+    
+    closeAllTools(); 
+    setActiveUI('tool-filters'); 
+    document.getElementById('tool-filters-bar').style.display = 'flex'; 
+    syncSlidersFromActiveObject(); // Sincroniza los valores con la foto seleccionada
+});
+
+// 2. Filtros Rápidos (B/N, Sepia, Invertir)
+function applyQuickFilter(filterClass) {
+    const obj = canvas.getActiveObject();
+    if (!obj || obj.type !== 'image') return;
+    
+    // Comprobar si ya tiene este filtro aplicado
+    const existingIndex = obj.filters.findIndex(f => f instanceof filterClass);
+    if (existingIndex > -1) {
+        obj.filters.splice(existingIndex, 1); // Si lo tiene, lo quitamos (Toggle)
+    } else {
+        obj.filters.push(new filterClass()); // Si no lo tiene, lo añadimos
+    }
+    
+    obj.applyFilters();
+    canvas.renderAll();
+    saveHistory();
+}
+
+document.getElementById('btn-filter-gray').addEventListener('click', () => applyQuickFilter(fabric.Image.filters.Grayscale));
+document.getElementById('btn-filter-sepia').addEventListener('click', () => applyQuickFilter(fabric.Image.filters.Sepia));
+document.getElementById('btn-filter-invert').addEventListener('click', () => applyQuickFilter(fabric.Image.filters.Invert));
+
+// 3. Botones de Transformación (Voltear y Rotar)
+document.getElementById('btn-flip-x').addEventListener('click', () => {
+    const obj = canvas.getActiveObject();
+    if (obj) { obj.set('flipX', !obj.flipX); canvas.renderAll(); saveHistory(); }
+});
+
+document.getElementById('btn-flip-y').addEventListener('click', () => {
+    const obj = canvas.getActiveObject();
+    if (obj) { obj.set('flipY', !obj.flipY); canvas.renderAll(); saveHistory(); }
+});
+
+document.getElementById('btn-rotate-90').addEventListener('click', () => {
+    const obj = canvas.getActiveObject();
+    if (obj) { 
+        obj.rotate((obj.angle || 0) + 90); 
+        canvas.renderAll(); 
+        saveHistory(); 
+    }
+});
+
+// ==========================================
+// 19. IA: ELIMINAR FONDO (VERSIÓN DEFINITIVA Y SEGURA)
+// ==========================================
+let aiSegmenter = null;
+
+document.getElementById('tool-ai').addEventListener('click', async () => {
+    const obj = canvas.getActiveObject();
+    
+    if (!obj || obj.type !== 'image') {
+        return alert('Por favor, selecciona una capa de imagen (Foto) para quitarle el fondo.');
+    }
+
+    const btnAi = document.getElementById('tool-ai');
+    const originalHtml = btnAi.innerHTML;
+    
+    try {
+        btnAi.innerHTML = '<span class="icon">⏳</span> Cargando Motor...';
+        btnAi.style.pointerEvents = 'none';
+        document.body.style.cursor = 'wait';
+        
+        // 1. Cargar Transformers.js dinámicamente (Evita errores del HTML)
+        if (!window.transformers) {
+            const module = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.16.0');
+            module.env.allowLocalModels = false;
+            window.transformers = module;
+        }
+
+        // 2. Descargar modelo ModNet (Especializado en recortes, muy estable)
+        if (!aiSegmenter) {
+            btnAi.innerHTML = '<span class="icon">📦</span> Bajando Modelo...';
+            aiSegmenter = await window.transformers.pipeline('image-segmentation', 'Xenova/modnet');
+        }
+
+        btnAi.innerHTML = '<span class="icon">🧠</span> Recortando...';
+
+        // 3. Preparar imagen original
+        const originalEl = obj._element;
+        const tempC = document.createElement('canvas');
+        tempC.width = originalEl.width;
+        tempC.height = originalEl.height;
+        const ctx = tempC.getContext('2d');
+        ctx.drawImage(originalEl, 0, 0);
+
+        // 4. Ejecutar la IA
+        const result = await aiSegmenter(tempC.toDataURL('image/png'));
+        
+        // 5. Extraer máscara
+        const maskImage = Array.isArray(result) ? result[0].mask : (result.mask || result);
+        const maskCanvas = maskImage.toCanvas();
+
+        // 6. Fusión de Píxeles manual (garantiza la transparencia)
+        const imgData = ctx.getImageData(0, 0, tempC.width, tempC.height);
+        
+        const resizeMaskC = document.createElement('canvas');
+        resizeMaskC.width = tempC.width;
+        resizeMaskC.height = tempC.height;
+        const maskCtx = resizeMaskC.getContext('2d');
+        maskCtx.drawImage(maskCanvas, 0, 0, tempC.width, tempC.height);
+        const maskPixels = maskCtx.getImageData(0, 0, tempC.width, tempC.height);
+
+        for (let i = 0; i < imgData.data.length; i += 4) {
+            // Reemplazamos la opacidad (Alpha) de la foto por el color de la máscara
+            imgData.data[i + 3] = maskPixels.data[i]; 
+        }
+        ctx.putImageData(imgData, 0, 0);
+
+        // 7. Actualizar el lienzo
+        fabric.Image.fromURL(tempC.toDataURL('image/png'), function(newImg) {
+            newImg.set({
+                left: obj.left, top: obj.top,
+                scaleX: obj.scaleX, scaleY: obj.scaleY,
+                angle: obj.angle,
+                originX: obj.originX, originY: obj.originY,
+                name: obj.name.includes('(Sin Fondo)') ? obj.name : obj.name + ' (Sin Fondo)'
+            });
+            
+            if (obj.filters && obj.filters.length > 0) {
+                newImg.filters = [...obj.filters];
+                newImg.applyFilters();
+            }
+            
+            const zIndex = canvas.getObjects().indexOf(obj);
+            canvas.remove(obj);
+            canvas.insertAt(newImg, zIndex, false);
+            canvas.setActiveObject(newImg);
+            
+            saveHistory();
+            updateLayersPanel();
+            canvas.renderAll();
+        });
+
+    } catch (error) {
+        console.error("Error crítico en IA:", error);
+        alert('Detalle del error:\n\n' + error.message);
+    } finally {
+        btnAi.innerHTML = originalHtml;
+        btnAi.style.pointerEvents = 'auto';
+        document.body.style.cursor = 'default';
     }
 });
 

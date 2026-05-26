@@ -213,6 +213,7 @@
                 <div class="tool-item" id="tool-filters"><span class="icon">🌟</span> Ajustes</div>
                 <div class="tool-item" id="tool-clone"><span class="icon">👯</span> Clonar</div>
 				<div class="tool-item" id="tool-eraser"><span class="icon">🧽</span> Borrador</div>
+				<div class="tool-item" id="tool-blur-brush"><span class="icon">💧</span> Suavizar</div>
                 <div class="tool-item" id="tool-lasso"><span class="icon">🖍️</span> Lazo</div>
                 <div class="tool-item" id="tool-crop"><span class="icon">✂️</span> Lienzo</div>
                 <div class="tool-item" id="tool-ai"><span class="icon">🪄</span> Fondo IA</div>
@@ -302,15 +303,18 @@
         </div>
 
         <div id="tool-filters-bar" class="floating-bar" style="flex-direction: column; align-items: stretch; width: 250px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;"><span style="font-size: 13px; font-weight: bold; color: #00bfff;">🌟 Ajustes Fotográficos</span><button id="btn-close-filters" class="close-btn" style="padding: 0;">×</button></div>
-            <div style="display: flex; gap: 5px; margin-bottom: 15px;"><button id="btn-filter-gray" class="btn" style="flex:1; font-size:11px; padding:6px;">B/N</button><button id="btn-filter-sepia" class="btn" style="flex:1; font-size:11px; padding:6px;">Sepia</button><button id="btn-filter-invert" class="btn" style="flex:1; font-size:11px; padding:6px;">Invertir</button></div>
-            <label style="font-size: 12px; display:flex; justify-content:space-between; margin-bottom: 8px;">Brillo: <input type="range" id="filter-brightness" min="-0.5" max="0.5" step="0.02" value="0" style="width: 140px;"></label>
-            <label style="font-size: 12px; display:flex; justify-content:space-between; margin-bottom: 8px;">Contraste: <input type="range" id="filter-contrast" min="-0.5" max="0.5" step="0.02" value="0" style="width: 140px;"></label>
-            <label style="font-size: 12px; display:flex; justify-content:space-between; margin-bottom: 8px;">Saturación: <input type="range" id="filter-saturation" min="-1" max="1" step="0.05" value="0" style="width: 140px;"></label>
-            <label style="font-size: 12px; display:flex; justify-content:space-between; margin-bottom: 15px;">Opacidad: <input type="range" id="filter-opacity" min="0" max="1" step="0.05" value="1" style="width: 140px;"></label>
-            <button id="btn-reset-filters" class="btn" style="background: #a03030; width: 100%; font-size: 12px; margin-bottom: 15px;">Borrar Ajustes</button>
-            <div style="display: flex; gap: 5px; border-top: 1px solid #444; padding-top: 15px;"><button id="btn-flip-x" class="btn" style="flex:1; font-size:11px;">Voltear H</button><button id="btn-flip-y" class="btn" style="flex:1; font-size:11px;">Voltear V</button><button id="btn-rotate-90" class="btn" style="flex:1; font-size:11px;">Rotar 90°</button></div>
-        </div>
+			<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;"><span style="font-size: 13px; font-weight: bold; color: #00bfff;">🌟 Ajustes Fotográficos</span><button id="btn-close-filters" class="close-btn" style="padding: 0;">×</button></div>
+			<div style="display: flex; gap: 5px; margin-bottom: 15px;"><button id="btn-filter-gray" class="btn" style="flex:1; font-size:11px; padding:6px;">B/N</button><button id="btn-filter-sepia" class="btn" style="flex:1; font-size:11px; padding:6px;">Sepia</button><button id="btn-filter-invert" class="btn" style="flex:1; font-size:11px; padding:6px;">Invertir</button></div>
+			<label style="font-size: 12px; display:flex; justify-content:space-between; margin-bottom: 8px;">Brillo: <input type="range" id="filter-brightness" min="-0.5" max="0.5" step="0.02" value="0" style="width: 140px;"></label>
+			<label style="font-size: 12px; display:flex; justify-content:space-between; margin-bottom: 8px;">Contraste: <input type="range" id="filter-contrast" min="-0.5" max="0.5" step="0.02" value="0" style="width: 140px;"></label>
+			<label style="font-size: 12px; display:flex; justify-content:space-between; margin-bottom: 8px;">Saturación: <input type="range" id="filter-saturation" min="-1" max="1" step="0.05" value="0" style="width: 140px;"></label>
+			<label style="font-size: 12px; display:flex; justify-content:space-between; margin-bottom: 8px;">Opacidad: <input type="range" id="filter-opacity" min="0" max="1" step="0.05" value="1" style="width: 140px;"></label>
+			
+			<label style="font-size: 12px; display:flex; justify-content:space-between; margin-bottom: 15px;">Difuminar: <input type="range" id="filter-blur" min="0" max="1" step="0.02" value="0" style="width: 140px;"></label>
+			
+			<button id="btn-reset-filters" class="btn" style="background: #a03030; width: 100%; font-size: 12px; margin-bottom: 15px;">Borrar Ajustes</button>
+			<div style="display: flex; gap: 5px; border-top: 1px solid #444; padding-top: 15px;"><button id="btn-flip-x" class="btn" style="flex:1; font-size:11px;">Voltear H</button><button id="btn-flip-y" class="btn" style="flex:1; font-size:11px;">Voltear V</button><button id="btn-rotate-90" class="btn" style="flex:1; font-size:11px;">Rotar 90°</button></div>
+		</div>
 
         <!-- Barras previas truncadas por limpieza visual, mantienen su HTML original -->
         <div id="tool-options-bar" class="floating-bar" style="border-radius: 50px;">
@@ -337,6 +341,13 @@
             <label style="font-size: 12px; display:flex; align-items:center; gap:5px; margin: 0;">Dureza: <input type="range" id="eraser-hardness" min="0" max="100" value="50" style="width: 70px;"></label>
             <button id="btn-cancel-eraser" class="btn" style="padding: 5px 10px; font-size: 12px; background: #a03030;">Terminar</button>
         </div>
+		<div id="tool-blur-brush-bar" class="floating-bar" style="border-radius: 50px;">
+			<span style="font-size: 13px; font-weight: bold; color: #00bfff;">💧 Pinta para suavizar</span>
+			<div style="width: 1px; height: 20px; background: #555;"></div>
+			<label style="font-size: 12px; display:flex; align-items:center; gap:5px; margin: 0;">Grosor: <input type="range" id="blur-brush-size" min="5" max="150" value="30" style="width: 70px;"></label>
+			<label style="font-size: 12px; display:flex; align-items:center; gap:5px; margin: 0;">Fuerza: <input type="range" id="blur-brush-intensity" min="1" max="20" value="5" style="width: 70px;"></label>
+			<button id="btn-cancel-blur-brush" class="btn" style="padding: 5px 10px; font-size: 12px; background: #a03030;">Terminar</button>
+		</div>
     </div>
 
     <script type="module">
