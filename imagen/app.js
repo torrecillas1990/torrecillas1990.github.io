@@ -249,10 +249,46 @@ document.getElementById('clone-size').addEventListener('input', e => { if (myClo
 document.getElementById('clone-size').addEventListener('change', () => { showClonePreview = false; canvas.requestRenderAll(); });
 document.getElementById('clone-hardness').addEventListener('input', () => { if (isCloneMode) { showClonePreview = true; canvas.requestRenderAll(); } });
 document.getElementById('clone-hardness').addEventListener('change', () => { showClonePreview = false; canvas.requestRenderAll(); });
+document.getElementById('tool-crop').addEventListener('click', () => { 
+    closeAllTools(); 
+    setActiveUI('tool-crop'); 
+    canvas.discardActiveObject(); 
+    isCropMode = true; 
+    canvas.selection = false; 
+    canvas.defaultCursor = 'crosshair'; 
+    canvas.getObjects().forEach(o => { o.selectable = false; o.evented = false; }); 
+    
+    // Sincronizar inputs con el tamaño actual del lienzo
+    document.getElementById('crop-width').value = Math.round(canvas.width);
+    document.getElementById('crop-height').value = Math.round(canvas.height);
 
-document.getElementById('tool-crop').addEventListener('click', () => { closeAllTools(); setActiveUI('tool-crop'); canvas.discardActiveObject(); isCropMode = true; canvas.selection = false; canvas.defaultCursor = 'crosshair'; canvas.getObjects().forEach(o => { o.selectable = false; o.evented = false; }); document.getElementById('tool-crop-bar').style.display = 'flex'; document.getElementById('btn-apply-crop').style.display = 'none'; });
+    document.getElementById('tool-crop-bar').style.display = 'flex'; 
+});
 document.getElementById('btn-cancel-crop').addEventListener('click', () => { closeAllTools(); setActiveUI('tool-select'); });
-document.getElementById('btn-apply-crop').addEventListener('click', () => { if (!cropRect) return; const bound = cropRect.getBoundingRect(); canvas.remove(cropRect); canvas.getObjects().forEach(obj => { obj.set({ left: obj.left - bound.left, top: obj.top - bound.top }); obj.setCoords(); }); canvas.setWidth(bound.width); canvas.setHeight(bound.height); cropRect = null; closeAllTools(); setActiveUI('tool-select'); updateLayersPanel(); saveHistory(); });
+document.getElementById('btn-apply-crop').addEventListener('click', () => { 
+    // Si el usuario no dibujó el recuadro a mano, lo creamos centrado con los números de los inputs
+    if (!cropRect) {
+        const w = parseInt(document.getElementById('crop-width').value, 10) || canvas.width;
+        const h = parseInt(document.getElementById('crop-height').value, 10) || canvas.height;
+        cropRect = new fabric.Rect({
+            left: (canvas.width - w) / 2,
+            top: (canvas.height - h) / 2,
+            width: w,
+            height: h
+        });
+    }
+
+    const bound = cropRect.getBoundingRect(); 
+    canvas.remove(cropRect); 
+    canvas.getObjects().forEach(obj => { obj.set({ left: obj.left - bound.left, top: obj.top - bound.top }); obj.setCoords(); }); 
+    canvas.setWidth(bound.width); 
+    canvas.setHeight(bound.height); 
+    cropRect = null; 
+    closeAllTools(); 
+    setActiveUI('tool-select'); 
+    updateLayersPanel(); 
+    saveHistory(); 
+});
 
 document.getElementById('tool-lasso').addEventListener('click', () => { lassoTarget = canvas.getActiveObject(); if (!lassoTarget) return alert('Selecciona primero la capa a recortar.'); closeAllTools(); setActiveUI('tool-lasso'); isLassoMode = true; canvas.isDrawingMode = true; canvas.freeDrawingBrush = new fabric.PencilBrush(canvas); canvas.freeDrawingBrush.color = 'rgba(0,191,255,0.7)'; canvas.freeDrawingBrush.width = 4; document.getElementById('tool-lasso-bar').style.display = 'flex'; });
 document.getElementById('btn-cancel-lasso').addEventListener('click', () => { closeAllTools(); setActiveUI('tool-select'); });
@@ -399,7 +435,11 @@ canvas.on('mouse:move', function(opt) {
     }
     
     if (isCloneMode && isCloningActive) canvas.requestRenderAll();
-    if (!isCropMode || !isDrawingCrop || !cropRect) return; const w = pointer.x - cropOrigX; const h = pointer.y - cropOrigY; cropRect.set({ left: w < 0 ? pointer.x : cropOrigX, top: h < 0 ? pointer.y : cropOrigY, width: Math.abs(w), height: Math.abs(h) }); canvas.renderAll();
+    if (!isCropMode || !isDrawingCrop || !cropRect) return; const w = pointer.x - cropOrigX; const h = pointer.y - cropOrigY; 
+	cropRect.set({ left: w < 0 ? pointer.x : cropOrigX, top: h < 0 ? pointer.y : cropOrigY, width: Math.abs(w), height: Math.abs(h) }); 
+	document.getElementById('crop-width').value = Math.round(Math.abs(w));
+	document.getElementById('crop-height').value = Math.round(Math.abs(h));
+	canvas.renderAll();
 });
 
 canvas.on('mouse:up', function() {
@@ -717,6 +757,53 @@ canvas.on('after:render', updateInfoBar); // Captura cambios de lienzo (como la 
 
 // Llamada inicial para establecer el tamaño base al abrir la app
 updateInfoBar();
+
+// ==========================================
+// 16. CONTROL NUMÉRICO DEL LIENZO (CROP CON INPUTS)
+// ==========================================
+function updateCropRectFromInputs() {
+    if (!isCropMode) return;
+    const w = parseInt(document.getElementById('crop-width').value, 10) || 0;
+    const h = parseInt(document.getElementById('crop-height').value, 10) || 0;
+    if (w <= 0 || h <= 0) return;
+
+    // Si no existe el recuadro de previsualización, lo inicializamos
+    if (!cropRect) {
+        cropRect = new fabric.Rect({
+            fill: 'rgba(0,191,255,0.2)', 
+            stroke: '#00bfff', 
+            strokeWidth: 2, 
+            strokeDashArray: [5,5], 
+            hasRotatingPoint: false, 
+            name: 'CropOverlay'
+        });
+        canvas.add(cropRect);
+    }
+
+    // Centrar el recuadro numérico en mitad del lienzo de trabajo de forma simétrica
+    cropRect.set({
+        left: (canvas.width - w) / 2,
+        top: (canvas.height - h) / 2,
+        width: w,
+        height: h
+    });
+    cropRect.setCoords();
+    canvas.setActiveObject(cropRect);
+    canvas.renderAll();
+}
+
+// Escuchar la escritura en los campos numéricos
+document.getElementById('crop-width').addEventListener('input', updateCropRectFromInputs);
+document.getElementById('crop-height').addEventListener('input', updateCropRectFromInputs);
+
+// Sincronizar inputs si el usuario deforma el recuadro usando los tiradores de las esquinas de Fabric.js
+canvas.on('object:scaling', function(opt) {
+    const obj = opt.target;
+    if (isCropMode && obj && obj.name === 'CropOverlay') {
+        document.getElementById('crop-width').value = Math.round(obj.getScaledWidth());
+        document.getElementById('crop-height').value = Math.round(obj.getScaledHeight());
+    }
+});
 
 // ==========================================
 // WELCOME
