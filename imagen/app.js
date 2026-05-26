@@ -234,7 +234,17 @@ function closeAllTools() {
 }
 
 document.getElementById('tool-select').addEventListener('click', () => { closeAllTools(); setActiveUI('tool-select'); });
-document.getElementById('tool-pan').addEventListener('click', () => { closeAllTools(); isPanMode = true; canvas.selection = false; canvas.defaultCursor = 'grab'; setActiveUI('tool-pan'); });
+document.getElementById('tool-pan').addEventListener('click', () => { 
+    closeAllTools(); 
+    isPanMode = true; 
+    canvas.selection = false; 
+    canvas.defaultCursor = 'grab'; 
+    // Esto es vital para que las capas no roben el clic:
+    canvas.getObjects().forEach(o => { o.selectable = false; o.evented = false; }); 
+    canvas.discardActiveObject(); 
+    canvas.requestRenderAll();
+    setActiveUI('tool-pan'); 
+});
 document.querySelectorAll('.close-btn').forEach(btn => btn.addEventListener('click', () => {
     if(btn.id !== 'btnCloseTools' && btn.id !== 'btnCloseLayers') { closeAllTools(); setActiveUI('tool-select'); }
 }));
@@ -328,33 +338,32 @@ document.getElementById('text-fill-type').addEventListener('change', (e) => { do
 document.getElementById('btn-add-text').addEventListener('click', () => { const isOutline = document.getElementById('text-fill-type').value === 'outline'; const strokeW = parseInt(document.getElementById('text-stroke-width').value, 10); const color = globalColorPicker.value; const options = { left: canvas.width / 2, top: canvas.height / 2, originX: 'center', originY: 'center', fontFamily: 'sans-serif', fontSize: 60, fontWeight: 'bold', fill: isOutline ? 'transparent' : color, stroke: isOutline ? color : null, strokeWidth: isOutline ? strokeW : 0, transparentCorners: false, cornerColor: 'white', cornerStrokeColor: 'black', borderColor: 'white', name: 'Texto' }; const text = new fabric.IText('Doble clic', options); canvas.add(text); canvas.setActiveObject(text); canvas.renderAll(); });
 
 // ==========================================
-// 10. MOTOR CENTRALIZADO DE RATÓN (UNIFICACIÓN)
+// 10. MOTOR CENTRALIZADO DE CÁMARA (ZOOM Y PAN CSS)
 // ==========================================
-let currentZoom = 1; // Variable global para controlar el zoom de la mesa de trabajo
+let currentZoom = 1; 
+let currentPanX = 0; 
+let currentPanY = 0;
+
+function updateCamera() {
+    // Movemos y escalamos TODA la caja (lienzo + fondo de cuadraditos)
+    document.getElementById('workspace').style.transform = `translate(${currentPanX}px, ${currentPanY}px) scale(${currentZoom})`;
+    // Sincronizamos las coordenadas del ratón con la nueva posición física
+    canvas.calcOffset(); 
+}
 
 document.getElementById('btnResetView').addEventListener('click', () => { 
-    currentZoom = 1;
-    document.getElementById('workspace').style.transform = `scale(1)`;
-    canvas.setViewportTransform([1, 0, 0, 1, 0, 0]); 
-    canvas.calcOffset(); // Muy importante para resetear las coordenadas del ratón
+    currentZoom = 1; currentPanX = 0; currentPanY = 0;
+    updateCamera();
+    canvas.setViewportTransform([1, 0, 0, 1, 0, 0]); // Limpia cualquier paneo interno residual
     canvas.renderAll(); 
 });
 
-// NUEVO COMPORTAMIENTO DE ZOOM
 canvas.on('mouse:wheel', function(opt) { 
     var delta = opt.e.deltaY; 
     currentZoom *= 0.999 ** delta; 
-    
-    // Límites de zoom (de 10% a 1000%)
     if (currentZoom > 10) currentZoom = 10; 
     if (currentZoom < 0.1) currentZoom = 0.1; 
-    
-    // Hacemos zoom sobre TODA la caja, incluyendo el lienzo y el fondo de cuadraditos
-    document.getElementById('workspace').style.transform = `scale(${currentZoom})`;
-    
-    // Le indicamos a Fabric que la caja ha cambiado de tamaño para que el ratón no pierda precisión
-    canvas.calcOffset(); 
-    
+    updateCamera();
     opt.e.preventDefault(); 
     opt.e.stopPropagation(); 
 });
@@ -364,9 +373,11 @@ let isDraggingCamera = false, lastPosX = 0, lastPosY = 0;
 canvas.on('mouse:down', function(opt) {
     const pointer = canvas.getPointer(opt.e); currentMouseX = pointer.x; currentMouseY = pointer.y;
 
+    // Activamos el arrastre si tenemos pulsado ALT o estamos en modo Cámara
     if (opt.e.altKey === true || isPanMode) { 
         isDraggingCamera = true; 
         canvas.selection = false; 
+        canvas.discardActiveObject(); // Deselecciona la capa activa al instante
         lastPosX = opt.e.clientX || (opt.e.touches && opt.e.touches[0].clientX); 
         lastPosY = opt.e.clientY || (opt.e.touches && opt.e.touches[0].clientY); 
         canvas.defaultCursor = 'grabbing'; 
@@ -379,19 +390,15 @@ canvas.on('mouse:down', function(opt) {
         isEyedropperMode = false; canvas.defaultCursor = 'default'; document.getElementById('color-status').innerText = '🎨 Panel de Color'; document.getElementById('color-status').style.color = '#00bfff'; return;
     }
     
-    // Lógica de Clonador
     if (isCloneMode) {
         if (isSettingCloneSource) {
             cloneSource = { x: pointer.x, y: pointer.y }; isSettingCloneSource = false;
-            
             const originalVpt = canvas.viewportTransform.slice(); canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
             const img = new Image(); img.src = canvas.toDataURL({ format: 'png' });
             canvas.setViewportTransform(originalVpt);
-            
             img.onload = () => {
                 cloneImageSnapshot = img; document.getElementById('clone-status').innerText = '🖌️ Pintando...'; canvas.defaultCursor = 'default';
                 myCloneBrush = new fabric.PatternBrush(canvas);
-                
                 const originalDown = myCloneBrush.onMouseDown.bind(myCloneBrush);
                 myCloneBrush.onMouseDown = function(ptr, options) {
                     if (isCloneMode && cloneImageSnapshot && !isCloneDeltaSet) { 
@@ -401,7 +408,6 @@ canvas.on('mouse:down', function(opt) {
                     }
                     originalDown(ptr, options);
                 };
-                
                 myCloneBrush.width = parseInt(document.getElementById('clone-size').value, 10); 
                 canvas.freeDrawingBrush = myCloneBrush; canvas.isDrawingMode = true;
             };
@@ -410,40 +416,40 @@ canvas.on('mouse:down', function(opt) {
         }
     }
     
-    // Lógica de Recorte
     if (isCropMode && !cropRect) { isDrawingCrop = true; cropOrigX = pointer.x; cropOrigY = pointer.y; cropRect = new fabric.Rect({ left: cropOrigX, top: cropOrigY, width: 0, height: 0, fill: 'rgba(0,191,255,0.2)', stroke: '#00bfff', strokeWidth: 2, strokeDashArray: [5,5], hasRotatingPoint: false, name: 'CropOverlay' }); canvas.add(cropRect); canvas.setActiveObject(cropRect); }
 });
 
 canvas.on('mouse:move', function(opt) {
     const pointer = canvas.getPointer(opt.e); currentMouseX = pointer.x; currentMouseY = pointer.y;
     
-    // ARRASTRE DE CÁMARA CORREGIDO
     if (isDraggingCamera) { 
         let e = opt.e; 
         let clientX = e.clientX || (e.touches && e.touches[0].clientX); 
         let clientY = e.clientY || (e.touches && e.touches[0].clientY); 
-        let vpt = canvas.viewportTransform; 
         
-        // Dividimos la distancia por el zoom actual para que el arrastre sea fiel a la pantalla
-        vpt[4] += (clientX - lastPosX) / currentZoom; 
-        vpt[5] += (clientY - lastPosY) / currentZoom; 
+        // Movemos físicamente la caja con CSS
+        currentPanX += (clientX - lastPosX); 
+        currentPanY += (clientY - lastPosY); 
+        updateCamera();
         
-        canvas.requestRenderAll(); 
         lastPosX = clientX; 
         lastPosY = clientY; 
         return; 
     }
     
     if (isCloneMode && isCloningActive) canvas.requestRenderAll();
-    if (!isCropMode || !isDrawingCrop || !cropRect) return; const w = pointer.x - cropOrigX; const h = pointer.y - cropOrigY; 
-	cropRect.set({ left: w < 0 ? pointer.x : cropOrigX, top: h < 0 ? pointer.y : cropOrigY, width: Math.abs(w), height: Math.abs(h) }); 
-	document.getElementById('crop-width').value = Math.round(Math.abs(w));
-	document.getElementById('crop-height').value = Math.round(Math.abs(h));
-	canvas.renderAll();
+    if (!isCropMode || !isDrawingCrop || !cropRect) return; const w = pointer.x - cropOrigX; const h = pointer.y - cropOrigY; cropRect.set({ left: w < 0 ? pointer.x : cropOrigX, top: h < 0 ? pointer.y : cropOrigY, width: Math.abs(w), height: Math.abs(h) }); 
+    
+    // Sincronización con Inputs numéricos si existen
+    const cropW = document.getElementById('crop-width');
+    const cropH = document.getElementById('crop-height');
+    if(cropW && cropH) { cropW.value = Math.round(Math.abs(w)); cropH.value = Math.round(Math.abs(h)); }
+    
+    canvas.renderAll();
 });
 
 canvas.on('mouse:up', function() {
-    if (isDraggingCamera) { canvas.setViewportTransform(canvas.viewportTransform); isDraggingCamera = false; canvas.selection = !isPanMode; canvas.defaultCursor = isPanMode ? 'grab' : 'default'; return; }
+    if (isDraggingCamera) { isDraggingCamera = false; canvas.selection = !isPanMode; canvas.defaultCursor = isPanMode ? 'grab' : 'default'; return; }
     if (isCropMode && isDrawingCrop) { isDrawingCrop = false; cropRect.setCoords(); document.getElementById('btn-apply-crop').style.display = 'block'; canvas.defaultCursor = 'default'; }
     if (isCloneMode) { isCloningActive = false; canvas.requestRenderAll(); }
     verticalGuide = null; horizontalGuide = null; canvas.requestRenderAll();
