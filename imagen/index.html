@@ -30,6 +30,34 @@
 			font-family: sans-serif; 
 		}
 		
+		/* 1. Todo el fondo de la aplicación y el contenedor en negro puro */
+		body, #workspace-container {
+			background-color: #000000;
+		}
+
+		#workspace-container {
+			flex: 1; 
+			display: flex; 
+			justify-content: center; 
+			align-items: center; 
+		}
+
+		/* 2. El lienzo con el patrón de cuadraditos de transparencia */
+		#workspace { 
+			box-shadow: 0 0 20px rgba(0,0,0,0.8); 
+			transition: box-shadow 0.3s ease;
+			
+			/* Patrón de tablero de ajedrez (transparencia) */
+			background-color: #1a1a1a;
+			background-image: 
+				linear-gradient(45deg, #262626 25%, transparent 25%), 
+				linear-gradient(-45deg, #262626 25%, transparent 25%), 
+				linear-gradient(45deg, transparent 75%, #262626 75%), 
+				linear-gradient(-45deg, transparent 75%, #262626 75%);
+			background-size: 20px 20px; 
+			background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+		}
+		
 		/* Estilos para el Overlay de Bienvenida */
 		#welcome-overlay {
 			position: fixed;
@@ -63,25 +91,8 @@
         .btn-icon { font-size: 18px; padding: 8px; }
 
         #main-content { flex: 1; position: relative; display: flex; overflow: hidden; }
-        
-		#workspace-container {
-			flex: 1; 
-			display: flex; 
-			justify-content: center; 
-			align-items: center; 
-			background: #1a1a1a;
-            background-image: linear-gradient(45deg, #222 25%, transparent 25%), linear-gradient(-45deg, #222 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #222 75%), linear-gradient(-45deg, transparent 75%, #222 75%);
-            background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-        }
 
-        #workspace { box-shadow: 0 0 20px rgba(0,0,0,0.8); transition: box-shadow 0.3s ease; }
-
-		#mainCanvas {
-			outline: 1px solid #333; /* Borde sutil para ver dónde acaba el lienzo */
-			background: #1a1a1a;
-            background-image: linear-gradient(45deg, #222 25%, transparent 25%), linear-gradient(-45deg, #222 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #222 75%), linear-gradient(-45deg, transparent 75%, #222 75%);
-            background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-		}
+		#mainCanvas {outline: 1px solid #333; /* Borde sutil para ver dónde acaba el lienzo */ }
 		
         .sidebar { position: absolute; top: 0; bottom: 0; width: 260px; background: rgba(37, 37, 37, 0.98); backdrop-filter: blur(10px); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 50; display: flex; flex-direction: column; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
         #panel-tools { left: 0; transform: translateX(-100%); border-right: 1px solid #444; }
@@ -133,6 +144,26 @@
         /* Estilos para las muestras de color (Swatches) */
         .color-swatch { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 2px solid #555; transition: transform 0.1s; }
         .color-swatch:hover { border-color: #fff; transform: scale(1.2); }
+		
+		/* --- BARRA DE INFORMACIÓN (TAMAÑOS) --- */
+		#info-bar {
+			position: absolute;
+			bottom: 10px;
+			left: 10px;
+			background: rgba(20, 20, 20, 0.85);
+			border: 1px solid #444;
+			color: #bbb;
+			padding: 6px 12px;
+			border-radius: 6px;
+			font-size: 11px;
+			font-family: monospace;
+			z-index: 40; /* Por debajo de las herramientas flotantes */
+			pointer-events: none; /* Evita que bloquee los clics del ratón en el lienzo */
+			display: flex;
+			gap: 15px;
+			box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+		}
+		.info-item span { color: #00bfff; font-weight: bold; }
 
         @media (max-width: 600px) { .btn span.text { display: none; } .sidebar { width: 80%; max-width: 300px; } }
     </style>
@@ -163,7 +194,11 @@
     </div>
 
     <div id="main-content">
-        
+        <div id="info-bar">
+			<div class="info-item">Lienzo: <span id="info-canvas-size">-</span></div>
+			<div class="info-item">Capa: <span id="info-layer-size">-</span></div>
+		</div>
+	
         <!-- Panel Izquierdo: Herramientas -->
         <div id="panel-tools" class="sidebar">
             <div class="panel-header"><span>Herramientas</span><button id="btnCloseTools" class="close-btn">×</button></div>
@@ -182,6 +217,7 @@
                 <div class="tool-item" id="tool-crop"><span class="icon">✂️</span> Lienzo</div>
                 <div class="tool-item" id="tool-ai"><span class="icon">🪄</span> Fondo IA</div>
 				<div class="tool-item" id="tool-enhance" style="grid-column: 1 / -1; background: linear-gradient(135deg, #2b4c7e, #1a3050); border-color: #00bfff;"><span class="icon">✨</span> Auto-Mejorar Calidad</div>
+				<div class="tool-item" id="tool-upscale" style="grid-column: 1 / -1; background: linear-gradient(135deg, #5c2b7e, #361a50); border-color: #a044ff;"><span class="icon">🔍</span> Duplicar Resolución (x2)</div>
             </div>
         </div>
 

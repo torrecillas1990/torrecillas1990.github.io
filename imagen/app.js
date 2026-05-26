@@ -82,38 +82,73 @@ function mergeLayerDown(topObj) {
 
     const bottomObj = objects[topIdx - 1];
 
-    // 1. Ocultar todo temporalmente para renderizar solo estos dos
+    // 1. Calcular la caja delimitadora ABSOLUTA conjunta (ignora el zoom/paneo actual)
+    const topBound = topObj.getBoundingRect(true, true);
+    const bottomBound = bottomObj.getBoundingRect(true, true);
+
+    const minX = Math.min(topBound.left, bottomBound.left);
+    const minY = Math.min(topBound.top, bottomBound.top);
+    const maxX = Math.max(topBound.left + topBound.width, bottomBound.left + bottomBound.width);
+    const maxY = Math.max(topBound.top + topBound.height, bottomBound.top + bottomBound.height);
+
+    const finalWidth = maxX - minX;
+    const finalHeight = maxY - minY;
+
+    // 2. Ocultar el resto de capas temporalmente
     const visibilityMap = new Map();
     canvas.getObjects().forEach(obj => {
         visibilityMap.set(obj, obj.visible);
         obj.visible = (obj === topObj || obj === bottomObj);
     });
 
-    // 2. Renderizar a imagen
+    // 3. CLAVE: Resetear la cámara temporalmente para evitar que el recorte salga desplazado
+    const originalVpt = canvas.viewportTransform.slice();
+    canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+
+    // 4. Renderizar a imagen de alta calidad
     const dataUrl = canvas.toDataURL({
         format: 'png',
-        left: Math.min(topObj.left, bottomObj.left),
-        top: Math.min(topObj.top, bottomObj.top),
-        width: Math.max(topObj.getScaledWidth(), bottomObj.getScaledWidth()),
-        height: Math.max(topObj.getScaledHeight(), bottomObj.getScaledHeight()),
-        multiplier: 2 // Alta calidad
+        left: minX,
+        top: minY,
+        width: finalWidth,
+        height: finalHeight,
+        multiplier: 2 // Usamos x2 para que no pierda resolución al fusionar
     });
 
-    // 3. Restaurar visibilidad
+    // 5. Restaurar visibilidad y cámara
+    canvas.setViewportTransform(originalVpt);
     canvas.getObjects().forEach(obj => obj.visible = visibilityMap.get(obj));
 
-    // 4. Crear nueva imagen fusionada
+    // 6. Cargar la imagen y colocarla exactamente en el mismo sitio
     fabric.Image.fromURL(dataUrl, function(mergedImg) {
+        
+        // La colocamos con origen Top/Left porque nuestras coordenadas minX/minY vienen de ahí
         mergedImg.set({
-            left: Math.min(topObj.left, bottomObj.left),
-            top: Math.min(topObj.top, bottomObj.top),
+            left: minX,
+            top: minY,
+            originX: 'left',
+            originY: 'top',
             name: 'Capa Fusionada'
         });
 
-        // 5. Reemplazar
+        // La re-centramos para que coincida con el comportamiento del resto de tus herramientas
+        mergedImg.set({
+            left: minX + (finalWidth / 2),
+            top: minY + (finalHeight / 2),
+            originX: 'center',
+            originY: 'center'
+        });
+
+        // CLAVE: Como la exportamos a x2 de tamaño, la reducimos al 50% en el lienzo
+        // para que mantenga su tamaño original pero con el doble de densidad de píxeles
+        mergedImg.scale(0.5);
+
+        // 7. Reemplazar en la pila de capas
         canvas.remove(topObj);
         canvas.remove(bottomObj);
-        canvas.add(mergedImg);
+        
+        // Insertamos la nueva capa exactamente en la posición donde estaba la capa inferior
+        canvas.insertAt(mergedImg, topIdx - 1, false);
         canvas.setActiveObject(mergedImg);
         
         saveHistory();
@@ -259,15 +294,48 @@ document.getElementById('btn-add-text').addEventListener('click', () => { const 
 // ==========================================
 // 10. MOTOR CENTRALIZADO DE RATÓN (UNIFICACIÓN)
 // ==========================================
-document.getElementById('btnResetView').addEventListener('click', () => { canvas.setViewportTransform([1, 0, 0, 1, 0, 0]); canvas.renderAll(); });
-canvas.on('mouse:wheel', function(opt) { var delta = opt.e.deltaY; var zoom = canvas.getZoom(); zoom *= 0.999 ** delta; if (zoom > 20) zoom = 20; if (zoom < 0.1) zoom = 0.1; canvas.zoomToPoint({ x: opt.e.offsetX, y: opt.e.offsetY }, zoom); opt.e.preventDefault(); opt.e.stopPropagation(); });
+let currentZoom = 1; // Variable global para controlar el zoom de la mesa de trabajo
+
+document.getElementById('btnResetView').addEventListener('click', () => { 
+    currentZoom = 1;
+    document.getElementById('workspace').style.transform = `scale(1)`;
+    canvas.setViewportTransform([1, 0, 0, 1, 0, 0]); 
+    canvas.calcOffset(); // Muy importante para resetear las coordenadas del ratón
+    canvas.renderAll(); 
+});
+
+// NUEVO COMPORTAMIENTO DE ZOOM
+canvas.on('mouse:wheel', function(opt) { 
+    var delta = opt.e.deltaY; 
+    currentZoom *= 0.999 ** delta; 
+    
+    // Límites de zoom (de 10% a 1000%)
+    if (currentZoom > 10) currentZoom = 10; 
+    if (currentZoom < 0.1) currentZoom = 0.1; 
+    
+    // Hacemos zoom sobre TODA la caja, incluyendo el lienzo y el fondo de cuadraditos
+    document.getElementById('workspace').style.transform = `scale(${currentZoom})`;
+    
+    // Le indicamos a Fabric que la caja ha cambiado de tamaño para que el ratón no pierda precisión
+    canvas.calcOffset(); 
+    
+    opt.e.preventDefault(); 
+    opt.e.stopPropagation(); 
+});
 
 let isDraggingCamera = false, lastPosX = 0, lastPosY = 0;
 
 canvas.on('mouse:down', function(opt) {
     const pointer = canvas.getPointer(opt.e); currentMouseX = pointer.x; currentMouseY = pointer.y;
 
-    if (opt.e.altKey === true || isPanMode) { isDraggingCamera = true; canvas.selection = false; lastPosX = opt.e.clientX || (opt.e.touches && opt.e.touches[0].clientX); lastPosY = opt.e.clientY || (opt.e.touches && opt.e.touches[0].clientY); canvas.defaultCursor = 'grabbing'; return; }
+    if (opt.e.altKey === true || isPanMode) { 
+        isDraggingCamera = true; 
+        canvas.selection = false; 
+        lastPosX = opt.e.clientX || (opt.e.touches && opt.e.touches[0].clientX); 
+        lastPosY = opt.e.clientY || (opt.e.touches && opt.e.touches[0].clientY); 
+        canvas.defaultCursor = 'grabbing'; 
+        return; 
+    }
     
     if (isEyedropperMode) {
         const e = opt.e; const rect = canvas.lowerCanvasEl.getBoundingClientRect(); const clientX = e.clientX || (e.touches && e.touches[0].clientX); const clientY = e.clientY || (e.touches && e.touches[0].clientY); const x = (clientX - rect.left) * (canvas.lowerCanvasEl.width / rect.width); const y = (clientY - rect.top) * (canvas.lowerCanvasEl.height / rect.height); const p = canvas.lowerCanvasEl.getContext('2d', { willReadFrequently: true }).getImageData(x, y, 1, 1).data;
@@ -275,12 +343,11 @@ canvas.on('mouse:down', function(opt) {
         isEyedropperMode = false; canvas.defaultCursor = 'default'; document.getElementById('color-status').innerText = '🎨 Panel de Color'; document.getElementById('color-status').style.color = '#00bfff'; return;
     }
     
-    // --- LÓGICA DE CLONADOR CORREGIDA ---
+    // Lógica de Clonador
     if (isCloneMode) {
         if (isSettingCloneSource) {
             cloneSource = { x: pointer.x, y: pointer.y }; isSettingCloneSource = false;
             
-            // Forzar captura a pantalla completa sin zoom
             const originalVpt = canvas.viewportTransform.slice(); canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
             const img = new Image(); img.src = canvas.toDataURL({ format: 'png' });
             canvas.setViewportTransform(originalVpt);
@@ -289,7 +356,6 @@ canvas.on('mouse:down', function(opt) {
                 cloneImageSnapshot = img; document.getElementById('clone-status').innerText = '🖌️ Pintando...'; canvas.defaultCursor = 'default';
                 myCloneBrush = new fabric.PatternBrush(canvas);
                 
-                // Sobrescribir el pincel para que calcule la distancia el primer instante de dibujar
                 const originalDown = myCloneBrush.onMouseDown.bind(myCloneBrush);
                 myCloneBrush.onMouseDown = function(ptr, options) {
                     if (isCloneMode && cloneImageSnapshot && !isCloneDeltaSet) { 
@@ -308,12 +374,30 @@ canvas.on('mouse:down', function(opt) {
         }
     }
     
+    // Lógica de Recorte
     if (isCropMode && !cropRect) { isDrawingCrop = true; cropOrigX = pointer.x; cropOrigY = pointer.y; cropRect = new fabric.Rect({ left: cropOrigX, top: cropOrigY, width: 0, height: 0, fill: 'rgba(0,191,255,0.2)', stroke: '#00bfff', strokeWidth: 2, strokeDashArray: [5,5], hasRotatingPoint: false, name: 'CropOverlay' }); canvas.add(cropRect); canvas.setActiveObject(cropRect); }
 });
 
 canvas.on('mouse:move', function(opt) {
     const pointer = canvas.getPointer(opt.e); currentMouseX = pointer.x; currentMouseY = pointer.y;
-    if (isDraggingCamera) { let e = opt.e; let clientX = e.clientX || (e.touches && e.touches[0].clientX); let clientY = e.clientY || (e.touches && e.touches[0].clientY); let vpt = canvas.viewportTransform; vpt[4] += clientX - lastPosX; vpt[5] += clientY - lastPosY; canvas.requestRenderAll(); lastPosX = clientX; lastPosY = clientY; return; }
+    
+    // ARRASTRE DE CÁMARA CORREGIDO
+    if (isDraggingCamera) { 
+        let e = opt.e; 
+        let clientX = e.clientX || (e.touches && e.touches[0].clientX); 
+        let clientY = e.clientY || (e.touches && e.touches[0].clientY); 
+        let vpt = canvas.viewportTransform; 
+        
+        // Dividimos la distancia por el zoom actual para que el arrastre sea fiel a la pantalla
+        vpt[4] += (clientX - lastPosX) / currentZoom; 
+        vpt[5] += (clientY - lastPosY) / currentZoom; 
+        
+        canvas.requestRenderAll(); 
+        lastPosX = clientX; 
+        lastPosY = clientY; 
+        return; 
+    }
+    
     if (isCloneMode && isCloningActive) canvas.requestRenderAll();
     if (!isCropMode || !isDrawingCrop || !cropRect) return; const w = pointer.x - cropOrigX; const h = pointer.y - cropOrigY; cropRect.set({ left: w < 0 ? pointer.x : cropOrigX, top: h < 0 ? pointer.y : cropOrigY, width: Math.abs(w), height: Math.abs(h) }); canvas.renderAll();
 });
@@ -456,7 +540,187 @@ canvas.on('after:render', function(opt) {
     ctx.restore();
 });
 
+// ==========================================
+// 13. MOTOR DE AUTO-MEJORA INTELIGENTE
+// ==========================================
+document.getElementById('tool-enhance').addEventListener('click', () => {
+    const obj = canvas.getActiveObject();
+    
+    // Seguridad: Solo funciona si hay una capa de imagen seleccionada
+    if (!obj || obj.type !== 'image') {
+        return alert('Por favor, selecciona primero una capa de imagen (Foto) en el Gestor de Capas para poder auto-mejorarla.');
+    }
+
+    // 1. Crear una miniatura invisible (100x100) para analizar píxeles a máxima velocidad
+    const sampleSize = 100;
+    const tempCanvas = obj.toCanvasElement({ multiplier: sampleSize / Math.max(obj.width, obj.height) });
+    const ctx = tempCanvas.getContext('2d');
+    const imgData = ctx.getImageData(0, 0, tempCanvas.width, tempCanvas.height).data;
+
+    let totalLuminance = 0;
+    let minL = 255;
+    let maxL = 0;
+    const count = imgData.length / 4;
+
+    // 2. Analizar el canal de color y calcular la luminancia percibida
+    for (let i = 0; i < imgData.length; i += 4) {
+        const r = imgData[i];
+        const g = imgData[i + 1];
+        const b = imgData[i + 2];
+        
+        // Fórmula estándar de luminancia ITU-R BT.709
+        const l = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        
+        totalLuminance += l;
+        if (l < minL) minL = l;
+        if (l > maxL) maxL = l;
+    }
+
+    const avgLuminance = totalLuminance / count;
+    const currentRange = maxL - minL;
+
+    // 3. Calcular los ajustes óptimos (Fabric.js trabaja con rangos de -1 a 1)
+    let brightnessAdjust = 0;
+    if (avgLuminance < 100) {
+        // La imagen está subexpuesta (oscura): subimos el brillo proporcionalmente
+        brightnessAdjust = ((100 - avgLuminance) / 255) * 0.35;
+    } else if (avgLuminance > 160) {
+        // La imagen está sobreexpuesta (muy clara): bajamos el brillo sutilmente
+        brightnessAdjust = ((160 - avgLuminance) / 255) * 0.2;
+    }
+
+    let contrastAdjust = 0.08; // Un toque base de contraste que siempre favorece
+    if (currentRange < 180) {
+        // Si el rango dinámico es plano, estiramos el contraste
+        contrastAdjust += ((180 - currentRange) / 255) * 0.3;
+    }
+
+    const saturationAdjust = 0.12; // Un sutil 12% extra para avivar tonos apagados sin saturar pieles
+
+    // 4. Aplicar los filtros de forma limpia
+    // Filtramos el array para eliminar mejoras previas si el usuario pulsa el botón más de una vez
+    obj.filters = obj.filters.filter(f => f.type !== 'Brightness' && f.type !== 'Contrast' && f.type !== 'Saturation');
+
+    // Inyectamos los nuevos filtros calculados
+    if (brightnessAdjust !== 0) {
+        obj.filters.push(new fabric.Image.filters.Brightness({ brightness: brightnessAdjust }));
+    }
+    obj.filters.push(new fabric.Image.filters.Contrast({ contrast: contrastAdjust }));
+    obj.filters.push(new fabric.Image.filters.Saturation({ saturation: saturationAdjust }));
+
+    // 5. Renderizar los cambios y registrar en el historial de la PWA
+    obj.applyFilters();
+    canvas.renderAll();
+    saveHistory();
+});
+
+// ==========================================
+// 14. HERRAMIENTA: DUPLICAR RESOLUCIÓN (UPSCALING X2)
+// ==========================================
+document.getElementById('tool-upscale').addEventListener('click', () => {
+    const obj = canvas.getActiveObject();
+    
+    // Seguridad: Solo procesar si hay una capa de imagen activa
+    if (!obj || obj.type !== 'image') {
+        return alert('Por favor, selecciona una capa de imagen (Foto) en el Gestor de Capas para duplicar su resolución.');
+    }
+
+    // Guardar los estados de transformación actuales para el reemplazo milimétrico
+    const currentScaleX = obj.scaleX;
+    const currentScaleY = obj.scaleY;
+    const currentLeft = obj.left;
+    const currentTop = obj.top;
+    const currentAngle = obj.angle;
+    const currentZIndex = canvas.getObjects().indexOf(obj);
+    const currentName = obj.name;
+    const originalEl = obj._element;
+
+    // 1. Calcular las nuevas dimensiones del mapa de píxeles base
+    const targetWidth = originalEl.width * 2;
+    const targetHeight = originalEl.height * 2;
+
+    // 2. Crear un entorno de renderizado offline
+    const offscreenCanvas = document.createElement('canvas');
+    offscreenCanvas.width = targetWidth;
+    offscreenCanvas.height = targetHeight;
+    const ctx = offscreenCanvas.getContext('2d');
+
+    // Forzar al motor gráfico del navegador a usar interpolación bilineal/bicúbica avanzada
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
+    // Rasterizar la imagen original al doble de su tamaño de píxeles
+    ctx.drawImage(originalEl, 0, 0, targetWidth, targetHeight);
+
+    // 3. Reinyectar el nuevo recurso de alta densidad en Fabric.js
+    fabric.Image.fromURL(offscreenCanvas.toDataURL('image/png'), function(newImg) {
+        newImg.set({
+            left: currentLeft,
+            top: currentTop,
+            angle: currentAngle,
+            originX: obj.originX,
+            originY: obj.originY,
+            name: currentName.includes('(x2 Res)') ? currentName : currentName + ' (x2 Res)',
+            // CLAVE: Reducimos la escala visual a la mitad del objeto original.
+            // Esto compensa el aumento de píxeles base, manteniendo el tamaño en pantalla idéntico.
+            scaleX: currentScaleX / 2,
+            scaleY: currentScaleY / 2
+        });
+
+        // Preservar la cadena de filtros fotográficos aplicados previamente si existieran
+        if (obj.filters && obj.filters.length > 0) {
+            newImg.filters = [...obj.filters];
+            newImg.applyFilters();
+        }
+
+        // 4. Sustitución atómica en la pila de renderizado
+        canvas.remove(obj);
+        canvas.insertAt(newImg, currentZIndex, false);
+        canvas.setActiveObject(newImg);
+        
+        // Sincronizar con los sistemas nativos de la aplicación
+        saveHistory();
+        updateLayersPanel();
+        canvas.renderAll();
+    });
+});
+
+// ==========================================
+// 15. BARRA DE INFORMACIÓN (TAMAÑOS)
+// ==========================================
+const infoCanvasSize = document.getElementById('info-canvas-size');
+const infoLayerSize = document.getElementById('info-layer-size');
+
+function updateInfoBar() {
+    // 1. Actualizar tamaño del lienzo
+    infoCanvasSize.textContent = `${Math.round(canvas.width)} x ${Math.round(canvas.height)} px`;
+
+    // 2. Actualizar tamaño de la capa seleccionada
+    const activeObj = canvas.getActiveObject();
+    if (activeObj && activeObj.name !== 'CropOverlay') {
+        // Multiplicamos el ancho/alto original por su escala actual para obtener el tamaño real en el lienzo
+        const w = Math.round(activeObj.width * activeObj.scaleX);
+        const h = Math.round(activeObj.height * activeObj.scaleY);
+        infoLayerSize.textContent = `${w} x ${h} px`;
+    } else {
+        infoLayerSize.textContent = `-`;
+    }
+}
+
+// 3. Conectar la función a los eventos de Fabric.js para que se actualice en tiempo real
+canvas.on('selection:created', updateInfoBar);
+canvas.on('selection:updated', updateInfoBar);
+canvas.on('selection:cleared', updateInfoBar);
+canvas.on('object:scaling', updateInfoBar); // Actualiza mientra arrastras para hacer más grande/pequeña una capa
+canvas.on('object:modified', updateInfoBar);
+canvas.on('after:render', updateInfoBar); // Captura cambios de lienzo (como la herramienta de recorte)
+
+// Llamada inicial para establecer el tamaño base al abrir la app
+updateInfoBar();
+
+// ==========================================
 // WELCOME
+// ==========================================
 const welcomeOverlay = document.getElementById('welcome-overlay');
 
 // 1. Botón: Importar Imagen
@@ -486,7 +750,3 @@ document.getElementById('welcome-empty').addEventListener('click', () => {
     canvas.setActiveObject(rectBase); 
     saveHistory();
 });
-
-// ARRANQUE
-const rectBase = new fabric.Rect({ name: 'Capa Base', left: canvas.width / 2 - 100, top: canvas.height / 2 - 100, fill: '#a8d8ea', width: 200, height: 200, cornerColor: 'white', cornerStrokeColor: 'black', borderColor: 'white', transparentCorners: false });
-canvas.add(rectBase); canvas.setActiveObject(rectBase); saveHistory();
