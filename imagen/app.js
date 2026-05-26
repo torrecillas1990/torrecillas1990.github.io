@@ -551,26 +551,51 @@ const snapZone = 12; let verticalGuide = null; let horizontalGuide = null;
 
 canvas.on('object:moving', function(opt) {
     const obj = opt.target; const canvasW = canvas.width; const canvasH = canvas.height; const centerX = canvasW / 2; const centerY = canvasH / 2;
-    let objCenter = obj.getCenterPoint(); let objLeft = objCenter.x - (obj.getScaledWidth() / 2); let objRight = objCenter.x + (obj.getScaledWidth() / 2); let objTop = objCenter.y - (obj.getScaledHeight() / 2); let objBottom = objCenter.y + (obj.getScaledHeight() / 2);
+    let objCenter = obj.getCenterPoint(); 
+    let objLeft = objCenter.x - (obj.getScaledWidth() / 2); 
+    let objRight = objCenter.x + (obj.getScaledWidth() / 2); 
+    let objTop = objCenter.y - (obj.getScaledHeight() / 2); 
+    let objBottom = objCenter.y + (obj.getScaledHeight() / 2);
+    
     verticalGuide = null; horizontalGuide = null;
+    
     if (Math.abs(objCenter.x - centerX) < snapZone) { obj.set({ left: obj.left - (objCenter.x - centerX) }); verticalGuide = centerX; } 
     else if (Math.abs(objLeft - 0) < snapZone) { obj.set({ left: obj.left - objLeft }); verticalGuide = 0; } 
     else if (Math.abs(objRight - canvasW) < snapZone) { obj.set({ left: obj.left - (objRight - canvasW) }); verticalGuide = canvasW; }
+    
     if (Math.abs(objCenter.y - centerY) < snapZone) { obj.set({ top: obj.top - (objCenter.y - centerY) }); horizontalGuide = centerY; } 
     else if (Math.abs(objTop - 0) < snapZone) { obj.set({ top: obj.top - objTop }); horizontalGuide = 0; } 
     else if (Math.abs(objBottom - canvasH) < snapZone) { obj.set({ top: obj.top - (objBottom - canvasH) }); horizontalGuide = canvasH; }
 });
 
 canvas.on('after:render', function(opt) {
-    const ctx = opt.ctx; if (!ctx) return; const vpt = canvas.viewportTransform;
+    const ctx = opt.ctx; if (!ctx) return;
+    
+    // RENDERIZADO DE GUÍAS EN ESPACIO LOCAL DE COORDENADAS (APTO PARA HIGH-DPI/RETINA)
     if (verticalGuide !== null || horizontalGuide !== null) {
-        ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.strokeStyle = '#00bfff'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]); const htmlCanvas = canvas.getElement();
-        if (verticalGuide !== null) { const drawX = (verticalGuide * vpt[0]) + vpt[4]; ctx.beginPath(); ctx.moveTo(drawX, 0); ctx.lineTo(drawX, htmlCanvas.height); ctx.stroke(); }
-        if (horizontalGuide !== null) { const drawY = (horizontalGuide * vpt[3]) + vpt[5]; ctx.beginPath(); ctx.moveTo(0, drawY); ctx.lineTo(htmlCanvas.width, drawY); ctx.stroke(); }
+        ctx.save();
+        ctx.strokeStyle = '#00bfff';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]); // Línea discontinua sutil
+        
+        if (verticalGuide !== null) {
+            ctx.beginPath();
+            ctx.moveTo(verticalGuide, 0);
+            ctx.lineTo(verticalGuide, canvas.height);
+            ctx.stroke();
+        }
+        if (horizontalGuide !== null) {
+            ctx.beginPath();
+            ctx.moveTo(0, horizontalGuide);
+            ctx.lineTo(canvas.width, horizontalGuide);
+            ctx.stroke();
+        }
         ctx.restore();
     }
     
+    // VISTA PREVIA DE PINCELES (Mantiene su lógica de transformación coordinada)
     ctx.save();
+    const vpt = canvas.viewportTransform;
     if (showEraserPreview || showClonePreview) {
         const centerX = (canvas.width / 2 - vpt[4]) / vpt[0]; const centerY = (canvas.height / 2 - vpt[5]) / vpt[3];
         const radiusId = showEraserPreview ? 'eraser-size' : 'clone-size'; const hardnessId = showEraserPreview ? 'eraser-hardness' : 'clone-hardness'; const radiusColor = showEraserPreview ? '#ff4444' : '#00bfff';
