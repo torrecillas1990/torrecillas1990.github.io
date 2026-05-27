@@ -1,4 +1,5 @@
-const CACHE_NAME = 'radar-cache-v1';
+// Cambiamos el nombre de v1 a v2 para forzar la actualización
+const CACHE_NAME = 'radar-cache-v2';
 const urlsToCache = [
     './',
     './index.html',
@@ -7,30 +8,42 @@ const urlsToCache = [
     './manifest.json'
 ];
 
-// Instalación: Guarda los archivos estáticos en caché
 self.addEventListener('install', event => {
+    // Forzamos al nuevo Service Worker a tomar el control inmediatamente
+    self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME)
-            .then(cache => {
-                return cache.addAll(urlsToCache);
-            })
+            .then(cache => cache.addAll(urlsToCache))
     );
 });
 
-// Interceptar peticiones (Fetch)
+self.addEventListener('activate', event => {
+    // Borramos las cachés antiguas (la v1 que está dando problemas)
+    event.waitUntil(
+        caches.keys().then(cacheNames => {
+            return Promise.all(
+                cacheNames.map(cacheName => {
+                    if (cacheName !== CACHE_NAME) {
+                        return caches.delete(cacheName);
+                    }
+                })
+            );
+        })
+    );
+    self.clients.claim();
+});
+
 self.addEventListener('fetch', event => {
-    // Si la petición es hacia la API de OpenSky, NO usamos caché, queremos datos frescos
-    if (event.request.url.includes('opensky-network.org')) {
+    // Si la petición va a cualquier API o proxy externo, que NO use caché
+    if (event.request.url.includes('opensky-network') || 
+        event.request.url.includes('allorigins') || 
+        event.request.url.includes('corsproxy')) {
         event.respondWith(fetch(event.request));
         return;
     }
 
-    // Para el resto de archivos (HTML, CSS, JS), buscamos en caché primero
+    // Para nuestra web, primero red, luego caché (estrategia Network First para desarrollo)
     event.respondWith(
-        caches.match(event.request)
-            .then(response => {
-                // Si está en caché lo devuelve, si no, lo descarga de internet
-                return response || fetch(event.request);
-            })
+        fetch(event.request).catch(() => caches.match(event.request))
     );
 });
