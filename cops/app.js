@@ -80,31 +80,41 @@ function initUserLocation() {
 }
 
 // 5. OBTENER DATOS (API OpenSky mediante Proxy CORS)
+// 5. OBTENER DATOS (Táctica anti-caché y Proxy Estable)
 async function fetchAircraft() {
     try {
-        const targetUrl = 'https://opensky-network.org/api/states/all?lamin=35.0&lomin=-10.0&lamax=44.0&lomax=5.0';
-        const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+        // Añadimos Date.now() al final para que la URL sea única y evitar la caché
+        const targetUrl = `https://opensky-network.org/api/states/all?lamin=35.0&lomin=-10.0&lamax=44.0&lomax=5.0&time=${Date.now()}`;
+        
+        // ¡OJO! Usamos corsproxy.io (allorigins está caído)
+        const url = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
         
         const response = await fetch(url);
-        
-        // 1. Leemos la respuesta como texto puro primero
         const text = await response.text();
         
-        // 2. Si el servidor nos ha bloqueado por exceso de peticiones, salimos sin romper la app
-        if (text === "Too many requests" || text.includes("429")) {
-            console.warn("Límite de OpenSky alcanzado. Esperando al siguiente ciclo...");
+        // 1. Control de límites de OpenSky
+        if (text.includes("Too many requests") || text.includes("429")) {
+            console.warn("⏳ OpenSky nos ha limitado temporalmente. Esperando al siguiente ciclo...");
             return; 
         }
 
-        // 3. Si no hay error, convertimos el texto a JSON
+        // 2. Control de caídas del proxy (Si devuelve una web de error HTML)
+        if (text.trim().startsWith('<')) {
+            console.warn("❌ El proxy devolvió un error de servidor:", text.substring(0, 60));
+            return;
+        }
+
+        // 3. Convertimos a datos usables
         const data = JSON.parse(text);
 
+        // 4. Comprobamos si hay aviones en el array 'states'
         if (data && data.states) {
             planesData = data.states;
             renderPlanes();
+            console.log(`✅ ¡Éxito! Se han descargado y dibujado ${data.states.length} aeronaves.`);
         }
     } catch (error) {
-        console.warn("Error temporal de red, reintentando en breve...", error.message);
+        console.warn("⚠️ Error en la conexión (probablemente el proxy esté saturado):", error.message);
     }
 }
 
