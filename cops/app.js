@@ -34,39 +34,29 @@ document.querySelectorAll('#type-filters input').forEach(checkbox => {
     checkbox.addEventListener('change', renderPlanes);
 });
 
-// 5. OBTENCIÓN DE DATOS (Ruleta de Proxies y Reducción de Carga)
+// 5. OBTENCIÓN DE DATOS (Conectado a tu propio Microservicio Python)
 async function fetchAircraft() {
-    const targetUrl = 'https://opensky-network.org/api/states/all?lamin=35.0&lomin=-10.0&lamax=44.0&lomax=5.0';
-    
-    const proxies = [
-        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`,
-        `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
-        `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`
-    ];
-
-    for (let proxyUrl of proxies) {
-        try {
-            const response = await fetch(proxyUrl);
-            if (!response.ok) continue; 
-
-            let data;
-            if (proxyUrl.includes('allorigins')) {
-                const proxyWrapper = await response.json();
-                if (!proxyWrapper.contents) continue;
-                data = JSON.parse(proxyWrapper.contents);
-            } else {
-                data = await response.json();
-            }
-
-            if (data && data.states) {
-                planesData = data.states;
-                renderPlanes();
-                console.log(`Radar actualizado vía: ${proxyUrl.split('/')[2]}`);
-                return; 
-            }
-        } catch (error) {
-            console.warn(`Falló proxy: ${proxyUrl.split('/')[2]}`);
+    try {
+        // Sustituye esta URL por la que te dé Render y añade "/api/aviones" al final
+        const backendUrl = 'https://cops-backend-kfxn.onrender.com';
+        
+        const response = await fetch(backendUrl);
+        
+        if (!response.ok) {
+            console.warn(`Error en el backend: ${response.status}`);
+            return;
         }
+
+        const data = await response.json();
+
+        // Extraemos los estados del JSON
+        if (data && data.states) {
+            planesData = data.states;
+            renderPlanes();
+            console.log(`✅ Radar actualizado: ${data.states.length} aeronaves.`);
+        }
+    } catch (error) {
+        console.error("Fallo de conexión con nuestro backend:", error.message);
     }
 }
 
