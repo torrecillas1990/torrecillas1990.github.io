@@ -38,7 +38,6 @@ document.querySelectorAll('#type-filters input').forEach(checkbox => {
 async function fetchAircraft() {
     const targetUrl = 'https://opensky-network.org/api/states/all?lamin=35.0&lomin=-10.0&lamax=44.0&lomax=5.0';
     
-    // Lista de proxies públicos. Si uno cae, pasamos al siguiente.
     const proxies = [
         `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`,
         `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
@@ -48,16 +47,9 @@ async function fetchAircraft() {
     for (let proxyUrl of proxies) {
         try {
             const response = await fetch(proxyUrl);
-            
-            // Si el servidor responde con error (ej. 429 Too Many Requests), saltamos al siguiente
-            if (!response.ok) {
-                console.warn(`⚠️ Proxy bloqueado o caído: ${proxyUrl.split('/')[2]}`);
-                continue; 
-            }
+            if (!response.ok) continue; 
 
             let data;
-            
-            // AllOrigins devuelve los datos envueltos en un JSON diferente, hay que tratarlo aparte
             if (proxyUrl.includes('allorigins')) {
                 const proxyWrapper = await response.json();
                 if (!proxyWrapper.contents) continue;
@@ -66,22 +58,82 @@ async function fetchAircraft() {
                 data = await response.json();
             }
 
-            // Si llegamos aquí y tenemos estados, pintamos y salimos del bucle
             if (data && data.states) {
                 planesData = data.states;
                 renderPlanes();
-                console.log(`✅ Datos obtenidos con éxito vía: ${proxyUrl.split('/')[2]}`);
-                return; // ¡Éxito! Salimos de la función
+                console.log(`Radar actualizado vía: ${proxyUrl.split('/')[2]}`);
+                return; 
             }
-
         } catch (error) {
-            console.warn(`❌ Falló la conexión con: ${proxyUrl.split('/')[2]}`);
-            // El bucle continuará con el siguiente proxy
+            console.warn(`Falló proxy: ${proxyUrl.split('/')[2]}`);
         }
     }
+}
 
-    // Si el bucle termina y llegamos aquí, es que TODOS los proxies han fallado
-    console.error("CRÍTICO: Todos los proxies están caídos o OpenSky nos ha bloqueado por completo. Esperando al siguiente ciclo.");
+// Lógica de identificación de indicativos de Estado Español
+function checkIsStateForce(callsign) {
+    if (!callsign) return false;
+    const str = callsign.trim().toLowerCase();
+    // DGT, Ejército del Aire, Tierra, Armada, Guardia Civil, Policía
+    return str.startsWith('dgt') || 
+           str.startsWith('ame') || 
+           str.startsWith('famet') || 
+           str.startsWith('floan') || 
+           str.startsWith('cuco') || 
+           str.startsWith('pol') || 
+           str.startsWith('cme');
+}
+
+// Nueva firma de función: ahora recibe el callsign para poder sobreescribir el color
+function getCustomIcon(category, true_track, callsign) {
+    let svgPath = AIRCRAFT_SVGS.plane;
+    let color = '#aaaaaa'; 
+    let size = 24;
+    let isStateForce = checkIsStateForce(callsign);
+
+    if (category >= 4 && category <= 6) {
+        color = '#3b82f6'; 
+        size = 28;
+    } else if (category === 2 || category === 3) {
+        color = '#22c55e'; 
+        size = 20;
+    } else if (category === 8) {
+        svgPath = AIRCRAFT_SVGS.heli;
+        color = '#f97316'; 
+        size = 26;
+    } else if (category === 7) {
+        svgPath = AIRCRAFT_SVGS.fighter;
+        color = '#ef4444'; 
+        size = 28;
+    } else if (category === 14) {
+        svgPath = AIRCRAFT_SVGS.drone;
+        color = '#a855f7'; 
+        size = 24;
+    }
+
+    // OVERRIDE: Si es de la DGT o Fuerzas del Estado, lo pintamos de dorado sin importar su categoría
+    if (isStateForce) {
+        color = '#eab308'; // Dorado/Amarillo tráfico
+        // Si no está categorizado pero sabemos que es un Cuco o Pegasus, forzamos icono de helicóptero
+        if (callsign.toLowerCase().includes('dgt') || callsign.toLowerCase().includes('cuco')) {
+            svgPath = AIRCRAFT_SVGS.heli;
+        }
+        size = 30; // Los hacemos ligeramente más grandes para que destaquen
+    }
+
+    const rotation = true_track || 0;
+    const html = `
+        <div style="transform: rotate(${rotation}deg); color: ${color}; width: ${size}px; height: ${size}px; display: flex; justify-content: center; align-items: center; ${isStateForce ? 'filter: drop-shadow(0 0 4px #eab308);' : ''}">
+            <svg viewBox="0 0 24 24" fill="currentColor">${svgPath}</svg>
+        </div>
+    `;
+
+    return L.divIcon({
+        html: html,
+        className: 'aircraft-icon',
+        iconSize: [size, size],
+        iconAnchor: [size/2, size/2] 
+    });
 }
 
 // 6. LÓGICA DE ICONOS, COLORES Y ROTACIÓN
@@ -131,6 +183,7 @@ function getCustomIcon(category, true_track) {
 function renderPlanes() {
     markersLayer.clearLayers();
 
+    const showState = document.querySelector('input[value="state"]').checked;
     const showCommercial = document.querySelector('input[value="commercial"]').checked;
     const showLight = document.querySelector('input[value="light"]').checked;
     const showHeli = document.querySelector('input[value="heli"]').checked;
@@ -142,13 +195,18 @@ function renderPlanes() {
 
         if (lat && lon && !on_ground) {
             
-            // Filtros visuales
+            const isStateForce = checkIsStateForce(callsign);
             let categoryMatch = false;
-            if ((category >= 4 && category <= 6) && showCommercial) categoryMatch = true;
-            else if ((category === 2 || category === 3) && showLight) categoryMatch = true;
-            else if (category === 8 && showHeli) categoryMatch = true;
-            else if ((category === 7 || category >= 9 && category <= 15) && showOther) categoryMatch = true;
-            else if ((category === 0 || category === 1 || !category) && showUnknown) categoryMatch = true;
+
+            // Filtros de visibilidad
+            if (isStateForce && showState) categoryMatch = true;
+            else if (!isStateForce) {
+                if ((category >= 4 && category <= 6) && showCommercial) categoryMatch = true;
+                else if ((category === 2 || category === 3) && showLight) categoryMatch = true;
+                else if (category === 8 && showHeli) categoryMatch = true;
+                else if ((category === 7 || category >= 9 && category <= 15) && showOther) categoryMatch = true;
+                else if ((category === 0 || category === 1 || !category) && showUnknown) categoryMatch = true;
+            }
 
             if (!categoryMatch) return; 
 
@@ -159,14 +217,15 @@ function renderPlanes() {
             }
             
             let catText = "Desconocida";
-            if (category >= 4 && category <= 6) catText = "Comercial / Pesado";
+            if (isStateForce) catText = "🚨 Estado / Militar / DGT";
+            else if (category >= 4 && category <= 6) catText = "Comercial / Pesado";
             else if (category === 2 || category === 3) catText = "Avioneta / Ligero";
             else if (category === 8) catText = "Helicóptero";
             else if (category === 7) catText = "Militar / Caza";
             else if (category === 14) catText = "Drone (UAV)";
 
             const customMarker = L.marker([lat, lon], {
-                icon: getCustomIcon(category, true_track)
+                icon: getCustomIcon(category, true_track, callsign) // Pasamos el callsign a la función
             });
 
             customMarker.bindPopup(`

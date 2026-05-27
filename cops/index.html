@@ -34,21 +34,24 @@
             <button id="filter-btn">Buscar</button>
         </div>
         
-        <div id="type-filters">
+		<div id="type-filters">
+            <label><input type="checkbox" value="state" checked> 🚨 Estado / Militar / DGT</label>
             <label><input type="checkbox" value="commercial" checked> Comercial / Pesado</label>
             <label><input type="checkbox" value="light" checked> Ligero / Avioneta</label>
             <label><input type="checkbox" value="heli" checked> Helicópteros</label>
-            <label><input type="checkbox" value="other" checked> Otros (Drones, Globos...)</label>
+            <label><input type="checkbox" value="other" checked> Otros (Drones...)</label>
             <label><input type="checkbox" value="unknown" checked> Sin Clasificar</label>
         </div>
-		<div id="legend-container">
-			<div><span style="background: #3b82f6;"></span> Comercial / Pesado</div>
-			<div><span style="background: #22c55e;"></span> Avioneta / Ligero</div>
-			<div><span style="background: #f97316;"></span> Helicóptero</div>
-			<div><span style="background: #ef4444;"></span> Militar / Caza</div>
-			<div><span style="background: #a855f7;"></span> Drone (UAV)</div>
-			<div><span style="background: #aaaaaa;"></span> Desconocido / Otro</div>
-		</div>
+    </div>
+	
+	<div id="legend-container">
+        <div><span style="background: #eab308; box-shadow: 0 0 5px #eab308;"></span> 🚨 Estado / DGT / Militar</div>
+        <div><span style="background: #3b82f6;"></span> Comercial / Pesado</div>
+        <div><span style="background: #22c55e;"></span> Avioneta / Ligero</div>
+        <div><span style="background: #f97316;"></span> Helicóptero</div>
+        <div><span style="background: #ef4444;"></span> Militar / Caza (Categoría)</div>
+        <div><span style="background: #a855f7;"></span> Drone (UAV)</div>
+        <div><span style="background: #aaaaaa;"></span> Desconocido / Otro</div>
     </div>
 	
     <div id="map"></div>
