@@ -38,10 +38,15 @@ document.querySelectorAll('#type-filters input').forEach(checkbox => {
     checkbox.addEventListener('change', renderPlanes);
 });
 
-// 4. OBTENER DATOS (API OpenSky)
+// 4. OBTENER DATOS (API OpenSky mediante Proxy CORS)
 async function fetchAircraft() {
     try {
-        const url = 'https://opensky-network.org/api/states/all?lamin=35.0&lomin=-10.0&lamax=44.0&lomax=5.0';
+        // La URL original de OpenSky
+        const targetUrl = 'https://opensky-network.org/api/states/all?lamin=35.0&lomin=-10.0&lamax=44.0&lomax=5.0';
+        
+        // Usamos el proxy gratuito allorigins para saltarnos el CORS
+        const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+        
         const response = await fetch(url);
         const data = await response.json();
 
