@@ -79,41 +79,28 @@ function initUserLocation() {
     );
 }
 
-// 5. OBTENER DATOS (Estrategia JSON Wrapper)
+// 5. OBTENER DATOS (Arquitectura de Respaldo)
 async function fetchAircraft() {
     try {
         const targetUrl = 'https://opensky-network.org/api/states/all?lamin=35.0&lomin=-10.0&lamax=44.0&lomax=5.0';
+        const url = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`;
         
-        // Usamos el endpoint /get. Esto devuelve un JSON empaquetado que neutraliza el CORS.
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+        const response = await fetch(url);
         
-        const response = await fetch(proxyUrl);
-        const proxyData = await response.json();
-        
-        // Verificamos si el proxy ha devuelto el contenedor de contenido
-        if (!proxyData || !proxyData.contents) {
-            console.warn("El proxy falló al empaquetar los datos.");
+        if (!response.ok) {
+            console.warn(`El proxy devolvió un error de estado: ${response.status}`);
             return;
         }
 
-        // Si OpenSky nos ha limitado, lo detectamos en el texto devuelto
-        if (proxyData.contents.includes("Too many requests") || proxyData.contents.includes("429")) {
-            console.warn("Límite de peticiones de OpenSky alcanzado. Esperando al siguiente ciclo.");
-            return;
-        }
-
-        // Extraemos los datos reales convirtiendo el texto interior a JSON
-        const data = JSON.parse(proxyData.contents);
+        const data = await response.json();
 
         if (data && data.states) {
             planesData = data.states;
             renderPlanes();
-            console.log(`Radar actualizado: ${data.states.length} aeronaves detectadas en la zona.`);
-        } else {
-            console.log("Petición exitosa, pero no hay aeronaves transmitiendo en estas coordenadas ahora mismo.");
+            console.log(`Radar actualizado: ${data.states.length} aeronaves detectadas.`);
         }
     } catch (error) {
-        console.error("Error estructural en la red o proxy caído:", error.message);
+        console.error("Fallo en la conexión. Proxy saturado o red caída:", error.message);
     }
 }
 
