@@ -86,14 +86,25 @@ async function fetchAircraft() {
         const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
         
         const response = await fetch(url);
-        const data = await response.json();
+        
+        // 1. Leemos la respuesta como texto puro primero
+        const text = await response.text();
+        
+        // 2. Si el servidor nos ha bloqueado por exceso de peticiones, salimos sin romper la app
+        if (text === "Too many requests" || text.includes("429")) {
+            console.warn("Límite de OpenSky alcanzado. Esperando al siguiente ciclo...");
+            return; 
+        }
 
-        if (data.states) {
+        // 3. Si no hay error, convertimos el texto a JSON
+        const data = JSON.parse(text);
+
+        if (data && data.states) {
             planesData = data.states;
             renderPlanes();
         }
     } catch (error) {
-        console.error("Error obteniendo los datos:", error);
+        console.warn("Error temporal de red, reintentando en breve...", error.message);
     }
 }
 
