@@ -72,3 +72,11 @@ body, html {
 #type-filters input[type="checkbox"] {
     cursor: pointer;
 }
+
+/* Estilo para el pulso azul de la ubicación del usuario */
+.user-location-marker {
+    background: #007bff;
+    border: 2px solid white;
+    border-radius: 50%;
+    box-shadow: 0 0 0 8px rgba(0, 123, 255, 0.4);
+}

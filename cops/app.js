@@ -6,8 +6,7 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-// 2. INICIALIZAR EL MAPA
-// Centramos en la Península Ibérica
+// 2. INICIALIZAR EL MAPA (Vista por defecto provisional)
 const map = L.map('map').setView([40.4168, -3.7038], 6);
 
 // Capa del mapa base (OpenStreetMap)
@@ -16,14 +15,14 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap'
 }).addTo(map);
 
-// Grupo para los marcadores
+// Grupos independientes para los marcadores
 const markersLayer = L.layerGroup().addTo(map);
+const userLayer = L.layerGroup().addTo(map); // Capa exclusiva para el usuario
 
 // 3. VARIABLES Y EVENTOS DE FILTROS
 let currentFilter = '';
 let planesData = []; 
 
-// Eventos del buscador de texto
 document.getElementById('filter-btn').addEventListener('click', () => {
     currentFilter = document.getElementById('filter-input').value.trim().toLowerCase();
     renderPlanes(); 
@@ -33,18 +32,57 @@ document.getElementById('filter-input').addEventListener('keypress', function (e
     if (e.key === 'Enter') document.getElementById('filter-btn').click();
 });
 
-// Evento para los checkboxes
 document.querySelectorAll('#type-filters input').forEach(checkbox => {
     checkbox.addEventListener('change', renderPlanes);
 });
 
-// 4. OBTENER DATOS (API OpenSky mediante Proxy CORS)
+// 4. NUEVO: GEOLOCALIZACIÓN DEL USUARIO
+function initUserLocation() {
+    if (!navigator.geolocation) {
+        console.warn("Tu navegador no soporta geolocalización.");
+        return;
+    }
+
+    // watchPosition actualiza la ubicación si el usuario se mueve
+    navigator.geolocation.watchPosition(
+        (position) => {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+
+            // Limpiamos la posición anterior del usuario antes de poner la nueva
+            userLayer.clearLayers();
+
+            // Creamos un icono personalizado (punto azul) usando el CSS que definimos
+            const userIcon = L.divIcon({
+                className: 'user-location-marker',
+                iconSize: [14, 14],
+                iconAnchor: [7, 7]
+            });
+
+            // Añadimos el marcador de tu posición
+            const userMarker = L.marker([lat, lon], { icon: userIcon });
+            userMarker.bindPopup("<b>Estás aquí</b>").addTo(userLayer);
+
+            // La primera vez que obtiene la ubicación, centra la cámara del mapa en ti
+            if (!map.getBounds().contains([lat, lon])) {
+                map.setView([lat, lon], 8); // Zoom medio para ver los aviones de tu zona
+            }
+        },
+        (error) => {
+            console.warn("Error al obtener la ubicación o permiso denegado:", error.message);
+        },
+        {
+            enableHighAccuracy: true, // Intenta usar GPS si está disponible en el móvil
+            timeout: 10000,
+            maximumAge: 0
+        }
+    );
+}
+
+// 5. OBTENER DATOS (API OpenSky mediante Proxy CORS)
 async function fetchAircraft() {
     try {
-        // La URL original de OpenSky
         const targetUrl = 'https://opensky-network.org/api/states/all?lamin=35.0&lomin=-10.0&lamax=44.0&lomax=5.0';
-        
-        // Usamos el proxy gratuito allorigins para saltarnos el CORS
         const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
         
         const response = await fetch(url);
@@ -59,7 +97,7 @@ async function fetchAircraft() {
     }
 }
 
-// 5. PINTAR DATOS EN EL MAPA
+// 6. PINTAR DATOS EN EL MAPA
 function renderPlanes() {
     markersLayer.clearLayers();
 
@@ -95,7 +133,7 @@ function renderPlanes() {
             }
             
             // Textos para el Popup
-            let catText = "Desconocida";
+            let catText = "Sin clasificar";
             if (category >= 4 && category <= 7) catText = "Comercial/Pesado";
             if (category === 2 || category === 3) catText = "Ligero";
             if (category === 8) catText = "Helicóptero";
@@ -103,7 +141,7 @@ function renderPlanes() {
             const marker = L.marker([lat, lon]);
             marker.bindPopup(`
                 <b>Vuelo:</b> ${callsign ? callsign.trim() : 'Sin indicativo'}<br>
-                <b>Tipo:</b> ${catText} (Cod: ${category})<br>
+                <b>Tipo:</b> ${catText}<br>
                 <b>Altitud:</b> ${baro_altitude} m<br>
                 <b>Velocidad:</b> ${velocity} m/s
             `);
@@ -113,6 +151,7 @@ function renderPlanes() {
     });
 }
 
-// 6. INICIO
-fetchAircraft();
+// 7. INICIO
+initUserLocation(); // Pedir ubicación e iniciar tracking del usuario
+fetchAircraft();    // Descargar aviones
 setInterval(fetchAircraft, 15000);
