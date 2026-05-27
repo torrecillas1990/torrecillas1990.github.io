@@ -3,9 +3,8 @@ const ASSETS = [
     './',
     './index.html',
     './app.js',
-    './manifest.json'
-    // He quitado la CDN aquí para evitar fallos de instalación. 
-    // Puedes precachearla si la descargas localmente.
+    './manifest.json',
+    'https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js'
 ];
 
 self.addEventListener('install', (e) => {
@@ -14,22 +13,9 @@ self.addEventListener('install', (e) => {
     );
 });
 
-// Limpieza de cachés antiguas
-self.addEventListener('activate', (e) => {
-    e.waitUntil(
-        caches.keys().then(keys => {
-            return Promise.all(
-                keys.filter(key => key !== CACHE_NAME)
-                    .map(key => caches.delete(key))
-            );
-        })
-    );
-});
-
 self.addEventListener('fetch', (e) => {
     e.respondWith(
         caches.match(e.request).then(response => {
-            // Si el recurso no está en caché, va a la red
             return response || fetch(e.request);
         })
     );
