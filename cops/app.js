@@ -6,89 +6,109 @@ const AIRCRAFT_SVGS = {
     drone: '<path d="M22,10v-2h-3v2h-2.1c-0.4-1.7-1.9-3-3.7-3h-2.4c-1.8,0-3.3,1.3-3.7,3H5V8H2v2c0,1.1,0.9,2,2,2h1.2c0.5,1.8,2.2,3.1,4.1,3.1h5.4c1.9,0,3.6-1.3,4.1-3.1H20C21.1,12,22,11.1,22,10z"/>'
 };
 
-// 2. INICIALIZACIÓN DEL MAPA
+// 2. INICIALIZACIÓN DEL MAPA Y CAPAS
 const map = L.map('map').setView([40.4168, -3.7038], 6);
+
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '© OpenStreetMap'
 }).addTo(map);
 
 const markersLayer = L.layerGroup().addTo(map);
+
+// 3. VARIABLES DE ESTADO
 let currentFilter = '';
 let planesData = []; 
 
-// 3. EVENTOS DE LA INTERFAZ
+// 4. EVENTOS DE LA INTERFAZ
 document.getElementById('filter-btn').addEventListener('click', () => {
     currentFilter = document.getElementById('filter-input').value.trim().toLowerCase();
     renderPlanes(); 
 });
+
 document.getElementById('filter-input').addEventListener('keypress', function (e) {
     if (e.key === 'Enter') document.getElementById('filter-btn').click();
 });
+
 document.querySelectorAll('#type-filters input').forEach(checkbox => {
     checkbox.addEventListener('change', renderPlanes);
 });
 
-// 4. OBTENCIÓN DE DATOS (API Pública y Sin Censura de ADSB.fi)
+// 5. OBTENCIÓN DE DATOS (Conectado a tu propio Microservicio Python)
 async function fetchAircraft() {
     try {
-        // Centro en la Península Ibérica, radio de 250 millas náuticas
-        const url = 'https://api.adsb.fi/v2/lat/40.0/lon/-3.0/dist/250';
+        // Sustituye esta URL por la que te dé Render y añade "/api/aviones" al final
+        const backendUrl = 'https://cops-backend-kfxn.onrender.com/api/aviones';
         
-        const response = await fetch(url);
-        if (!response.ok) throw new Error("Error en ADSB.fi");
+        const response = await fetch(backendUrl);
+        
+        if (!response.ok) {
+            console.warn(`Error en el backend: ${response.status}`);
+            return;
+        }
 
         const data = await response.json();
 
-        // ADSB.fi devuelve los aviones en el array 'ac'
-        if (data && data.ac) {
-            planesData = data.ac;
+        // Extraemos los estados del JSON
+        if (data && data.states) {
+            planesData = data.states;
             renderPlanes();
-            console.log(`✅ Radar OSINT activo: ${data.ac.length} aeronaves.`);
+            console.log(`✅ Radar actualizado: ${data.states.length} aeronaves.`);
         }
     } catch (error) {
-        console.error("Fallo de red:", error.message);
+        console.error("Fallo de conexión con nuestro backend:", error.message);
     }
 }
 
-// 5. LÓGICA DE FUERZAS DE ESTADO
+// Lógica de identificación de indicativos de Estado Español
 function checkIsStateForce(callsign) {
     if (!callsign) return false;
     const str = callsign.trim().toLowerCase();
-    return str.startsWith('dgt') || str.startsWith('ame') || str.startsWith('famet') || 
-           str.startsWith('floan') || str.startsWith('cuco') || str.startsWith('pol') || str.startsWith('cme');
+    // DGT, Ejército del Aire, Tierra, Armada, Guardia Civil, Policía
+    return str.startsWith('dgt') || 
+           str.startsWith('ame') || 
+           str.startsWith('famet') || 
+           str.startsWith('floan') || 
+           str.startsWith('cuco') || 
+           str.startsWith('pol') || 
+           str.startsWith('cme');
 }
 
-// 6. ICONOS DINÁMICOS
+// Nueva firma de función: ahora recibe el callsign para poder sobreescribir el color
 function getCustomIcon(category, true_track, callsign) {
     let svgPath = AIRCRAFT_SVGS.plane;
     let color = '#aaaaaa'; 
     let size = 24;
     let isStateForce = checkIsStateForce(callsign);
 
-    // ADSB.fi usa categorías alfanuméricas (A1 a A7)
-    if (category === 'A3' || category === 'A4' || category === 'A5') {
-        color = '#3b82f6'; // Comercial / Pesado
+    if (category >= 4 && category <= 6) {
+        color = '#3b82f6'; 
         size = 28;
-    } else if (category === 'A1' || category === 'A2' || category === 'B1') {
-        color = '#22c55e'; // Ligero / Avioneta
+    } else if (category === 2 || category === 3) {
+        color = '#22c55e'; 
         size = 20;
-    } else if (category === 'A7') {
+    } else if (category === 8) {
         svgPath = AIRCRAFT_SVGS.heli;
-        color = '#f97316'; // Helicóptero
+        color = '#f97316'; 
         size = 26;
-    } else if (category === 'A6') {
+    } else if (category === 7) {
         svgPath = AIRCRAFT_SVGS.fighter;
-        color = '#ef4444'; // Caza
+        color = '#ef4444'; 
         size = 28;
+    } else if (category === 14) {
+        svgPath = AIRCRAFT_SVGS.drone;
+        color = '#a855f7'; 
+        size = 24;
     }
 
+    // OVERRIDE: Si es de la DGT o Fuerzas del Estado, lo pintamos de dorado sin importar su categoría
     if (isStateForce) {
-        color = '#eab308'; // Dorado para estado
-        if (callsign && (callsign.toLowerCase().includes('dgt') || callsign.toLowerCase().includes('cuco'))) {
+        color = '#eab308'; // Dorado/Amarillo tráfico
+        // Si no está categorizado pero sabemos que es un Cuco o Pegasus, forzamos icono de helicóptero
+        if (callsign.toLowerCase().includes('dgt') || callsign.toLowerCase().includes('cuco')) {
             svgPath = AIRCRAFT_SVGS.heli;
         }
-        size = 30; 
+        size = 30; // Los hacemos ligeramente más grandes para que destaquen
     }
 
     const rotation = true_track || 0;
@@ -98,10 +118,58 @@ function getCustomIcon(category, true_track, callsign) {
         </div>
     `;
 
-    return L.divIcon({ html: html, className: 'aircraft-icon', iconSize: [size, size], iconAnchor: [size/2, size/2] });
+    return L.divIcon({
+        html: html,
+        className: 'aircraft-icon',
+        iconSize: [size, size],
+        iconAnchor: [size/2, size/2] 
+    });
 }
 
-// 7. RENDERIZADO DEL MAPA
+// 6. LÓGICA DE ICONOS, COLORES Y ROTACIÓN
+function getCustomIcon(category, true_track) {
+    let svgPath = AIRCRAFT_SVGS.plane;
+    let color = '#aaaaaa'; // Gris por defecto
+    let size = 24;
+
+    // Categorización de OpenSky
+    if (category >= 4 && category <= 6) {
+        color = '#3b82f6'; // Azul: Comercial / Pesado
+        size = 28;
+    } else if (category === 2 || category === 3) {
+        color = '#22c55e'; // Verde: Avioneta / Ligero
+        size = 20;
+    } else if (category === 8) {
+        svgPath = AIRCRAFT_SVGS.heli;
+        color = '#f97316'; // Naranja: Helicóptero
+        size = 26;
+    } else if (category === 7) {
+        svgPath = AIRCRAFT_SVGS.fighter;
+        color = '#ef4444'; // Rojo: Caza / Alta Performance
+        size = 28;
+    } else if (category === 14) {
+        svgPath = AIRCRAFT_SVGS.drone;
+        color = '#a855f7'; // Morado: UAV / Drone
+        size = 24;
+    }
+
+    const rotation = true_track || 0;
+
+    const html = `
+        <div style="transform: rotate(${rotation}deg); color: ${color}; width: ${size}px; height: ${size}px; display: flex; justify-content: center; align-items: center;">
+            <svg viewBox="0 0 24 24" fill="currentColor">${svgPath}</svg>
+        </div>
+    `;
+
+    return L.divIcon({
+        html: html,
+        className: 'aircraft-icon',
+        iconSize: [size, size],
+        iconAnchor: [size/2, size/2] 
+    });
+}
+
+// 7. RENDERIZADO EN EL MAPA
 function renderPlanes() {
     markersLayer.clearLayers();
 
@@ -113,56 +181,48 @@ function renderPlanes() {
     const showUnknown = document.querySelector('input[value="unknown"]').checked;
 
     planesData.forEach(plane => {
-        // Estructura de ADSB.fi
-        const lat = plane.lat;
-        const lon = plane.lon;
-        const callsign = plane.flight;
-        const category = plane.category;
-        const true_track = plane.track;
-        const typeDesc = plane.t || 'Desconocido'; // Tipo de aeronave (ej. A320, B738)
-        
-        // Conversiones (ADSB.fi usa pies y nudos)
-        const alt_meters = plane.alt_baro !== undefined && plane.alt_baro !== 'ground' ? Math.round(plane.alt_baro * 0.3048) : 0;
-        const speed_kmh = plane.gs !== undefined ? Math.round(plane.gs * 1.852) : 0;
+        const [icao24, callsign, country, time_pos, last_contact, lon, lat, baro_altitude, on_ground, velocity, true_track, vertical_rate, sensors, geo_altitude, squawk, spi, position_source, category] = plane;
 
-        if (lat && lon) {
+        if (lat && lon && !on_ground) {
+            
             const isStateForce = checkIsStateForce(callsign);
             let categoryMatch = false;
 
+            // Filtros de visibilidad
             if (isStateForce && showState) categoryMatch = true;
             else if (!isStateForce) {
-                if ((category === 'A3' || category === 'A4' || category === 'A5') && showCommercial) categoryMatch = true;
-                else if ((category === 'A1' || category === 'A2' || category === 'B1') && showLight) categoryMatch = true;
-                else if (category === 'A7' && showHeli) categoryMatch = true;
-                else if (category === 'A6' && showOther) categoryMatch = true;
-                else if (!category && showUnknown) categoryMatch = true;
+                if ((category >= 4 && category <= 6) && showCommercial) categoryMatch = true;
+                else if ((category === 2 || category === 3) && showLight) categoryMatch = true;
+                else if (category === 8 && showHeli) categoryMatch = true;
+                else if ((category === 7 || category >= 9 && category <= 15) && showOther) categoryMatch = true;
+                else if ((category === 0 || category === 1 || !category) && showUnknown) categoryMatch = true;
             }
 
             if (!categoryMatch) return; 
 
             if (currentFilter !== '') {
                 const callsignStr = callsign ? callsign.trim().toLowerCase() : '';
-                const typeStr = typeDesc.toLowerCase();
-                if (!callsignStr.includes(currentFilter) && !typeStr.includes(currentFilter)) return; 
+                const countryStr = country ? country.trim().toLowerCase() : '';
+                if (!callsignStr.includes(currentFilter) && !countryStr.includes(currentFilter)) return; 
             }
             
             let catText = "Desconocida";
             if (isStateForce) catText = "🚨 Estado / Militar / DGT";
-            else if (category === 'A3' || category === 'A4' || category === 'A5') catText = "Comercial / Pesado";
-            else if (category === 'A1' || category === 'A2') catText = "Avioneta / Ligero";
-            else if (category === 'A7') catText = "Helicóptero";
-            else if (category === 'A6') catText = "Militar / Caza";
+            else if (category >= 4 && category <= 6) catText = "Comercial / Pesado";
+            else if (category === 2 || category === 3) catText = "Avioneta / Ligero";
+            else if (category === 8) catText = "Helicóptero";
+            else if (category === 7) catText = "Militar / Caza";
+            else if (category === 14) catText = "Drone (UAV)";
 
             const customMarker = L.marker([lat, lon], {
-                icon: getCustomIcon(category, true_track, callsign)
+                icon: getCustomIcon(category, true_track, callsign) // Pasamos el callsign a la función
             });
 
             customMarker.bindPopup(`
                 <b>Vuelo:</b> ${callsign ? callsign.trim() : 'Sin indicativo'}<br>
-                <b>Modelo:</b> ${typeDesc}<br>
                 <b>Tipo:</b> ${catText}<br>
-                <b>Altitud:</b> ${alt_meters} m<br>
-                <b>Velocidad:</b> ${speed_kmh} km/h
+                <b>Altitud:</b> ${baro_altitude || 'N/A'} m<br>
+                <b>Velocidad:</b> ${velocity ? Math.round(velocity * 3.6) : 'N/A'} km/h
             `);
 
             markersLayer.addLayer(customMarker);
@@ -170,6 +230,6 @@ function renderPlanes() {
     });
 }
 
-// 8. EJECUCIÓN CADA 15 SEGUNDOS (ADSB.fi lo soporta perfectamente)
+// 8. EJECUCIÓN
 fetchAircraft();
-setInterval(fetchAircraft, 15000);
+setInterval(fetchAircraft, 30000); // Refresco cada 30 segundos para evitar baneos
