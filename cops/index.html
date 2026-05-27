@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Radar PWA</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1e1e1e">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+	
+	<div id="filter-container">
+        <div style="display: flex; gap: 8px;">
+            <input type="text" id="filter-input" placeholder="Indicativo (ej. IBE)..." autocomplete="off">
+            <button id="filter-btn">Buscar</button>
+        </div>
+        
+        <div id="type-filters">
+            <label><input type="checkbox" value="commercial" checked> Comercial / Pesado</label>
+            <label><input type="checkbox" value="light" checked> Ligero / Avioneta</label>
+            <label><input type="checkbox" value="heli" checked> Helicópteros</label>
+            <label><input type="checkbox" value="other" checked> Otros (Drones, Globos...)</label>
+            <label><input type="checkbox" value="unknown" checked> Sin Clasificar</label>
+        </div>
+    </div>
+	
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="app.js"></script>
+
+</body>
+</html>

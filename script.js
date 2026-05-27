@@ -78,6 +78,12 @@ const proyectos = [
         ruta: 'voz/index.html'
     },
     {
+        categoria: 'utilidades',
+        titulo: 'Radar aeronaves',
+        descripcion: 'Herramienta para geolocalizar aeronaves.',
+        ruta: 'cops/index.html'
+    },
+    {
         categoria: 'juegos',
         titulo: 'Juego RPG',
         descripcion: 'Juego.',
