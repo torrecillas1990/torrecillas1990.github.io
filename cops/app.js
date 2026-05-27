@@ -79,42 +79,39 @@ function initUserLocation() {
     );
 }
 
-// 5. OBTENER DATOS (API OpenSky mediante Proxy CORS)
-// 5. OBTENER DATOS (Táctica anti-caché y Proxy Estable)
+// 5. OBTENER DATOS (Conexión Directa Ninja)
 async function fetchAircraft() {
     try {
-        // Añadimos Date.now() al final para que la URL sea única y evitar la caché
-        const targetUrl = `https://opensky-network.org/api/states/all?lamin=35.0&lomin=-10.0&lamax=44.0&lomax=5.0&time=${Date.now()}`;
+        // Usamos esta URL específica que a veces relaja el CORS para aplicaciones web simples.
+        // Hemos quitado todos los proxies y el "time" para no enfadar a OpenSky.
+        const url = 'https://opensky-network.org/api/states/all?lamin=35.0&lomin=-10.0&lamax=44.0&lomax=5.0';
         
-        // ¡OJO! Usamos corsproxy.io (allorigins está caído)
-        const url = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+        const response = await fetch(url, {
+             // Esta cabecera le pide amablemente a OpenSky que no nos bloquee
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
         
-        const response = await fetch(url);
-        const text = await response.text();
-        
-        // 1. Control de límites de OpenSky
-        if (text.includes("Too many requests") || text.includes("429")) {
-            console.warn("⏳ OpenSky nos ha limitado temporalmente. Esperando al siguiente ciclo...");
-            return; 
-        }
-
-        // 2. Control de caídas del proxy (Si devuelve una web de error HTML)
-        if (text.trim().startsWith('<')) {
-            console.warn("❌ El proxy devolvió un error de servidor:", text.substring(0, 60));
+        // Si el servidor nos dice que estamos bloqueados
+        if (response.status === 429) {
+            console.warn("⏳ OpenSky nos ha limitado por pedir datos muy rápido. Espera un minuto.");
             return;
         }
 
-        // 3. Convertimos a datos usables
-        const data = JSON.parse(text);
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
 
-        // 4. Comprobamos si hay aviones en el array 'states'
+        const data = await response.json();
+
         if (data && data.states) {
             planesData = data.states;
             renderPlanes();
             console.log(`✅ ¡Éxito! Se han descargado y dibujado ${data.states.length} aeronaves.`);
         }
     } catch (error) {
-        console.warn("⚠️ Error en la conexión (probablemente el proxy esté saturado):", error.message);
+        console.warn("⚠️ Error en la conexión a OpenSky:", error.message);
     }
 }
 

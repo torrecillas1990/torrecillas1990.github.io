@@ -34,15 +34,14 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-    // Si la petición va a cualquier API o proxy externo, que NO use caché
-    if (event.request.url.includes('opensky-network') || 
-        event.request.url.includes('allorigins') || 
-        event.request.url.includes('corsproxy')) {
+    // REGLA DE ORO: Si la petición va a OpenSky o a cualquier lugar fuera de nuestra web, 
+    // IGNORAR LA CACHÉ y usar SIEMPRE la red normal.
+    if (event.request.url.startsWith('http') && !event.request.url.includes(self.location.hostname)) {
         event.respondWith(fetch(event.request));
-        return;
+        return; // Salimos de la función aquí mismo
     }
 
-    // Para nuestra web, primero red, luego caché (estrategia Network First para desarrollo)
+    // Para nuestros archivos (HTML, CSS, JS), intentamos red y luego caché
     event.respondWith(
         fetch(event.request).catch(() => caches.match(event.request))
     );
