@@ -79,39 +79,41 @@ function initUserLocation() {
     );
 }
 
-// 5. OBTENER DATOS (Conexión Directa Ninja)
+// 5. OBTENER DATOS (Estrategia JSON Wrapper)
 async function fetchAircraft() {
     try {
-        // Usamos esta URL específica que a veces relaja el CORS para aplicaciones web simples.
-        // Hemos quitado todos los proxies y el "time" para no enfadar a OpenSky.
-        const url = 'https://opensky-network.org/api/states/all?lamin=35.0&lomin=-10.0&lamax=44.0&lomax=5.0';
+        const targetUrl = 'https://opensky-network.org/api/states/all?lamin=35.0&lomin=-10.0&lamax=44.0&lomax=5.0';
         
-        const response = await fetch(url, {
-             // Esta cabecera le pide amablemente a OpenSky que no nos bloquee
-            headers: {
-                'Accept': 'application/json'
-            }
-        });
+        // Usamos el endpoint /get. Esto devuelve un JSON empaquetado que neutraliza el CORS.
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
         
-        // Si el servidor nos dice que estamos bloqueados
-        if (response.status === 429) {
-            console.warn("⏳ OpenSky nos ha limitado por pedir datos muy rápido. Espera un minuto.");
+        const response = await fetch(proxyUrl);
+        const proxyData = await response.json();
+        
+        // Verificamos si el proxy ha devuelto el contenedor de contenido
+        if (!proxyData || !proxyData.contents) {
+            console.warn("El proxy falló al empaquetar los datos.");
             return;
         }
 
-        if (!response.ok) {
-            throw new Error(`Error HTTP: ${response.status}`);
+        // Si OpenSky nos ha limitado, lo detectamos en el texto devuelto
+        if (proxyData.contents.includes("Too many requests") || proxyData.contents.includes("429")) {
+            console.warn("Límite de peticiones de OpenSky alcanzado. Esperando al siguiente ciclo.");
+            return;
         }
 
-        const data = await response.json();
+        // Extraemos los datos reales convirtiendo el texto interior a JSON
+        const data = JSON.parse(proxyData.contents);
 
         if (data && data.states) {
             planesData = data.states;
             renderPlanes();
-            console.log(`✅ ¡Éxito! Se han descargado y dibujado ${data.states.length} aeronaves.`);
+            console.log(`Radar actualizado: ${data.states.length} aeronaves detectadas en la zona.`);
+        } else {
+            console.log("Petición exitosa, pero no hay aeronaves transmitiendo en estas coordenadas ahora mismo.");
         }
     } catch (error) {
-        console.warn("⚠️ Error en la conexión a OpenSky:", error.message);
+        console.error("Error estructural en la red o proxy caído:", error.message);
     }
 }
 
