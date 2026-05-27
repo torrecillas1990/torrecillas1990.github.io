@@ -38,7 +38,7 @@ document.querySelectorAll('#type-filters input').forEach(checkbox => {
 async function fetchAircraft() {
     try {
         // Sustituye esta URL por la que te dé Render y añade "/api/aviones" al final
-        const backendUrl = 'https://cops-backend-kfxn.onrender.com';
+        const backendUrl = 'https://cops-backend-kfxn.onrender.com/api/aviones';
         
         const response = await fetch(backendUrl);
         
