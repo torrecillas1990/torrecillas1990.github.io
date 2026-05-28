@@ -29,16 +29,27 @@ document.querySelectorAll('#type-filters input').forEach(checkbox => {
     checkbox.addEventListener('change', renderPlanes);
 });
 
-// 4. OBTENCIÓN DE DATOS (API Comunitaria ADSB.fi - Sin CORS y Sin Cloudflare)
+// 4. OBTENCIÓN DE DATOS (ADSB.fi con Proxy Envolvente Anti-CORS)
 async function fetchAircraft() {
     try {
-        // Centro en la Península Ibérica, radio de 250 millas náuticas
-        const url = 'https://api.adsb.fi/v2/lat/40.0/lon/-3.0/dist/250';
+        // Añadimos un parámetro de tiempo falso para que el proxy nunca tire de caché
+        const targetUrl = `https://api.adsb.fi/v2/lat/40.0/lon/-3.0/dist/250?_t=${Date.now()}`;
         
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`Error en ADSB.fi: HTTP ${response.status}`);
+        // Usamos el endpoint /get de AllOrigins para envolver la respuesta y anular el CORS
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+        
+        const response = await fetch(proxyUrl);
+        if (!response.ok) throw new Error(`Proxy caído: HTTP ${response.status}`);
 
-        const data = await response.json();
+        const proxyWrapper = await response.json();
+        
+        if (!proxyWrapper.contents) {
+            console.warn("El proxy no pudo extraer los datos de ADSB.fi en este ciclo.");
+            return;
+        }
+
+        // Desempaquetamos los datos reales
+        const data = JSON.parse(proxyWrapper.contents);
 
         // ADSB.fi devuelve el array de aviones en 'ac'
         if (data && data.ac) {
@@ -47,7 +58,7 @@ async function fetchAircraft() {
             console.log(`✅ Radar OSINT activo: ${data.ac.length} aeronaves detectadas.`);
         }
     } catch (error) {
-        console.error("Fallo de red al conectar con ADSB.fi:", error.message);
+        console.error("Fallo de red temporal en el proxy:", error.message);
     }
 }
 
