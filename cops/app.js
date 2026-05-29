@@ -39,6 +39,8 @@ function updateAlertCircle() {
                 dashArray: '5, 10', 
                 interactive: false 
             }).addTo(map);
+			alertCircle.setLatLng(userPos);
+            alertCircle.setRadius(radiusMeters);
         }
     } else {
         if (alertCircle) {
