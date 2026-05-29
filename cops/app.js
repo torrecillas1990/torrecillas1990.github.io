@@ -1,3 +1,4 @@
+// 1. DICCIONARIO DE ICONOS SVG VECTORIALES
 const AIRCRAFT_SVGS = {
     plane: '<path d="M21,16v-2l-8-5V3.5c0-0.83-0.67-1.5-1.5-1.5S10,2.67,10,3.5V9l-8,5v2l8-2.5V19l-2,1.5V22l3.5-1l3.5,1v-1.5L13,19v-5.5L21,16z"/>',
     heli: '<path d="M20.2,12.1L18,11.2V10h-2.2l-1.8,1.8h-4L8.2,10H6v1.2L3.8,12.1c-0.5,0.2-0.8,0.7-0.8,1.2v0.3c0,0.8,0.7,1.4,1.5,1.4h15c0.8,0,1.5-0.6,1.5-1.4v-0.3C21,12.8,20.7,12.3,20.2,12.1z M12,2v2H2v2h20V4h-10V2H12z"/>',
@@ -5,6 +6,7 @@ const AIRCRAFT_SVGS = {
     drone: '<path d="M22,10v-2h-3v2h-2.1c-0.4-1.7-1.9-3-3.7-3h-2.4c-1.8,0-3.3,1.3-3.7,3H5V8H2v2c0,1.1,0.9,2,2,2h1.2c0.5,1.8,2.2,3.1,4.1,3.1h5.4c1.9,0,3.6-1.3,4.1-3.1H20C21.1,12,22,11.1,22,10z"/>'
 };
 
+// 2. INICIALIZACIÓN DEL MAPA
 const map = L.map('map').setView([38.0, -1.0], 7);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
@@ -14,7 +16,42 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 const markersLayer = L.layerGroup().addTo(map);
 let currentFilter = '';
 let planesData = []; 
+let userMarker = null;
 
+// 3. GEOLOCALIZACIÓN DEL USUARIO
+function locateUser() {
+    if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(position => {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            
+            // Icono de punto azul brillante para el usuario
+            const userIcon = L.divIcon({
+                html: `<div style="background-color: #3b82f6; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px #3b82f6;"></div>`,
+                className: 'user-marker',
+                iconSize: [14, 14],
+                iconAnchor: [7, 7]
+            });
+
+            // Si ya existe el marcador, lo movemos. Si no, lo creamos.
+            if (userMarker) {
+                userMarker.setLatLng([lat, lon]);
+            } else {
+                userMarker = L.marker([lat, lon], { icon: userIcon })
+                 .addTo(map)
+                 .bindPopup("<b>📍 Tu ubicación</b>");
+            }
+             
+            // Centramos el mapa en el usuario
+            map.setView([lat, lon], 8);
+             
+        }, error => {
+            console.warn("Geolocalización rechazada o fallida:", error.message);
+        }, { enableHighAccuracy: true });
+    }
+}
+
+// 4. EVENTOS DE LA INTERFAZ
 document.getElementById('filter-btn').addEventListener('click', () => {
     currentFilter = document.getElementById('filter-input').value.trim().toLowerCase();
     renderPlanes(); 
@@ -26,11 +63,11 @@ document.querySelectorAll('#type-filters input').forEach(checkbox => {
     checkbox.addEventListener('change', renderPlanes);
 });
 
-// NUEVA ARQUITECTURA: Conexión directa al nodo centralizado de Firebase
+// 5. OBTENCIÓN DE DATOS (Conexión a Firebase)
 async function fetchAircraft() {
     try {
-        // Añade la URL de tu Firebase y asegúrate de que termina en /aviones.json
-        const firebaseDataUrl = "https://radar-tactico-default-rtdb.europe-west1.firebasedatabase.app/aviones.json"
+        // Asegúrate de que esta es tu URL real de Firebase
+        const firebaseDataUrl = 'https://radar-tactico-default-rtdb.europe-west1.firebasedatabase.app/aviones.json';
         
         const response = await fetch(firebaseDataUrl);
         if (!response.ok) throw new Error("Fallo al contactar con el nodo central.");
@@ -40,7 +77,6 @@ async function fetchAircraft() {
         if (data && data.ac) {
             planesData = data.ac;
             renderPlanes();
-            console.log(`📡 Telemetría recibida: ${data.ac.length} aeronaves.`);
         }
     } catch (error) {
         console.error("Error estructural:", error.message);
@@ -149,6 +185,7 @@ function renderPlanes() {
     });
 }
 
-// Refresco frontend cada 10 segundos para alinear con la cadencia del bot Python
+// 6. EJECUCIÓN INICIAL
+locateUser();
 fetchAircraft();
 setInterval(fetchAircraft, 10000);
