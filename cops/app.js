@@ -186,13 +186,20 @@ async function fetchPlanes() {
 
 // B. RADAREZ FIJOS (OpenStreetMap - Overpass API - 1 sola vez)
 async function fetchRealFixedRadarsOSM() {
-    console.log("📸 Iniciando descarga de radares fijos de OpenStreetMap...");
+    console.log("📸 Iniciando barrido profundo de radares fijos en OSM...");
     
-    // Consulta estratégica con timeout: Radares en la Península
-    const overpassQuery = `[out:json][timeout:25];node["highway"="speed_camera"](36.0,-10.0,44.0,5.0);out body;`;
+    // Consulta estratégica optimizada: Nodos, Vías y Relaciones con 90s de margen
+    const overpassQuery = `
+        [out:json][timeout:90][bbox:36.0,-10.0,44.0,5.0];
+        (
+            node["highway"="speed_camera"];
+            way["highway"="speed_camera"];
+            relation["highway"="speed_camera"];
+        );
+        out center;
+    `;
     
-    // FIX: URL corregida (añadida la barra / entre api e interpreter)
-    const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`;
+    const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery.trim())}`;
 
     try {
         const response = await fetch(url);
@@ -200,12 +207,22 @@ async function fetchRealFixedRadarsOSM() {
         
         const data = await response.json();
         
-        // Transformamos el formato de OSM a nuestra estructura táctica
-        fixedRadarsOSM = data.elements.map(node => ({
-            lat: node.lat, 
-            lon: node.lon,
-            limit: node.tags['maxspeed'] || 'N/A'
-        }));
+        // Chivato táctico: Si OSM aborta la operación, nos dirá por qué en el 'remark'
+        if (data.remark) {
+            console.warn("⚠️ Aviso del servidor OSM:", data.remark);
+        }
+
+        // Extracción geométrica: Los nodos usan 'lat/lon', las vías usan 'center.lat/lon'
+        fixedRadarsOSM = data.elements.map(el => {
+            const lat = el.lat || (el.center && el.center.lat);
+            const lon = el.lon || (el.center && el.center.lon);
+            const limit = (el.tags && el.tags['maxspeed']) ? el.tags['maxspeed'] : 'N/A';
+            
+            if (lat && lon) {
+                return { lat, lon, limit };
+            }
+            return null;
+        }).filter(r => r !== null);
 
         console.log(`✅ ${fixedRadarsOSM.length} radares fijos reales cargados desde OSM.`);
         renderFixedGroundUnits();
