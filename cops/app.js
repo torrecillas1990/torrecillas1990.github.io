@@ -5,7 +5,10 @@ const AIRCRAFT_SVGS = {
     drone: '<path d="M22,10v-2h-3v2h-2.1c-0.4-1.7-1.9-3-3.7-3h-2.4c-1.8,0-3.3,1.3-3.7,3H5V8H2v2c0,1.1,0.9,2,2,2h1.2c0.5,1.8,2.2,3.1,4.1,3.1h5.4c1.9,0,3.6-1.3,4.1-3.1H20C21.1,12,22,11.1,22,10z"/>'
 };
 
-const map = L.map('map').setView([38.0, -1.0], 7);
+// 1. INICIALIZACIÓN BÁSICA Y PROTECCIÓN DE INTERFAZ
+const map = L.map('map', { zoomControl: false }).setView([38.0, -1.0], 7);
+L.control.zoom({ position: 'topleft' }).addTo(map);
+
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '© OpenStreetMap'
@@ -15,6 +18,7 @@ const markersLayer = L.layerGroup().addTo(map);
 let currentFilter = '';
 let planesData = []; 
 
+// Variables de Estado (Alerta)
 let userMarker = null;
 let userPos = null; 
 let alertsEnabled = false;
@@ -22,11 +26,25 @@ let alertRadiusKm = 30;
 let alertCircle = null; 
 const alertedAircraft = new Set(); 
 
-// 1. DIBUJO TÁCTICO DEL PERÍMETRO
+// FIX: Blindaje contra "Click Propagation"
+const tacticalPanel = document.getElementById('tactical-panel');
+const hamburgerBtn = document.getElementById('hamburger-btn');
+L.DomEvent.disableClickPropagation(tacticalPanel);
+L.DomEvent.disableScrollPropagation(tacticalPanel);
+L.DomEvent.disableClickPropagation(hamburgerBtn);
+
+// 2. LÓGICA DEL MENÚ LATERAL
+hamburgerBtn.addEventListener('click', () => {
+    tacticalPanel.style.right = '0'; 
+});
+document.getElementById('close-panel-btn').addEventListener('click', () => {
+    tacticalPanel.style.right = '-320px'; 
+});
+
+// 3. SISTEMA DE POSICIONAMIENTO Y DIBUJO DE RADAR
 function updateAlertCircle() {
     if (alertsEnabled && userPos) {
         const radiusMeters = alertRadiusKm * 1000;
-        
         if (alertCircle) {
             alertCircle.setLatLng(userPos);
             alertCircle.setRadius(radiusMeters);
@@ -39,7 +57,7 @@ function updateAlertCircle() {
                 dashArray: '5, 10', 
                 interactive: false 
             }).addTo(map);
-			alertCircle.setLatLng(userPos);
+            alertCircle.setLatLng(userPos);
             alertCircle.setRadius(radiusMeters);
         }
     } else {
@@ -50,17 +68,12 @@ function updateAlertCircle() {
     }
 }
 
-// 2. SISTEMA DE POSICIONAMIENTO (Híbrido: GPS / Manual)
 function setUserPosition(lat, lon, isManual = false) {
     userPos = L.latLng(lat, lon); 
-    
     const userIcon = L.divIcon({
         html: `<div style="background-color: #3b82f6; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px #3b82f6;"></div>`,
-        className: 'user-marker',
-        iconSize: [14, 14],
-        iconAnchor: [7, 7]
+        className: 'user-marker', iconSize: [14, 14], iconAnchor: [7, 7]
     });
-
     const popupText = isManual ? "<b>📍 Base de Operaciones (Manual)</b>" : "<b>📍 Tu ubicación GPS</b>";
 
     if (userMarker) {
@@ -69,7 +82,6 @@ function setUserPosition(lat, lon, isManual = false) {
     } else {
         userMarker = L.marker(userPos, { icon: userIcon }).addTo(map).bindPopup(popupText);
     }
-    
     updateAlertCircle();
 }
 
@@ -79,20 +91,17 @@ function locateUser() {
             setUserPosition(position.coords.latitude, position.coords.longitude, false);
             map.setView(userPos, 8);
         }, error => {
-            console.warn("GPS fallido o denegado:", error.message);
-            alert("📡 SEÑAL GPS NO DETECTADA O DENEGADA\n\nHaz clic en cualquier lugar del mapa para establecer tu base de operaciones de forma manual y poder activar la alarma perimetral.");
+            console.warn("GPS fallido:", error.message);
+            alert("📡 SEÑAL GPS NO DETECTADA\nHaz clic en el mapa para establecer tu base de operaciones manual.");
         }, { enableHighAccuracy: true });
-    } else {
-        alert("📡 Tu navegador no soporta geolocalización.\nHaz clic en el mapa para posicionar tu base.");
     }
 }
 
-// Evento táctico: Al hacer clic en el mapa, sobrescribe la posición del usuario
 map.on('click', function(e) {
     setUserPosition(e.latlng.lat, e.latlng.lng, true);
 });
 
-// 3. EVENTOS DE INTERFAZ
+// 4. EVENTOS DE FILTROS Y ALARMAS
 document.getElementById('filter-btn').addEventListener('click', () => {
     currentFilter = document.getElementById('filter-input').value.trim().toLowerCase();
     renderPlanes(); 
@@ -104,12 +113,11 @@ document.querySelectorAll('#type-filters input').forEach(checkbox => {
     checkbox.addEventListener('change', renderPlanes);
 });
 
-// Eventos de la Alarma
 document.getElementById('toggle-alerts').addEventListener('change', async (e) => {
     alertsEnabled = e.target.checked;
     
     if (alertsEnabled && !userPos) {
-        alert("⚠️ No tienes una posición establecida. Haz clic en el mapa para marcar tu ubicación antes de encender el radar.");
+        alert("⚠️ No tienes una posición establecida. Haz clic en el mapa para marcar tu ubicación.");
         alertsEnabled = false;
         e.target.checked = false;
         return;
@@ -125,7 +133,6 @@ document.getElementById('toggle-alerts').addEventListener('change', async (e) =>
             return;
         }
     }
-    
     updateAlertCircle();
 });
 
@@ -136,16 +143,13 @@ document.getElementById('toggle-alerts').addEventListener('change', async (e) =>
     });
 });
 
-// 4. OBTENCIÓN DE DATOS 
+// 5. NÚCLEO DE DATOS Y RENDERIZADO
 async function fetchAircraft() {
     try {
         const firebaseDataUrl = 'https://radar-tactico-default-rtdb.europe-west1.firebasedatabase.app/aviones.json';
-        
         const response = await fetch(firebaseDataUrl);
-        if (!response.ok) throw new Error("Fallo al contactar con el nodo central.");
-
+        if (!response.ok) throw new Error("Fallo nodo central.");
         const data = await response.json();
-
         if (data && data.ac) {
             planesData = data.ac;
             renderPlanes();
@@ -187,7 +191,6 @@ function getCustomIcon(category, true_track, callsign) {
             <svg viewBox="0 0 24 24" fill="currentColor">${svgPath}</svg>
         </div>
     `;
-
     return L.divIcon({ html: html, className: 'aircraft-icon', iconSize: [size, size], iconAnchor: [size/2, size/2] });
 }
 
@@ -201,16 +204,16 @@ function triggerDesktopNotification(callsign, typeDesc, catText, distanceKm) {
     }
 }
 
-// 5. RENDERIZADO 
 function renderPlanes() {
     markersLayer.clearLayers();
 
-    const showState = document.querySelector('input[value="state"]').checked;
-    const showCommercial = document.querySelector('input[value="commercial"]').checked;
-    const showLight = document.querySelector('input[value="light"]').checked;
-    const showHeli = document.querySelector('input[value="heli"]').checked;
-    const showOther = document.querySelector('input[value="other"]').checked;
-    const showUnknown = document.querySelector('input[value="unknown"]').checked;
+    // Filtros Visuales
+    const showState = document.querySelector('#type-filters input[value="state"]').checked;
+    const showCommercial = document.querySelector('#type-filters input[value="commercial"]').checked;
+    const showLight = document.querySelector('#type-filters input[value="light"]').checked;
+    const showHeli = document.querySelector('#type-filters input[value="heli"]').checked;
+    const showOther = document.querySelector('#type-filters input[value="other"]').checked;
+    const showUnknown = document.querySelector('#type-filters input[value="unknown"]').checked;
 
     planesData.forEach(plane => {
         const lat = plane.lat;
@@ -225,8 +228,9 @@ function renderPlanes() {
 
         if (lat && lon) {
             const isStateForce = checkIsStateForce(callsign);
+            
+            // LÓGICA VISUAL MAPA
             let categoryMatch = false;
-
             if (isStateForce && showState) categoryMatch = true;
             else if (!isStateForce) {
                 if ((category === 'A3' || category === 'A4' || category === 'A5') && showCommercial) categoryMatch = true;
@@ -237,7 +241,6 @@ function renderPlanes() {
             }
 
             if (!categoryMatch) return; 
-
             if (currentFilter !== '') {
                 const typeStr = typeDesc.toLowerCase();
                 if (!callsign.toLowerCase().includes(currentFilter) && !typeStr.includes(currentFilter)) return; 
@@ -250,20 +253,35 @@ function renderPlanes() {
             else if (category === 'A7') catText = "Helicóptero";
             else if (category === 'A6') catText = "Militar / Caza";
 
+            // LÓGICA DE ALARMA Y NOTIFICACIONES
             if (alertsEnabled && userPos) {
-                if (isStateForce || category === 'A7' || category === 'A6' || !category) {
-                    
+                const alertState = document.querySelector('#alert-filters input[value="state"]').checked;
+                const alertCommercial = document.querySelector('#alert-filters input[value="commercial"]').checked;
+                const alertLight = document.querySelector('#alert-filters input[value="light"]').checked;
+                const alertHeli = document.querySelector('#alert-filters input[value="heli"]').checked;
+                const alertOther = document.querySelector('#alert-filters input[value="other"]').checked;
+                const alertUnknown = document.querySelector('#alert-filters input[value="unknown"]').checked;
+
+                let triggersAlert = false;
+                if (isStateForce && alertState) triggersAlert = true;
+                else if (!isStateForce) {
+                    if ((category === 'A3' || category === 'A4' || category === 'A5') && alertCommercial) triggersAlert = true;
+                    else if ((category === 'A1' || category === 'A2' || category === 'B1') && alertLight) triggersAlert = true;
+                    else if (category === 'A7' && alertHeli) triggersAlert = true;
+                    else if (category === 'A6' && alertOther) triggersAlert = true;
+                    else if (!category && alertUnknown) triggersAlert = true;
+                }
+
+                if (triggersAlert) {
                     const planePos = L.latLng(lat, lon);
                     const distanceMeters = userPos.distanceTo(planePos); 
                     const distanceKm = (distanceMeters / 1000).toFixed(1);
-                    
                     const planeId = callsign !== 'Desconocido' ? callsign : `${lat}-${lon}`;
 
                     if (distanceMeters <= (alertRadiusKm * 1000)) {
                         if (!alertedAircraft.has(planeId)) {
                             triggerDesktopNotification(callsign, typeDesc, catText, distanceKm);
                             alertedAircraft.add(planeId); 
-                            console.log(`⚠️ ALERTA: ${callsign} interceptado a ${distanceKm}km`);
                         }
                     } else {
                         alertedAircraft.delete(planeId);
@@ -282,7 +300,6 @@ function renderPlanes() {
                 <b>Altitud:</b> ${alt_meters > 0 ? alt_meters + ' m' : 'En tierra'}<br>
                 <b>Velocidad:</b> ${speed_kmh} km/h
             `);
-
             markersLayer.addLayer(customMarker);
         }
     });
