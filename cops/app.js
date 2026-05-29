@@ -35,6 +35,7 @@ let mobileReportsFB = {};  // Aquí se guardarán los datos dinámicos de Fireba
 let watchlistActive = false;
 let targetWatchlist = [];
 let currentFilter = '';
+let mapMoveTimer = null;
 
 // Variables de Estado (Alerta y GPS)
 let userMarker = null;
@@ -42,6 +43,9 @@ let userPos = null;
 let alertsEnabled = false;
 let alertRadiusKm = 30;
 let alertCircle = null; 
+const alertedAircraft = new Set(); 
+const alertedFixedRadars = new Set(); 
+const alertedMobileRadars = new Set();
 let contextMenuCoords = null; // Guardar coordenadas donde se hizo clic derecho
 const alertedAircraft = new Set(); 
 
@@ -210,13 +214,23 @@ async function fetchPlanes() {
     } catch (error) { console.error("Error extraiendo aviones:", error.message); }
 }
 
-// B. RADAREZ FIJOS (OpenStreetMap - Overpass API - 1 sola vez)
-async function fetchRealFixedRadarsOSM() {
-    console.log("📸 Iniciando barrido profundo de radares fijos en OSM...");
+// B. RADARES FIJOS (Por Sector Geográfico - Bounding Box)
+async function fetchRealFixedRadarsBBOX() {
+    // 1. Extraemos las coordenadas exactas
+    const bounds = map.getBounds();
+    const s = bounds.getSouth().toFixed(4);
+    const w = bounds.getWest().toFixed(4);
+    const n = bounds.getNorth().toFixed(4);
+    const e = bounds.getEast().toFixed(4);
+
+    console.log(`📸 Escaneando sector terrestre: [Sur:${s}, Oeste:${w}, Norte:${n}, Este:${e}]`);
     
-    // Consulta estratégica optimizada: Nodos, Vías y Relaciones con 90s de margen
+    // Encendemos el indicador visual en la interfaz
+    const loadingBadge = document.getElementById('loading-indicator');
+    if (loadingBadge) loadingBadge.style.display = 'block';
+
     const overpassQuery = `
-        [out:json][timeout:90][bbox:36.0,-10.0,44.0,5.0];
+        [out:json][timeout:15][bbox:${s},${w},${n},${e}];
         (
             node["highway"="speed_camera"];
             way["highway"="speed_camera"];
@@ -233,28 +247,23 @@ async function fetchRealFixedRadarsOSM() {
         
         const data = await response.json();
         
-        // Chivato táctico: Si OSM aborta la operación, nos dirá por qué en el 'remark'
-        if (data.remark) {
-            console.warn("⚠️ Aviso del servidor OSM:", data.remark);
-        }
-
-        // Extracción geométrica: Los nodos usan 'lat/lon', las vías usan 'center.lat/lon'
         fixedRadarsOSM = data.elements.map(el => {
             const lat = el.lat || (el.center && el.center.lat);
             const lon = el.lon || (el.center && el.center.lon);
             const limit = (el.tags && el.tags['maxspeed']) ? el.tags['maxspeed'] : 'N/A';
             
-            if (lat && lon) {
-                return { lat, lon, limit };
-            }
+            if (lat && lon) return { lat, lon, limit };
             return null;
         }).filter(r => r !== null);
 
-        console.log(`✅ ${fixedRadarsOSM.length} radares fijos reales cargados desde OSM.`);
+        console.log(`✅ ${fixedRadarsOSM.length} radares fijos localizados en el sector visual.`);
         renderFixedGroundUnits();
         
     } catch (error) { 
-        console.error("❌ Fallo al conectar con Overpass API:", error.message); 
+        console.error("❌ Fallo de escaneo en sector:", error.message); 
+    } finally {
+        // Apagamos el indicador visual, sin importar si hubo éxito o error
+        if (loadingBadge) loadingBadge.style.display = 'none';
     }
 }
 
@@ -369,15 +378,31 @@ function renderPlanes() {
                 const alertHeli = document.querySelector('#alert-filters input[value="heli"]').checked;
                 const alertOther = document.querySelector('#alert-filters input[value="other"]').checked;
                 const alertUnknown = document.querySelector('#alert-filters input[value="unknown"]').checked;
+                const alertWatchlist = document.getElementById('alert-watchlist').checked;
 
                 let triggersAlert = false;
-                if (isStateForce && alertState) triggersAlert = true;
-                else if (!isStateForce) {
-                    if ((category === 'A3' || category === 'A4' || category === 'A5') && alertCommercial) triggersAlert = true;
-                    else if ((category === 'A1' || category === 'A2' || category === 'B1') && alertLight) triggersAlert = true;
-                    else if (category === 'A7' && alertHeli) triggersAlert = true;
-                    else if (category === 'A6' && alertOther) triggersAlert = true;
-                    else if (!category && alertUnknown) triggersAlert = true;
+
+                // 1º Prioridad Táctica: Si la alerta por Watchlist está activa, ¿coincide con nuestro objetivo?
+                if (alertWatchlist && targetWatchlist.length > 0) {
+                    for (let target of targetWatchlist) {
+                        if (callsignUpper.includes(target) || hexUpper.includes(target)) {
+                            triggersAlert = true;
+                            catText = "🎯 OBJETIVO FIJADO";
+                            break;
+                        }
+                    }
+                }
+
+                // 2º Prioridad: Si no ha saltado por Watchlist, comprobamos los filtros estándar
+                if (!triggersAlert) {
+                    if (isStateForce && alertState) triggersAlert = true;
+                    else if (!isStateForce) {
+                        if ((category === 'A3' || category === 'A4' || category === 'A5') && alertCommercial) triggersAlert = true;
+                        else if ((category === 'A1' || category === 'A2' || category === 'B1') && alertLight) triggersAlert = true;
+                        else if (category === 'A7' && alertHeli) triggersAlert = true;
+                        else if (category === 'A6' && alertOther) triggersAlert = true;
+                        else if (!category && alertUnknown) triggersAlert = true;
+                    }
                 }
 
                 if (triggersAlert) {
@@ -418,16 +443,37 @@ function renderPlanes() {
     });
 }
 
-// B. RENDER TERRESTRE FIJO (OSM)
+// B. RADARES FIJOS (Por Sector Geográfico - Bounding Box)
 function renderFixedGroundUnits() {
     groundFixedLayer.clearLayers();
     if (!document.getElementById('show-fixed-radars').checked) return;
+
+    // Comprobamos si la alerta terrestre está encendida
+    const isAlertEnabled = alertsEnabled && userPos && document.getElementById('alert-fixed-radars').checked;
 
     fixedRadarsOSM.forEach(r => {
         const color = '#10b981'; // Verde DGT
         const html = `<div style="color: ${color}; width: 22px; height: 22px; display: flex; justify-content: center; align-items: center; filter: drop-shadow(0 0 3px ${color}); background: rgba(0,0,0,0.7); border-radius: 4px; border: 1px solid ${color};"><svg viewBox="0 0 24 24" fill="currentColor">${GROUND_SVGS.radar_fijo}</svg></div>`;
         const icon = L.divIcon({ html: html, className: 'gr-icon', iconSize: [22, 22], iconAnchor: [11, 11] });
+        
         L.marker([r.lat, r.lon], { icon: icon }).addTo(groundFixedLayer).bindPopup(`<b>📸 Radar Fijo</b><br>Límite: ${r.limit} km/h`);
+
+        // --- MOTOR DE ALERTA TERRESTRE ---
+        if (isAlertEnabled) {
+            const rPos = L.latLng(r.lat, r.lon);
+            const distanceMeters = userPos.distanceTo(rPos); 
+            const distanceKm = (distanceMeters / 1000).toFixed(1);
+            const radarId = `fijo-${r.lat}-${r.lon}`;
+
+            if (distanceMeters <= (alertRadiusKm * 1000)) {
+                if (!alertedFixedRadars.has(radarId)) {
+                    triggerDesktopNotification("📸 RADAR FIJO", `Límite de velocidad: ${r.limit} km/h`, "Alerta Terrestre", distanceKm);
+                    alertedFixedRadars.add(radarId); 
+                }
+            } else {
+                alertedFixedRadars.delete(radarId);
+            }
+        }
     });
 }
 
@@ -438,24 +484,39 @@ function renderMobileGroundUnits() {
 
     const ahora = Date.now();
     const caducidadMs = 2 * 60 * 60 * 1000; // 2 horas de vida para un reporte móvil
+    const isAlertEnabled = alertsEnabled && userPos && document.getElementById('alert-mobile-radars').checked;
 
     Object.keys(mobileReportsFB).forEach(id => {
         const unit = mobileReportsFB[id];
-        
-        // Limpieza táctica: Ignorar reportes de más de 2 horas
         if (ahora - unit.timestamp > caducidadMs) return;
 
         let path = unit.type === 'movil' ? GROUND_SVGS.radar_movil : GROUND_SVGS.police;
-        let color = unit.type === 'movil' ? '#ef4444' : '#3b82f6'; // Rojo radar, Azul policía
+        let color = unit.type === 'movil' ? '#ef4444' : '#3b82f6';
         let size = 28;
 
         const html = `<div style="color: ${color}; width: ${size}px; height: ${size}px; display: flex; justify-content: center; align-items: center; filter: drop-shadow(0 0 4px ${color}); background: rgba(0,0,0,0.7); border-radius: 50%; border: 2px solid ${color};"><svg viewBox="0 0 24 24" fill="currentColor">${path}</svg></div>`;
         const icon = L.divIcon({ html: html, className: 'gr-icon', iconSize: [size, size], iconAnchor: [size/2, size/2] });
-        
         const tiempoPasado = Math.round((ahora - unit.timestamp) / 60000);
 
         L.marker([unit.lat, unit.lon], { icon: icon }).addTo(groundMobileLayer)
          .bindPopup(`<b>${color==='#ef4444'?'🚓 Radar Móvil':'🛂 Control'}</b><br>${unit.desc}<br><span style="color: #aaa; font-size: 11px;">Reportado hace ${tiempoPasado} min</span>`);
+
+        // --- MOTOR DE ALERTA TERRESTRE ---
+        if (isAlertEnabled) {
+            const rPos = L.latLng(unit.lat, unit.lon);
+            const distanceMeters = userPos.distanceTo(rPos); 
+            const distanceKm = (distanceMeters / 1000).toFixed(1);
+
+            if (distanceMeters <= (alertRadiusKm * 1000)) {
+                if (!alertedMobileRadars.has(id)) {
+                    const title = color === '#ef4444' ? '🚓 RADAR MÓVIL' : '🛂 CONTROL POLICIAL';
+                    triggerDesktopNotification(title, unit.desc, "Alerta Táctica Terrestre", distanceKm);
+                    alertedMobileRadars.add(id); 
+                }
+            } else {
+                alertedMobileRadars.delete(id);
+            }
+        }
     });
 }
 
@@ -463,8 +524,25 @@ function renderMobileGroundUnits() {
 locateUser();
 fetchPlanes();
 fetchTerrainReports();
-// Fijos OSM solo una vez (son datos estáticos pesados)
-fetchRealFixedRadarsOSM(); 
+
+// EVENTO TÁCTICO: Rastrear radares fijos al mover el mapa (con seguro anti-baneo)
+map.on('moveend', () => {
+    // Si el usuario tiene apagada la capa de radares, no gastamos peticiones
+    if (!document.getElementById('show-fixed-radars').checked) return;
+
+    // Si el mapa se sigue moviendo, cancelamos el disparo anterior
+    clearTimeout(mapMoveTimer);
+    
+    // Armamos el temporizador: dispara 1.5 segundos después de detener el movimiento
+    mapMoveTimer = setTimeout(() => {
+        fetchRealFixedRadarsBBOX();
+    }, 1500); 
+});
+
+// Forzamos un disparo inicial al cargar la web por primera vez
+if (document.getElementById('show-fixed-radars').checked) {
+    fetchRealFixedRadarsBBOX();
+}
 
 // Intervalos de refresco asíncronos
 setInterval(fetchPlanes, 10000); // Aviones cada 10s
