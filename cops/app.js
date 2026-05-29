@@ -29,37 +29,53 @@ document.querySelectorAll('#type-filters input').forEach(checkbox => {
     checkbox.addEventListener('change', renderPlanes);
 });
 
-// 4. OBTENCIÓN DE DATOS (ADSB.fi con Proxy Envolvente Anti-CORS)
+// 4. OBTENCIÓN DE DATOS (Ruleta de Nodos y Validación Estricta)
 async function fetchAircraft() {
-    try {
-        // Añadimos un parámetro de tiempo falso para que el proxy nunca tire de caché
-        const targetUrl = `https://api.adsb.fi/v2/lat/40.0/lon/-3.0/dist/250?_t=${Date.now()}`;
-        
-        // Usamos el endpoint /get de AllOrigins para envolver la respuesta y anular el CORS
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-        
-        const response = await fetch(proxyUrl);
-        if (!response.ok) throw new Error(`Proxy caído: HTTP ${response.status}`);
+    const targetUrl = 'https://api.adsb.fi/v2/lat/40.0/lon/-3.0/dist/250';
 
-        const proxyWrapper = await response.json();
-        
-        if (!proxyWrapper.contents) {
-            console.warn("El proxy no pudo extraer los datos de ADSB.fi en este ciclo.");
-            return;
+    // Lista de rutas de red (Directa + Proxies de respaldo)
+    const endpoints = [
+        targetUrl, 
+        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`,
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`
+    ];
+
+    for (let url of endpoints) {
+        try {
+            // Inyector anti-caché
+            const fetchUrl = url.includes('?') ? `${url}&_t=${Date.now()}` : `${url}?_t=${Date.now()}`;
+            
+            // Timeout preventivo de 8 segundos para evitar bloqueos largos del navegador
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+            
+            const response = await fetch(fetchUrl, { signal: controller.signal });
+            clearTimeout(timeoutId);
+
+            if (!response.ok) continue; // Si el nodo rechaza HTTP 200, saltamos al siguiente
+
+            // VALIDACIÓN CRÍTICA: Asegurarnos de que la respuesta no es un HTML de error oculto
+            const contentType = response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                continue; 
+            }
+
+            const data = await response.json();
+
+            // Verificamos la integridad de la estructura de ADSB.fi
+            if (data && data.ac) {
+                planesData = data.ac;
+                renderPlanes();
+                console.log(`✅ Red conectada vía: ${new URL(url).hostname} | ${data.ac.length} aeronaves.`);
+                return; // Éxito: interrumpimos el bucle y salimos
+            }
+        } catch (error) {
+            // El fallo se intercepta silenciosamente y el bucle salta al siguiente nodo
+            console.warn(`⚠️ Caída temporal en nodo ${new URL(url).hostname}. Buscando alternativa...`);
         }
-
-        // Desempaquetamos los datos reales
-        const data = JSON.parse(proxyWrapper.contents);
-
-        // ADSB.fi devuelve el array de aviones en 'ac'
-        if (data && data.ac) {
-            planesData = data.ac;
-            renderPlanes();
-            console.log(`✅ Radar OSINT activo: ${data.ac.length} aeronaves detectadas.`);
-        }
-    } catch (error) {
-        console.error("Fallo de red temporal en el proxy:", error.message);
     }
+
+    console.error("❌ Todos los nodos de red han rechazado la conexión en este ciclo.");
 }
 
 // 5. LÓGICA DE INTERCEPTACIÓN (Fuerzas del Estado y DGT)
