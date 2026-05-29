@@ -43,11 +43,10 @@ let userPos = null;
 let alertsEnabled = false;
 let alertRadiusKm = 30;
 let alertCircle = null; 
+let contextMenuCoords = null; // Guardar coordenadas donde se hizo clic derecho
 const alertedAircraft = new Set(); 
 const alertedFixedRadars = new Set(); 
 const alertedMobileRadars = new Set();
-let contextMenuCoords = null; // Guardar coordenadas donde se hizo clic derecho
-const alertedAircraft = new Set(); 
 
 // FIX: Blindaje contra "Click Propagation" y Scroll
 const tacticalPanel = document.getElementById('tactical-panel');
