@@ -32,6 +32,9 @@ const groundMobileLayer = L.layerGroup().addTo(map);
 let planesData = []; 
 let fixedRadarsOSM = []; // Aquí se guardarán los datos estáticos de OpenStreetMap
 let mobileReportsFB = {};  // Aquí se guardarán los datos dinámicos de Firebase
+let watchlistActive = false;
+let targetWatchlist = [];
+let currentFilter = '';
 
 // Variables de Estado (Alerta y GPS)
 let userMarker = null;
@@ -87,6 +90,29 @@ document.getElementById('toggle-alerts').addEventListener('change', async (e) =>
         alertRadiusKm = parseInt(e.target.value) || 30;
         updateAlertCircle();
     });
+});
+
+// Eventos de la Lista de Vigilancia
+function parseWatchlist() {
+    const raw = document.getElementById('watchlist-input').value;
+    // Divide por comas o saltos de línea, limpia espacios, pasa a mayúsculas y quita vacíos
+    targetWatchlist = raw.split(/[\n,]+/).map(s => s.trim().toUpperCase()).filter(s => s.length > 0);
+}
+
+document.getElementById('toggle-watchlist').addEventListener('change', (e) => {
+    watchlistActive = e.target.checked;
+    parseWatchlist();
+    renderPlanes();
+});
+
+document.getElementById('update-watchlist-btn').addEventListener('click', () => {
+    parseWatchlist();
+    // Si la lista tiene contenido, forzamos la activación del checkbox
+    if (targetWatchlist.length > 0 && !watchlistActive) {
+        watchlistActive = true;
+        document.getElementById('toggle-watchlist').checked = true;
+    }
+    renderPlanes();
 });
 
 // 4. LÓGICA DE GEOLOCALIZACIÓN Y CLIC DERECHO
@@ -269,6 +295,7 @@ function getAircraftIcon(cat, track, flight) {
 
 function renderPlanes() {
     planesLayer.clearLayers();
+
     // Lectura de filtros visuales del nuevo menú lateral
     const showState = document.querySelector('#type-filters input[value="state"]').checked;
     const showCommercial = document.querySelector('#type-filters input[value="commercial"]').checked;
@@ -278,24 +305,116 @@ function renderPlanes() {
     const showUnknown = document.querySelector('#type-filters input[value="unknown"]').checked;
 
     planesData.forEach(p => {
-        if (!p.lat || !p.lon) return;
-        const isState = checkIsStateForce(p.flight);
-        let match = false;
-        if (isState && showState) match = true;
-        else if (!isState) {
-            if ((p.category === 'A3'||p.category === 'A4'||p.category === 'A5') && showCommercial) match = true;
-            else if ((p.category === 'A1'||p.category === 'A2'||p.category === 'B1') && showLight) match = true;
-            else if (p.category === 'A7' && showHeli) match = true;
-            else if (p.category === 'A6' && showOther) match = true;
-            else if (!p.category && showUnknown) match = true;
+        const lat = p.lat;
+        const lon = p.lon;
+        const callsign = p.flight ? p.flight.trim() : 'Desconocido';
+        const callsignUpper = callsign.toUpperCase();
+        const hexUpper = p.hex ? p.hex.trim().toUpperCase() : '';
+        const category = p.category;
+        const true_track = p.track;
+        const typeDesc = p.t || 'No Especificado';
+        
+        const alt_meters = p.alt_baro !== undefined && p.alt_baro !== 'ground' ? Math.round(p.alt_baro * 0.3048) : 0;
+        const speed_kmh = p.gs !== undefined ? Math.round(p.gs * 1.852) : 0;
+
+        if (lat && lon) {
+            const isStateForce = checkIsStateForce(callsign);
+            
+            // --- 1. LÓGICA VISUAL MAPA ---
+            let categoryMatch = false;
+
+            // MODO TÁCTICO: ¿Está activa la lista de vigilancia?
+            if (watchlistActive && targetWatchlist.length > 0) {
+                // Comprobamos si el avión coincide con algún objetivo de nuestra lista
+                for (let target of targetWatchlist) {
+                    if (callsignUpper.includes(target) || hexUpper.includes(target)) {
+                        categoryMatch = true;
+                        break;
+                    }
+                }
+            } else {
+                // MODO NORMAL: Filtros estándar por tipo
+                if (isStateForce && showState) categoryMatch = true;
+                else if (!isStateForce) {
+                    if ((category === 'A3' || category === 'A4' || category === 'A5') && showCommercial) categoryMatch = true;
+                    else if ((category === 'A1' || category === 'A2' || category === 'B1') && showLight) categoryMatch = true;
+                    else if (category === 'A7' && showHeli) categoryMatch = true;
+                    else if (category === 'A6' && showOther) categoryMatch = true;
+                    else if (!category && showUnknown) categoryMatch = true;
+                }
+
+                // Aplicar el buscador de texto rápido si hay algo escrito
+                if (currentFilter !== '') {
+                    const typeStr = typeDesc.toLowerCase();
+                    if (!callsign.toLowerCase().includes(currentFilter) && !typeStr.includes(currentFilter)) {
+                        categoryMatch = false;
+                    }
+                }
+            }
+
+            if (!categoryMatch) return; // Abortamos el dibujado si no pasa el filtro
+
+            let catText = "Desconocida";
+            if (isStateForce) catText = "🚨 Estado / Militar / DGT";
+            else if (category === 'A3' || category === 'A4' || category === 'A5') catText = "Comercial / Pesado";
+            else if (category === 'A1' || category === 'A2' || category === 'B1') catText = "Avioneta / Ligero";
+            else if (category === 'A7') catText = "Helicóptero";
+            else if (category === 'A6') catText = "Militar / Caza";
+
+            // --- 2. LÓGICA DE ALARMA Y NOTIFICACIONES ---
+            if (alertsEnabled && userPos) {
+                const alertState = document.querySelector('#alert-filters input[value="state"]').checked;
+                const alertCommercial = document.querySelector('#alert-filters input[value="commercial"]').checked;
+                const alertLight = document.querySelector('#alert-filters input[value="light"]').checked;
+                const alertHeli = document.querySelector('#alert-filters input[value="heli"]').checked;
+                const alertOther = document.querySelector('#alert-filters input[value="other"]').checked;
+                const alertUnknown = document.querySelector('#alert-filters input[value="unknown"]').checked;
+
+                let triggersAlert = false;
+                if (isStateForce && alertState) triggersAlert = true;
+                else if (!isStateForce) {
+                    if ((category === 'A3' || category === 'A4' || category === 'A5') && alertCommercial) triggersAlert = true;
+                    else if ((category === 'A1' || category === 'A2' || category === 'B1') && alertLight) triggersAlert = true;
+                    else if (category === 'A7' && alertHeli) triggersAlert = true;
+                    else if (category === 'A6' && alertOther) triggersAlert = true;
+                    else if (!category && alertUnknown) triggersAlert = true;
+                }
+
+                if (triggersAlert) {
+                    const planePos = L.latLng(lat, lon);
+                    const distanceMeters = userPos.distanceTo(planePos); 
+                    const distanceKm = (distanceMeters / 1000).toFixed(1);
+                    const planeId = callsign !== 'Desconocido' ? callsign : `${lat}-${lon}`;
+
+                    if (distanceMeters <= (alertRadiusKm * 1000)) {
+                        if (!alertedAircraft.has(planeId)) {
+                            triggerDesktopNotification(callsign, typeDesc, catText, distanceKm);
+                            alertedAircraft.add(planeId); 
+                        }
+                    } else {
+                        alertedAircraft.delete(planeId);
+                    }
+                }
+            }
+
+            // --- 3. DIBUJADO DEL MARCADOR EN EL MAPA ---
+            const customMarker = L.marker([lat, lon], {
+                icon: getAircraftIcon(category, true_track, callsign)
+            });
+
+            customMarker.bindPopup(`
+                <b>Vuelo:</b> ${callsign}<br>
+                <b>Modelo:</b> ${typeDesc}<br>
+                <b>Tipo:</b> ${catText}<br>
+                <b>Altitud:</b> ${alt_meters > 0 ? alt_meters + ' m' : 'En tierra'}<br>
+                <b>Velocidad:</b> ${speed_kmh} km/h
+            `);
+            
+            // Asegúrate de usar la capa correcta donde guardas los aviones
+            // En tu código inicial era markersLayer, en el último planesLayer. 
+            // Usa planesLayer si la cambiaste al crear el soporte para terrestres.
+            planesLayer.addLayer(customMarker);
         }
-        if (!match) return; 
-
-        // Alarma (usa filtros independientes '#alert-filters input...') -> Mantenemos la lógica actual.
-        // [CÓDIGO DE ALARMA OMITIDO PARA ABREVIAR, SIGUE IGUAL]
-
-        L.marker([p.lat, p.lon], { icon: getAircraftIcon(p.category, p.track, p.flight) }).addTo(planesLayer)
-         .bindPopup(`<b>Vuelo:</b> ${p.flight||'S/N'}<br><b>Modelo:</b> ${p.t||'S/N'}`);
     });
 }
 

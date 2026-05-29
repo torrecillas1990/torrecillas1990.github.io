@@ -62,7 +62,18 @@
                 <button id="filter-btn" style="padding: 6px 10px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;">🔍</button>
             </div>
         </div>
-
+		
+		<div id="watchlist-container" style="margin-bottom: 25px; padding: 15px; background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 6px;">
+            <h4 style="margin: 0 0 10px 0; font-size: 13px; color: #3b82f6; text-transform: uppercase;">🎯 Lista de Vigilancia</h4>
+            <label style="font-weight: bold; cursor: pointer; color: white; font-size: 13px; display: flex; align-items: center; margin-bottom: 10px;">
+                <input type="checkbox" id="toggle-watchlist" style="margin-right: 8px; transform: scale(1.2);">
+                AISLAR OBJETIVOS EN MAPA
+            </label>
+            <div style="font-size: 11px; color: #aaa; margin-bottom: 8px;">Introduce Indicativos (Callsign) o Códigos HEX separados por comas o saltos de línea.</div>
+            <textarea id="watchlist-input" placeholder="Ej: DGT, AME, IBE1234, 34FA12" style="width: 100%; height: 70px; background: #222; color: #fff; border: 1px solid #555; border-radius: 4px; padding: 6px; font-size: 12px; box-sizing: border-box; resize: vertical; font-family: monospace;"></textarea>
+            <button id="update-watchlist-btn" style="width: 100%; margin-top: 10px; padding: 8px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;">Fijar Blanco</button>
+        </div>
+		
         <div id="alert-controls" style="padding: 15px; background: rgba(234, 179, 8, 0.05); border: 1px solid rgba(234, 179, 8, 0.4); border-radius: 6px;">
             <label style="font-weight: bold; cursor: pointer; color: #eab308; font-size: 14px; display: flex; align-items: center; margin-bottom: 12px;">
                 <input type="checkbox" id="toggle-alerts" style="margin-right: 8px; transform: scale(1.2);"> 
