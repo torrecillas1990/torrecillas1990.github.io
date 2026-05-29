@@ -30,7 +30,7 @@ document.querySelectorAll('#type-filters input').forEach(checkbox => {
 async function fetchAircraft() {
     try {
         // Añade la URL de tu Firebase y asegúrate de que termina en /aviones.json
-        const firebaseDataUrl = 'https://TU-PROYECTO-AQUI.firebasedatabase.app/aviones.json';
+        const firebaseDataUrl = "https://radar-tactico-default-rtdb.europe-west1.firebasedatabase.app/aviones.json"
         
         const response = await fetch(firebaseDataUrl);
         if (!response.ok) throw new Error("Fallo al contactar con el nodo central.");
