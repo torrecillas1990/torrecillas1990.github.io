@@ -1,4 +1,3 @@
-// 1. DICCIONARIO DE ICONOS SVG VECTORIALES
 const AIRCRAFT_SVGS = {
     plane: '<path d="M21,16v-2l-8-5V3.5c0-0.83-0.67-1.5-1.5-1.5S10,2.67,10,3.5V9l-8,5v2l8-2.5V19l-2,1.5V22l3.5-1l3.5,1v-1.5L13,19v-5.5L21,16z"/>',
     heli: '<path d="M20.2,12.1L18,11.2V10h-2.2l-1.8,1.8h-4L8.2,10H6v1.2L3.8,12.1c-0.5,0.2-0.8,0.7-0.8,1.2v0.3c0,0.8,0.7,1.4,1.5,1.4h15c0.8,0,1.5-0.6,1.5-1.4v-0.3C21,12.8,20.7,12.3,20.2,12.1z M12,2v2H2v2h20V4h-10V2H12z"/>',
@@ -6,8 +5,7 @@ const AIRCRAFT_SVGS = {
     drone: '<path d="M22,10v-2h-3v2h-2.1c-0.4-1.7-1.9-3-3.7-3h-2.4c-1.8,0-3.3,1.3-3.7,3H5V8H2v2c0,1.1,0.9,2,2,2h1.2c0.5,1.8,2.2,3.1,4.1,3.1h5.4c1.9,0,3.6-1.3,4.1-3.1H20C21.1,12,22,11.1,22,10z"/>'
 };
 
-// 2. INICIALIZACIÓN DEL MAPA
-const map = L.map('map').setView([40.4168, -3.7038], 6);
+const map = L.map('map').setView([38.0, -1.0], 7);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '© OpenStreetMap'
@@ -17,7 +15,6 @@ const markersLayer = L.layerGroup().addTo(map);
 let currentFilter = '';
 let planesData = []; 
 
-// 3. EVENTOS DE LA INTERFAZ
 document.getElementById('filter-btn').addEventListener('click', () => {
     currentFilter = document.getElementById('filter-input').value.trim().toLowerCase();
     renderPlanes(); 
@@ -29,56 +26,27 @@ document.querySelectorAll('#type-filters input').forEach(checkbox => {
     checkbox.addEventListener('change', renderPlanes);
 });
 
-// 4. OBTENCIÓN DE DATOS (Ruleta de Nodos y Validación Estricta)
+// NUEVA ARQUITECTURA: Conexión directa al nodo centralizado de Firebase
 async function fetchAircraft() {
-    const targetUrl = 'https://api.adsb.fi/v2/lat/40.0/lon/-3.0/dist/250';
+    try {
+        // Añade la URL de tu Firebase y asegúrate de que termina en /aviones.json
+        const firebaseDataUrl = 'https://TU-PROYECTO-AQUI.firebasedatabase.app/aviones.json';
+        
+        const response = await fetch(firebaseDataUrl);
+        if (!response.ok) throw new Error("Fallo al contactar con el nodo central.");
 
-    // Lista de rutas de red (Directa + Proxies de respaldo)
-    const endpoints = [
-        targetUrl, 
-        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`,
-        `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`
-    ];
+        const data = await response.json();
 
-    for (let url of endpoints) {
-        try {
-            // Inyector anti-caché
-            const fetchUrl = url.includes('?') ? `${url}&_t=${Date.now()}` : `${url}?_t=${Date.now()}`;
-            
-            // Timeout preventivo de 8 segundos para evitar bloqueos largos del navegador
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 8000);
-            
-            const response = await fetch(fetchUrl, { signal: controller.signal });
-            clearTimeout(timeoutId);
-
-            if (!response.ok) continue; // Si el nodo rechaza HTTP 200, saltamos al siguiente
-
-            // VALIDACIÓN CRÍTICA: Asegurarnos de que la respuesta no es un HTML de error oculto
-            const contentType = response.headers.get("content-type");
-            if (!contentType || !contentType.includes("application/json")) {
-                continue; 
-            }
-
-            const data = await response.json();
-
-            // Verificamos la integridad de la estructura de ADSB.fi
-            if (data && data.ac) {
-                planesData = data.ac;
-                renderPlanes();
-                console.log(`✅ Red conectada vía: ${new URL(url).hostname} | ${data.ac.length} aeronaves.`);
-                return; // Éxito: interrumpimos el bucle y salimos
-            }
-        } catch (error) {
-            // El fallo se intercepta silenciosamente y el bucle salta al siguiente nodo
-            console.warn(`⚠️ Caída temporal en nodo ${new URL(url).hostname}. Buscando alternativa...`);
+        if (data && data.ac) {
+            planesData = data.ac;
+            renderPlanes();
+            console.log(`📡 Telemetría recibida: ${data.ac.length} aeronaves.`);
         }
+    } catch (error) {
+        console.error("Error estructural:", error.message);
     }
-
-    console.error("❌ Todos los nodos de red han rechazado la conexión en este ciclo.");
 }
 
-// 5. LÓGICA DE INTERCEPTACIÓN (Fuerzas del Estado y DGT)
 function checkIsStateForce(callsign) {
     if (!callsign) return false;
     const str = callsign.trim().toLowerCase();
@@ -86,33 +54,19 @@ function checkIsStateForce(callsign) {
            str.startsWith('floan') || str.startsWith('cuco') || str.startsWith('pol') || str.startsWith('cme');
 }
 
-// 6. MOTOR DE ICONOS VECTORIALES DINÁMICOS
 function getCustomIcon(category, true_track, callsign) {
     let svgPath = AIRCRAFT_SVGS.plane;
     let color = '#aaaaaa'; 
     let size = 24;
     let isStateForce = checkIsStateForce(callsign);
 
-    // ADSB.fi usa categorías alfanuméricas estándar
-    if (category === 'A3' || category === 'A4' || category === 'A5') {
-        color = '#3b82f6'; // Azul: Comercial / Pesado
-        size = 28;
-    } else if (category === 'A1' || category === 'A2' || category === 'B1') {
-        color = '#22c55e'; // Verde: Ligero / Avioneta
-        size = 20;
-    } else if (category === 'A7') {
-        svgPath = AIRCRAFT_SVGS.heli;
-        color = '#f97316'; // Naranja: Helicóptero
-        size = 26;
-    } else if (category === 'A6') {
-        svgPath = AIRCRAFT_SVGS.fighter;
-        color = '#ef4444'; // Rojo: Caza
-        size = 28;
-    }
+    if (category === 'A3' || category === 'A4' || category === 'A5') { color = '#3b82f6'; size = 28; }
+    else if (category === 'A1' || category === 'A2' || category === 'B1') { color = '#22c55e'; size = 20; }
+    else if (category === 'A7') { svgPath = AIRCRAFT_SVGS.heli; color = '#f97316'; size = 26; }
+    else if (category === 'A6') { svgPath = AIRCRAFT_SVGS.fighter; color = '#ef4444'; size = 28; }
 
-    // Sobreescritura Táctica: Si es DGT/Estado, forzamos color dorado e icono
     if (isStateForce) {
-        color = '#eab308'; // Dorado
+        color = '#eab308';
         if (callsign && (callsign.toLowerCase().includes('dgt') || callsign.toLowerCase().includes('cuco'))) {
             svgPath = AIRCRAFT_SVGS.heli;
         }
@@ -129,7 +83,6 @@ function getCustomIcon(category, true_track, callsign) {
     return L.divIcon({ html: html, className: 'aircraft-icon', iconSize: [size, size], iconAnchor: [size/2, size/2] });
 }
 
-// 7. RENDERIZADO DEL ESPACIO AÉREO
 function renderPlanes() {
     markersLayer.clearLayers();
 
@@ -141,15 +94,13 @@ function renderPlanes() {
     const showUnknown = document.querySelector('input[value="unknown"]').checked;
 
     planesData.forEach(plane => {
-        // Mapeo de la estructura de ADSB.fi
         const lat = plane.lat;
         const lon = plane.lon;
         const callsign = plane.flight;
         const category = plane.category;
         const true_track = plane.track;
-        const typeDesc = plane.t || 'Desconocido'; // Modelo exacto de la aeronave
+        const typeDesc = plane.t || 'Desconocido';
         
-        // Conversión aeronáutica (Pies a Metros y Nudos a Km/h)
         const alt_meters = plane.alt_baro !== undefined && plane.alt_baro !== 'ground' ? Math.round(plane.alt_baro * 0.3048) : 0;
         const speed_kmh = plane.gs !== undefined ? Math.round(plane.gs * 1.852) : 0;
 
@@ -157,7 +108,6 @@ function renderPlanes() {
             const isStateForce = checkIsStateForce(callsign);
             let categoryMatch = false;
 
-            // Motor de Filtros
             if (isStateForce && showState) categoryMatch = true;
             else if (!isStateForce) {
                 if ((category === 'A3' || category === 'A4' || category === 'A5') && showCommercial) categoryMatch = true;
@@ -169,7 +119,6 @@ function renderPlanes() {
 
             if (!categoryMatch) return; 
 
-            // Filtro de Búsqueda de Texto
             if (currentFilter !== '') {
                 const callsignStr = callsign ? callsign.trim().toLowerCase() : '';
                 const typeStr = typeDesc.toLowerCase();
@@ -200,6 +149,6 @@ function renderPlanes() {
     });
 }
 
-// 8. EJECUCIÓN CONTINUA (15 segundos)
+// Refresco frontend cada 10 segundos para alinear con la cadencia del bot Python
 fetchAircraft();
-setInterval(fetchAircraft, 15000);
+setInterval(fetchAircraft, 10000);
