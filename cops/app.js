@@ -15,37 +15,33 @@ const markersLayer = L.layerGroup().addTo(map);
 let currentFilter = '';
 let planesData = []; 
 
-// --- VARIABLES DE ESTADO (Alerta y Geometría) ---
 let userMarker = null;
 let userPos = null; 
 let alertsEnabled = false;
 let alertRadiusKm = 30;
-let alertCircle = null; // Variable para almacenar el dibujo del perímetro
+let alertCircle = null; 
 const alertedAircraft = new Set(); 
 
-// 1. DIBUJO TÁCTICO DEL PERÍMETRO
+// 1. DIBUJO TÁCTICO DEL PERÍMETRO (VISUALIZACIÓN MEJORADA)
 function updateAlertCircle() {
-    // Si la alarma está activa y tenemos la posición del usuario, dibujamos/actualizamos
     if (alertsEnabled && userPos) {
         const radiusMeters = alertRadiusKm * 1000;
         
         if (alertCircle) {
-            // Si ya existe, solo actualizamos su tamaño (para que sea reactivo al input)
             alertCircle.setLatLng(userPos);
             alertCircle.setRadius(radiusMeters);
         } else {
-            // Si no existe, lo creamos con estilo de radar (dorado y punteado)
+            // FIX: Opacidad subida a 0.25 y grosor a 3 para que sea claramente visible
             alertCircle = L.circle(userPos, {
                 color: '#eab308',
                 fillColor: '#eab308',
-                fillOpacity: 0.08, // Muy transparente para no tapar el mapa
-                weight: 2,
-                dashArray: '5, 10', // Borde punteado
-                interactive: false // Para que los clics pasen a través del círculo
+                fillOpacity: 0.25, 
+                weight: 3,
+                dashArray: '5, 10', 
+                interactive: false 
             }).addTo(map);
         }
     } else {
-        // Si apagan la alarma, destruimos el círculo
         if (alertCircle) {
             map.removeLayer(alertCircle);
             alertCircle = null;
@@ -53,7 +49,7 @@ function updateAlertCircle() {
     }
 }
 
-// 2. GEOLOCALIZACIÓN DEL USUARIO
+// 2. GEOLOCALIZACIÓN
 function locateUser() {
     if ("geolocation" in navigator) {
         navigator.geolocation.getCurrentPosition(position => {
@@ -71,12 +67,10 @@ function locateUser() {
             if (userMarker) {
                 userMarker.setLatLng(userPos);
             } else {
-                userMarker = L.marker(userPos, { icon: userIcon }).addTo(map).bindPopup("<b>📍 Tu ubicación (Centro del Radar)</b>");
+                userMarker = L.marker(userPos, { icon: userIcon }).addTo(map).bindPopup("<b>📍 Tu ubicación</b>");
             }
             
             map.setView(userPos, 8);
-            
-            // Actualizamos el círculo por si activaron la alarma antes de tener señal GPS
             updateAlertCircle();
              
         }, error => {
@@ -85,7 +79,7 @@ function locateUser() {
     }
 }
 
-// 3. EVENTOS DE INTERFAZ Y PERMISOS DE NOTIFICACIÓN
+// 3. EVENTOS DE INTERFAZ
 document.getElementById('filter-btn').addEventListener('click', () => {
     currentFilter = document.getElementById('filter-input').value.trim().toLowerCase();
     renderPlanes(); 
@@ -97,34 +91,43 @@ document.querySelectorAll('#type-filters input').forEach(checkbox => {
     checkbox.addEventListener('change', renderPlanes);
 });
 
-// Eventos de la Alarma Perimetral
+// Eventos de la Alarma (CON BLOQUEOS DE SEGURIDAD)
 document.getElementById('toggle-alerts').addEventListener('change', async (e) => {
     alertsEnabled = e.target.checked;
     
+    // FIX DE SEGURIDAD: Si no hay señal GPS aún, impedimos activar la alarma
+    if (alertsEnabled && !userPos) {
+        alert("⏳ Esperando señal GPS. Espera a ver tu punto azul en el mapa antes de activar el radar.");
+        alertsEnabled = false;
+        e.target.checked = false;
+        return;
+    }
+
     if (alertsEnabled && Notification.permission !== "granted") {
         const permission = await Notification.requestPermission();
         if (permission !== "granted") {
             alert("⚠️ Debes permitir las notificaciones en el navegador para usar esta función.");
             alertsEnabled = false;
             e.target.checked = false;
+            updateAlertCircle();
+            return;
         }
     }
     
-    // Llamamos al actualizador visual al pulsar el botón
     updateAlertCircle();
 });
 
-document.getElementById('alert-radius').addEventListener('input', (e) => {
-    // Usamos 'input' en lugar de 'change' para que el círculo cambie de tamaño 
-    // en tiempo real mientras el usuario escribe o pulsa las flechitas del teclado
-    alertRadiusKm = parseInt(e.target.value) || 30;
-    updateAlertCircle();
+// FIX: Escuchamos ambos eventos (input y change) para máxima compatibilidad
+['input', 'change'].forEach(evt => {
+    document.getElementById('alert-radius').addEventListener(evt, (e) => {
+        alertRadiusKm = parseInt(e.target.value) || 30;
+        updateAlertCircle();
+    });
 });
 
-// 4. OBTENCIÓN DE DATOS (Nodo Firebase)
+// 4. OBTENCIÓN DE DATOS 
 async function fetchAircraft() {
     try {
-        // --- ¡ASEGÚRATE DE QUE ESTA URL ES LA TUYA! ---
         const firebaseDataUrl = 'https://radar-tactico-default-rtdb.europe-west1.firebasedatabase.app/aviones.json';
         
         const response = await fetch(firebaseDataUrl);
@@ -141,7 +144,6 @@ async function fetchAircraft() {
     }
 }
 
-// 5. LÓGICA DE IDENTIFICACIÓN
 function checkIsStateForce(callsign) {
     if (!callsign) return false;
     const str = callsign.trim().toLowerCase();
@@ -188,7 +190,7 @@ function triggerDesktopNotification(callsign, typeDesc, catText, distanceKm) {
     }
 }
 
-// 6. RENDERIZADO Y EVALUACIÓN DE AMENAZAS
+// 5. RENDERIZADO 
 function renderPlanes() {
     markersLayer.clearLayers();
 
@@ -237,7 +239,6 @@ function renderPlanes() {
             else if (category === 'A7') catText = "Helicóptero";
             else if (category === 'A6') catText = "Militar / Caza";
 
-            // --- LÓGICA DE ALARMA PERIMETRAL ---
             if (alertsEnabled && userPos) {
                 if (isStateForce || category === 'A7' || category === 'A6' || !category) {
                     
@@ -276,7 +277,7 @@ function renderPlanes() {
     });
 }
 
-// 7. INICIO DE EJECUCIÓN
+// 6. INICIO 
 locateUser();
 fetchAircraft();
 setInterval(fetchAircraft, 10000);
