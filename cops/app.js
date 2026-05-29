@@ -187,24 +187,32 @@ async function fetchPlanes() {
 // B. RADAREZ FIJOS (OpenStreetMap - Overpass API - 1 sola vez)
 async function fetchRealFixedRadarsOSM() {
     console.log("📸 Iniciando descarga de radares fijos de OpenStreetMap...");
-    // Consulta estratégica: Radares en casi toda la península
-    const overpassQuery = `[out:json];node["highway"="speed_camera"](36.0,-10.0,44.0,5.0);out body;`;
-    const url = `https://overpass-api.de/apiinterpreter?data=${encodeURIComponent(overpassQuery)}`;
+    
+    // Consulta estratégica con timeout: Radares en la Península
+    const overpassQuery = `[out:json][timeout:25];node["highway"="speed_camera"](36.0,-10.0,44.0,5.0);out body;`;
+    
+    // FIX: URL corregida (añadida la barra / entre api e interpreter)
+    const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`;
 
     try {
         const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+        
         const data = await response.json();
         
         // Transformamos el formato de OSM a nuestra estructura táctica
         fixedRadarsOSM = data.elements.map(node => ({
-            lat: node.lat, lon: node.lon,
+            lat: node.lat, 
+            lon: node.lon,
             limit: node.tags['maxspeed'] || 'N/A'
         }));
 
         console.log(`✅ ${fixedRadarsOSM.length} radares fijos reales cargados desde OSM.`);
         renderFixedGroundUnits();
         
-    } catch (error) { console.error("Fallo al conectar Overpass API:", error); }
+    } catch (error) { 
+        console.error("❌ Fallo al conectar con Overpass API:", error.message); 
+    }
 }
 
 // C. REPORTES MANUALES (Firebase - REST Polling 20s)
