@@ -22,7 +22,7 @@ let alertRadiusKm = 30;
 let alertCircle = null; 
 const alertedAircraft = new Set(); 
 
-// 1. DIBUJO TÁCTICO DEL PERÍMETRO (VISUALIZACIÓN MEJORADA)
+// 1. DIBUJO TÁCTICO DEL PERÍMETRO
 function updateAlertCircle() {
     if (alertsEnabled && userPos) {
         const radiusMeters = alertRadiusKm * 1000;
@@ -31,7 +31,6 @@ function updateAlertCircle() {
             alertCircle.setLatLng(userPos);
             alertCircle.setRadius(radiusMeters);
         } else {
-            // FIX: Opacidad subida a 0.25 y grosor a 3 para que sea claramente visible
             alertCircle = L.circle(userPos, {
                 color: '#eab308',
                 fillColor: '#eab308',
@@ -49,35 +48,47 @@ function updateAlertCircle() {
     }
 }
 
-// 2. GEOLOCALIZACIÓN
+// 2. SISTEMA DE POSICIONAMIENTO (Híbrido: GPS / Manual)
+function setUserPosition(lat, lon, isManual = false) {
+    userPos = L.latLng(lat, lon); 
+    
+    const userIcon = L.divIcon({
+        html: `<div style="background-color: #3b82f6; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px #3b82f6;"></div>`,
+        className: 'user-marker',
+        iconSize: [14, 14],
+        iconAnchor: [7, 7]
+    });
+
+    const popupText = isManual ? "<b>📍 Base de Operaciones (Manual)</b>" : "<b>📍 Tu ubicación GPS</b>";
+
+    if (userMarker) {
+        userMarker.setLatLng(userPos);
+        userMarker.getPopup().setContent(popupText);
+    } else {
+        userMarker = L.marker(userPos, { icon: userIcon }).addTo(map).bindPopup(popupText);
+    }
+    
+    updateAlertCircle();
+}
+
 function locateUser() {
     if ("geolocation" in navigator) {
         navigator.geolocation.getCurrentPosition(position => {
-            const lat = position.coords.latitude;
-            const lon = position.coords.longitude;
-            userPos = L.latLng(lat, lon); 
-            
-            const userIcon = L.divIcon({
-                html: `<div style="background-color: #3b82f6; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px #3b82f6;"></div>`,
-                className: 'user-marker',
-                iconSize: [14, 14],
-                iconAnchor: [7, 7]
-            });
-
-            if (userMarker) {
-                userMarker.setLatLng(userPos);
-            } else {
-                userMarker = L.marker(userPos, { icon: userIcon }).addTo(map).bindPopup("<b>📍 Tu ubicación</b>");
-            }
-            
+            setUserPosition(position.coords.latitude, position.coords.longitude, false);
             map.setView(userPos, 8);
-            updateAlertCircle();
-             
         }, error => {
-            console.warn("Geolocalización fallida:", error.message);
+            console.warn("GPS fallido o denegado:", error.message);
+            alert("📡 SEÑAL GPS NO DETECTADA O DENEGADA\n\nHaz clic en cualquier lugar del mapa para establecer tu base de operaciones de forma manual y poder activar la alarma perimetral.");
         }, { enableHighAccuracy: true });
+    } else {
+        alert("📡 Tu navegador no soporta geolocalización.\nHaz clic en el mapa para posicionar tu base.");
     }
 }
+
+// Evento táctico: Al hacer clic en el mapa, sobrescribe la posición del usuario
+map.on('click', function(e) {
+    setUserPosition(e.latlng.lat, e.latlng.lng, true);
+});
 
 // 3. EVENTOS DE INTERFAZ
 document.getElementById('filter-btn').addEventListener('click', () => {
@@ -91,13 +102,12 @@ document.querySelectorAll('#type-filters input').forEach(checkbox => {
     checkbox.addEventListener('change', renderPlanes);
 });
 
-// Eventos de la Alarma (CON BLOQUEOS DE SEGURIDAD)
+// Eventos de la Alarma
 document.getElementById('toggle-alerts').addEventListener('change', async (e) => {
     alertsEnabled = e.target.checked;
     
-    // FIX DE SEGURIDAD: Si no hay señal GPS aún, impedimos activar la alarma
     if (alertsEnabled && !userPos) {
-        alert("⏳ Esperando señal GPS. Espera a ver tu punto azul en el mapa antes de activar el radar.");
+        alert("⚠️ No tienes una posición establecida. Haz clic en el mapa para marcar tu ubicación antes de encender el radar.");
         alertsEnabled = false;
         e.target.checked = false;
         return;
@@ -117,7 +127,6 @@ document.getElementById('toggle-alerts').addEventListener('change', async (e) =>
     updateAlertCircle();
 });
 
-// FIX: Escuchamos ambos eventos (input y change) para máxima compatibilidad
 ['input', 'change'].forEach(evt => {
     document.getElementById('alert-radius').addEventListener(evt, (e) => {
         alertRadiusKm = parseInt(e.target.value) || 30;
