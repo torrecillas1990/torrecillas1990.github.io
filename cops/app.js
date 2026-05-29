@@ -15,20 +15,51 @@ const markersLayer = L.layerGroup().addTo(map);
 let currentFilter = '';
 let planesData = []; 
 
-// Variables de Estado para el Sistema de Alerta
+// --- VARIABLES DE ESTADO (Alerta y Geometría) ---
 let userMarker = null;
 let userPos = null; 
 let alertsEnabled = false;
 let alertRadiusKm = 30;
-const alertedAircraft = new Set(); // Registro en memoria para evitar notificaciones duplicadas
+let alertCircle = null; // Variable para almacenar el dibujo del perímetro
+const alertedAircraft = new Set(); 
 
-// 1. GEOLOCALIZACIÓN DEL USUARIO
+// 1. DIBUJO TÁCTICO DEL PERÍMETRO
+function updateAlertCircle() {
+    // Si la alarma está activa y tenemos la posición del usuario, dibujamos/actualizamos
+    if (alertsEnabled && userPos) {
+        const radiusMeters = alertRadiusKm * 1000;
+        
+        if (alertCircle) {
+            // Si ya existe, solo actualizamos su tamaño (para que sea reactivo al input)
+            alertCircle.setLatLng(userPos);
+            alertCircle.setRadius(radiusMeters);
+        } else {
+            // Si no existe, lo creamos con estilo de radar (dorado y punteado)
+            alertCircle = L.circle(userPos, {
+                color: '#eab308',
+                fillColor: '#eab308',
+                fillOpacity: 0.08, // Muy transparente para no tapar el mapa
+                weight: 2,
+                dashArray: '5, 10', // Borde punteado
+                interactive: false // Para que los clics pasen a través del círculo
+            }).addTo(map);
+        }
+    } else {
+        // Si apagan la alarma, destruimos el círculo
+        if (alertCircle) {
+            map.removeLayer(alertCircle);
+            alertCircle = null;
+        }
+    }
+}
+
+// 2. GEOLOCALIZACIÓN DEL USUARIO
 function locateUser() {
     if ("geolocation" in navigator) {
         navigator.geolocation.getCurrentPosition(position => {
             const lat = position.coords.latitude;
             const lon = position.coords.longitude;
-            userPos = L.latLng(lat, lon); // Guardamos la posición exacta como objeto de Leaflet
+            userPos = L.latLng(lat, lon); 
             
             const userIcon = L.divIcon({
                 html: `<div style="background-color: #3b82f6; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px #3b82f6;"></div>`,
@@ -40,17 +71,21 @@ function locateUser() {
             if (userMarker) {
                 userMarker.setLatLng(userPos);
             } else {
-                userMarker = L.marker(userPos, { icon: userIcon }).addTo(map).bindPopup("<b>📍 Tu ubicación</b>");
+                userMarker = L.marker(userPos, { icon: userIcon }).addTo(map).bindPopup("<b>📍 Tu ubicación (Centro del Radar)</b>");
             }
+            
             map.setView(userPos, 8);
+            
+            // Actualizamos el círculo por si activaron la alarma antes de tener señal GPS
+            updateAlertCircle();
              
         }, error => {
-            console.warn("Geolocalización rechazada o fallida:", error.message);
+            console.warn("Geolocalización fallida:", error.message);
         }, { enableHighAccuracy: true });
     }
 }
 
-// 2. EVENTOS DE INTERFAZ Y PERMISOS DE NOTIFICACIÓN
+// 3. EVENTOS DE INTERFAZ Y PERMISOS DE NOTIFICACIÓN
 document.getElementById('filter-btn').addEventListener('click', () => {
     currentFilter = document.getElementById('filter-input').value.trim().toLowerCase();
     renderPlanes(); 
@@ -62,11 +97,10 @@ document.querySelectorAll('#type-filters input').forEach(checkbox => {
     checkbox.addEventListener('change', renderPlanes);
 });
 
-// Eventos de la Alarma
+// Eventos de la Alarma Perimetral
 document.getElementById('toggle-alerts').addEventListener('change', async (e) => {
     alertsEnabled = e.target.checked;
     
-    // Si activa la alarma, pedimos permiso al navegador de inmediato
     if (alertsEnabled && Notification.permission !== "granted") {
         const permission = await Notification.requestPermission();
         if (permission !== "granted") {
@@ -75,12 +109,19 @@ document.getElementById('toggle-alerts').addEventListener('change', async (e) =>
             e.target.checked = false;
         }
     }
-});
-document.getElementById('alert-radius').addEventListener('change', (e) => {
-    alertRadiusKm = parseInt(e.target.value) || 30;
+    
+    // Llamamos al actualizador visual al pulsar el botón
+    updateAlertCircle();
 });
 
-// 3. OBTENCIÓN DE DATOS (Nodo Firebase)
+document.getElementById('alert-radius').addEventListener('input', (e) => {
+    // Usamos 'input' en lugar de 'change' para que el círculo cambie de tamaño 
+    // en tiempo real mientras el usuario escribe o pulsa las flechitas del teclado
+    alertRadiusKm = parseInt(e.target.value) || 30;
+    updateAlertCircle();
+});
+
+// 4. OBTENCIÓN DE DATOS (Nodo Firebase)
 async function fetchAircraft() {
     try {
         // --- ¡ASEGÚRATE DE QUE ESTA URL ES LA TUYA! ---
@@ -100,7 +141,7 @@ async function fetchAircraft() {
     }
 }
 
-// 4. LÓGICA DE IDENTIFICACIÓN
+// 5. LÓGICA DE IDENTIFICACIÓN
 function checkIsStateForce(callsign) {
     if (!callsign) return false;
     const str = callsign.trim().toLowerCase();
@@ -137,18 +178,17 @@ function getCustomIcon(category, true_track, callsign) {
     return L.divIcon({ html: html, className: 'aircraft-icon', iconSize: [size, size], iconAnchor: [size/2, size/2] });
 }
 
-// Lanza la notificación del sistema
 function triggerDesktopNotification(callsign, typeDesc, catText, distanceKm) {
     if (Notification.permission === "granted") {
         new Notification("🚨 Incursión Detectada", {
             body: `Vuelo: ${callsign}\nModelo: ${typeDesc}\nTipo: ${catText}\nDistancia: ${distanceKm} km`,
             icon: 'https://cdn-icons-png.flaticon.com/512/1000/1000143.png',
-            requireInteraction: true // Mantiene la notificación hasta que el usuario la cierre
+            requireInteraction: true
         });
     }
 }
 
-// 5. RENDERIZADO Y EVALUACIÓN DE AMENAZAS
+// 6. RENDERIZADO Y EVALUACIÓN DE AMENAZAS
 function renderPlanes() {
     markersLayer.clearLayers();
 
@@ -199,31 +239,25 @@ function renderPlanes() {
 
             // --- LÓGICA DE ALARMA PERIMETRAL ---
             if (alertsEnabled && userPos) {
-                // Evaluamos si el tipo de avión es de interés (Estado, Heli, Caza/Drone o Desconocido)
                 if (isStateForce || category === 'A7' || category === 'A6' || !category) {
                     
                     const planePos = L.latLng(lat, lon);
-                    const distanceMeters = userPos.distanceTo(planePos); // Cálculo geodésico exacto
+                    const distanceMeters = userPos.distanceTo(planePos); 
                     const distanceKm = (distanceMeters / 1000).toFixed(1);
                     
-                    // Identificador único (usamos el callsign o las coordenadas si es invisible)
                     const planeId = callsign !== 'Desconocido' ? callsign : `${lat}-${lon}`;
 
                     if (distanceMeters <= (alertRadiusKm * 1000)) {
-                        // Si está dentro del perímetro y no ha sido alertado antes
                         if (!alertedAircraft.has(planeId)) {
                             triggerDesktopNotification(callsign, typeDesc, catText, distanceKm);
-                            alertedAircraft.add(planeId); // Lo metemos en memoria para ignorarlo en el futuro
+                            alertedAircraft.add(planeId); 
                             console.log(`⚠️ ALERTA: ${callsign} interceptado a ${distanceKm}km`);
                         }
                     } else {
-                        // Opcional: Si sale del perímetro, lo borramos de la memoria. 
-                        // Así volverá a pitar si da la vuelta y entra de nuevo.
                         alertedAircraft.delete(planeId);
                     }
                 }
             }
-            // ------------------------------------
 
             const customMarker = L.marker([lat, lon], {
                 icon: getCustomIcon(category, true_track, callsign)
@@ -242,7 +276,7 @@ function renderPlanes() {
     });
 }
 
-// 6. INICIO DE EJECUCIÓN
+// 7. INICIO DE EJECUCIÓN
 locateUser();
 fetchAircraft();
 setInterval(fetchAircraft, 10000);
