@@ -42,6 +42,16 @@
             <label><input type="checkbox" value="other" checked> Otros (Drones...)</label>
             <label><input type="checkbox" value="unknown" checked> Sin Clasificar</label>
         </div>
+		
+		<div id="alert-controls" style="margin-top: 15px; padding: 10px; background: rgba(234, 179, 8, 0.1); border: 1px solid #eab308; border-radius: 5px; color: #eab308;">
+            <label style="font-weight: bold; cursor: pointer;">
+                <input type="checkbox" id="toggle-alerts" style="margin-right: 5px;"> 
+                🔔 ACTIVAR ALARMA PERIMETRAL
+            </label>
+            <div style="margin-top: 5px; font-size: 14px;">
+                Radio de intercepción: <input type="number" id="alert-radius" value="30" min="1" max="200" style="width: 50px; background: #222; color: white; border: 1px solid #555; text-align: center;"> km
+            </div>
+        </div>
     </div>
 	
 	<div id="legend-container">
