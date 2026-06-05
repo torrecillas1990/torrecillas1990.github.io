@@ -1,0 +1,86 @@
+/* Reseteo general */
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow: hidden; /* Evita scrolls raros */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Contenedor principal de la App */
+#app-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+/* Capa 1: Street View (Al fondo) */
+#street-view {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+/* Capa 2: Personaje (En el medio) */
+#player-container {
+    position: absolute;
+    bottom: 10%; /* Ajustar altura del personaje en pantalla */
+    left: 50%;
+    transform: translateX(-50%); /* Centrado horizontal */
+    width: 120px; /* Ancho de tu sprite/avatar */
+    height: 150px; /* Alto de tu sprite/avatar */
+    z-index: 10; /* Por encima del mapa */
+    pointer-events: none; /* Los clics pasan a través de él para mover el mapa */
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+}
+
+#player-avatar {
+    width: 100%;
+    height: 100%;
+    /* PLACEHOLDER: Un sprite básico de "espalda". Reemplazar por GIF/PNG */
+    background-color: transparent;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm9 7h-6v13h-2v-6h-2v6H7V9H1v2h5v11c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V11h5V9z" fill="white" stroke="black" stroke-width="1"/></svg>');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: bottom;
+    
+    /* Pequeña sombra para dar profundidad */
+    filter: drop-shadow(0px 10px 5px rgba(0,0,0,0.5));
+    transition: transform 0.1s linear; /* Para pequeñas rotaciones al girar */
+}
+
+/* Capa 3: Interfaz de usuario (Arriba del todo) */
+#ui-layer {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    right: 20px;
+    z-index: 20;
+    pointer-events: none; /* Los clics pasan a través salvo en botones */
+    color: white;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+}
+
+#ui-layer * {
+    pointer-events: auto; /* Reactivar clics para elementos UI */
+}
+
+.card {
+    background: rgba(0,0,0,0.6);
+    padding: 10px;
+    border-radius: 8px;
+    max-width: 300px;
+}
+
+/* Ocultar elementos feos de Google Street View pero permitir la navegación */
+.gm-style-cc, /* Copyright */
+.gmnoprint,  /* Términos de uso */
+.gm-style-mtc { /* Controles de mapa normal/satélite si los hubiera */
+    display: none !important;
+}

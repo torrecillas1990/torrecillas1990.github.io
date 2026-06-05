@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Gemma & Manuel - 24/04/2027</title>
     
+    <meta property="og:title" content="Boda de Gemma & Manuel">
+    <meta property="og:description" content="24 de Abril de 2027. ¡Acompáñanos en nuestro gran día!">
+    <meta property="og:image" content="https://tudominio.com/recursos/preview-whatsapp.jpg">
+    <meta property="og:url" content="https://tudominio.com">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cormorant+Garamond:wght@300;600&display=swap" rel="stylesheet">
@@ -14,14 +21,19 @@
         :root {
             --color-oro: #d4af37;
             --color-vino: #990033;
+            --color-exito: #4CAF50;
+            --bg-oscuro: #000;
+            --bg-loader: #0a0a0a;
+            --txt-blanco: white;
+            --txt-negro: black;
         }
 
         html { scroll-behavior: smooth; }
 
         body {
             margin: 0; padding: 0;
-            background-color: #000;
-            color: white;
+            background-color: var(--bg-oscuro);
+            color: var(--txt-blanco);
             font-family: 'Cormorant Garamond', serif;
             overflow-x: hidden;
             -webkit-font-smoothing: antialiased;
@@ -29,7 +41,7 @@
 
         #bg-sticky-container {
             position: fixed; top: 0; left: 0;
-            width: 100%; height: calc(var(--vh, 1vh) * 100);
+            width: 100%; height: 100dvh; /* Reemplaza el hack de JS */
             z-index: 1;
             background-position: center;
             background-size: cover;
@@ -46,7 +58,7 @@
         }
 
         /* UI FIJA */
-        #hamburger, #music-btn {
+        .btn-flotante {
             position: fixed; top: 25px; z-index: 200;
             width: 45px; height: 45px;
             background: rgba(0,0,0,0.6);
@@ -62,10 +74,10 @@
         .ham-line { width: 22px; height: 2px; background-color: var(--color-oro); border-radius: 2px; }
 
         /* SECCIONES */
-		.header-img { width: 95%; max-width: 500px; filter: drop-shadow(0 0 20px rgba(0,0,0,1)); }
-		
+        .header-img { width: 95%; max-width: 500px; filter: drop-shadow(0 0 20px rgba(0,0,0,1)); }
+        
         .section-container {
-            min-height: 100dvh;
+            min-height: 100dvh; /* Uso de dVH para evitar desajustes en móviles */
             display: flex; flex-direction: column;
             justify-content: center; align-items: center;
             padding: 60px 20px;
@@ -81,8 +93,7 @@
             max-width: 400px; width: 90%;
             text-align: center;
             backdrop-filter: blur(10px);
-            -webkit-transform: translateZ(0);
-            transform: translateZ(0);
+            will-change: transform;
         }
 
         .foto-real {
@@ -94,18 +105,40 @@
             position: relative; z-index: 11;
         }
 
-        .btn-action {
+        /* BOTONES COMUNES */
+        .btn-action, .btn-secundario {
             display: inline-block;
-            background: var(--color-vino);
-            color: white; padding: 12px 28px;
             border-radius: 30px; text-decoration: none;
             margin-top: 20px; font-weight: 600;
             transition: all 0.3s ease;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        
+        .btn-action {
+            background: var(--color-vino);
+            color: var(--txt-blanco); 
+            padding: 12px 28px;
         }
         .btn-action:hover { background: #7a0029; transform: translateY(-2px); }
 
+        .btn-secundario {
+            background: var(--color-oro);
+            color: var(--txt-negro);
+            border: none; padding: 12px 25px;
+        }
+        .btn-secundario.btn-success { background: var(--color-exito); color: var(--txt-blanco); }
+
+        .btn-outline {
+            background: none; border: 1px solid var(--color-oro); 
+            color: var(--color-oro); padding: 12px 40px; 
+            font-size: 1rem; letter-spacing: 3px;
+        }
+        .btn-outline:hover { background: rgba(212, 175, 55, 0.1); }
+
         /* LOADER */
-        #loader { position: fixed; inset: 0; background: #0a0a0a; z-index: 1000; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.8s ease; }
+        #loader { position: fixed; inset: 0; background: var(--bg-loader); z-index: 1000; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.8s ease; }
+        .loader-text { letter-spacing: 2px; font-size: 0.9rem; }
         .progress-bar { width: 200px; height: 2px; background: #222; margin-top: 20px; }
         #progress-fill { width: 0%; height: 100%; background: var(--color-oro); transition: width 0.3s; }
 
@@ -114,6 +147,8 @@
         #side-menu.open { left: 0; }
         #menu-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 250; display: none; }
         
+        .menu-link { display:block; color:white; text-decoration:none; margin:25px 0; font-size: 1.3rem; }
+
         /* Animación música */
         .bars-container { display: flex; align-items: flex-end; gap: 3px; height: 18px; }
         .bar { width: 3px; background: var(--color-vino); height: 5px; }
@@ -123,35 +158,46 @@
         .countdown-container { display: flex; justify-content: center; gap: 15px; margin-top: 20px; }
         .time-block span { font-size: 2rem; color: var(--color-oro); display: block; font-weight: 600; }
         .time-block p { font-size: 0.75rem; margin: 0; opacity: 0.7; text-transform: uppercase; letter-spacing: 1px; }
+        
+        /* Utilidades tipográficas */
+        .txt-destacado { color:var(--color-oro); font-family:'Great Vibes'; font-size:3rem; text-align: center; }
+        .txt-iban { color:var(--color-oro); letter-spacing:1px; font-weight: bold; margin: 15px 0; }
     </style>
 </head>
 <body>
+    
+    <noscript>
+        <style>
+            #loader { display: none !important; }
+            #bg-sticky-container { background-image: url('../recursos/frames_1/scene00001.jpg'); }
+        </style>
+    </noscript>
 
     <div id="loader">
-        <div id="loader-text" style="letter-spacing: 2px; font-size: 0.9rem;">CARGANDO NUESTRA HISTORIA... 0%</div>
+        <div id="loader-text" class="loader-text">CARGANDO NUESTRA HISTORIA... 0%</div>
         <div class="progress-bar"><div id="progress-fill"></div></div>
-        <button id="entrar-btn" onclick="startExperience()" style="display:none; margin-top:30px; background:none; border:1px solid var(--color-oro); color:var(--color-oro); padding:12px 40px; border-radius:30px; cursor:pointer; font-family: inherit; font-size: 1rem; letter-spacing: 3px; transition: 0.3s;">ENTRAR</button>
+        <button id="entrar-btn" class="btn-action btn-outline" style="display:none; margin-top:30px;" onclick="startExperience()">ENTRAR</button>
     </div>
 
     <div id="menu-overlay"></div>
-    <nav id="side-menu">
-        <div style="color:var(--color-oro); font-family:'Great Vibes'; font-size:3rem; margin-bottom:40px; text-align: center;">G & M</div>
-        <a href="#sec-intro" onclick="toggleMenu()" style="display:block; color:white; text-decoration:none; margin:25px 0; font-size: 1.3rem;">Inicio</a>
-        <a href="#sec-ceremonia" onclick="toggleMenu()" style="display:block; color:white; text-decoration:none; margin:25px 0; font-size: 1.3rem;">La Ceremonia</a>
-        <a href="#sec-celebracion" onclick="toggleMenu()" style="display:block; color:white; text-decoration:none; margin:25px 0; font-size: 1.3rem;">La Celebración</a>
-        <a href="#sec-cuestionario" onclick="toggleMenu()" style="display:block; color:white; text-decoration:none; margin:25px 0; font-size: 1.3rem;">Confirmación</a>
-        <a href="#sec-regalo" onclick="toggleMenu()" style="display:block; color:white; text-decoration:none; margin:25px 0; font-size: 1.3rem;">Regalo</a>
-        <a href="#sec-musica" onclick="toggleMenu()" style="display:block; color:white; text-decoration:none; margin:25px 0; font-size: 1.3rem;">Temazos</a>
-        <a href="#sec-final" onclick="toggleMenu()" style="display:block; color:white; text-decoration:none; margin:25px 0; font-size: 1.3rem;">Cuenta Atrás</a>
+    <nav id="side-menu" aria-label="Menú principal">
+        <div class="txt-destacado" style="margin-bottom:40px;">G & M</div>
+        <a href="#sec-intro" onclick="toggleMenu()" class="menu-link">Inicio</a>
+        <a href="#sec-ceremonia" onclick="toggleMenu()" class="menu-link">La Ceremonia</a>
+        <a href="#sec-celebracion" onclick="toggleMenu()" class="menu-link">La Celebración</a>
+        <a href="#sec-cuestionario" onclick="toggleMenu()" class="menu-link">Confirmación</a>
+        <a href="#sec-regalo" onclick="toggleMenu()" class="menu-link">Regalo</a>
+        <a href="#sec-musica" onclick="toggleMenu()" class="menu-link">Temazos</a>
+        <a href="#sec-final" onclick="toggleMenu()" class="menu-link">Cuenta Atrás</a>
         <p style="margin-top:60px; font-size:0.8rem; opacity:0.4; text-align: center;">24 de Abril de 2027</p>
         <p style="margin-top:50px; font-size:0.8rem; opacity:0.5;">Diseñado por Manuel Torrecillas - 2026</p>
     </nav>
 
-    <div id="hamburger" onclick="toggleMenu()">
+    <div id="hamburger" class="btn-flotante" role="button" tabindex="0" aria-label="Abrir menú" onclick="toggleMenu()">
         <span class="ham-line"></span><span class="ham-line"></span><span class="ham-line"></span>
     </div>
 
-    <div id="music-btn" onclick="toggleMusic()">
+    <div id="music-btn" class="btn-flotante" role="button" tabindex="0" aria-label="Reproducir música" onclick="toggleMusic()">
         <div class="bars-container">
             <span class="bar"></span><span class="bar"></span><span class="bar"></span><span class="bar"></span>
         </div>
@@ -159,13 +205,13 @@
 
     <audio id="miMusica" loop src="../recursos/musica/0_la_esperanza_de_maria.mp3"></audio>
 
-    <div id="bg-sticky-container"></div>
-    <div id="watermark"></div>
+    <div id="bg-sticky-container" aria-hidden="true"></div>
+    <div id="watermark" aria-hidden="true"></div>
 
     <div id="content-scroll">
         <div class="section-container" id="sec-intro">
             <img src="../recursos/texto.png" class="header-img" alt="Gemma & Manuel">
-            <p style="font-style:italic; margin-top:30px; opacity: 0.7; letter-spacing: 2px;">DESLIZA PARA DESCUBRIR</p>
+            <p style="color: black; font-style:italic; margin-top:30px; letter-spacing: 2px;">DESLIZA PARA DESCUBRIR</p>
         </div>
 
         <div class="section-container" id="sec-ceremonia">
@@ -200,8 +246,8 @@
             <div class="dynamic-section">
                 <h2>¿Nos echas una mano?</h2>
                 <p>Si quieres tener un detalle con nosotros, te dejamos nuestra cuenta:</p>
-                <p id="iban" style="color:var(--color-oro); letter-spacing:1px; font-weight: bold; margin: 15px 0;">ES00 1111 2222 3333 4444 5555</p>
-                <button onclick="copiarIBAN(this)" style="background:var(--color-oro); border:none; padding:12px 25px; border-radius:30px; cursor:pointer; font-weight: bold; color: black; font-family: inherit; transition: 0.3s;">COPIAR IBAN</button>
+                <p id="iban-display" class="txt-iban">ES00 **** **** **** **** 5555</p>
+                <button onclick="copiarIBAN(this)" class="btn-secundario">COPIAR IBAN</button>
             </div>
         </div>
         
@@ -222,7 +268,7 @@
         
         <div class="section-container" id="sec-final">
             <div class="dynamic-section">
-                <h2 style="font-family:'Great Vibes'; font-size:3.5rem; margin-bottom: 0;">Faltan...</h2>
+                <h2 class="txt-destacado" style="margin-bottom: 0;">Faltan...</h2>
                 <div class="countdown-container">
                     <div class="time-block"><span id="days">00</span><p>Días</p></div>
                     <div class="time-block"><span id="hours">00</span><p>Hrs</p></div>
@@ -235,40 +281,43 @@
 
     <script>
         const totalFrames = 78;
+        const PRELOAD_COUNT = 8;
         const frames = [];
         const bgContainer = document.getElementById('bg-sticky-container');
         const loader = document.getElementById('loader');
         const progressFill = document.getElementById('progress-fill');
         const miMusica = document.getElementById('miMusica');
 
-        function ajustarAltura() {
-            let vh = window.innerHeight * 0.01;
-            document.documentElement.style.setProperty('--vh', `${vh}px`);
-        }
-        ajustarAltura();
-
         let isHorizontal = window.innerWidth > window.innerHeight;
         let folder = isHorizontal ? '../recursos/frames_1' : '../recursos/frames_3';
 
         function preload() {
             let loaded = 0;
+            let criticalLoaded = 0;
+
             for (let i = 1; i <= totalFrames; i++) {
                 const img = new Image();
                 const idx = String(i).padStart(3, '0');
-                img.src = `${folder}/scene00${idx}.jpg`;
+                
                 img.onload = () => {
                     loaded++;
-                    let p = Math.floor((loaded / totalFrames) * 100);
-                    document.getElementById('loader-text').innerText = `CARGANDO NUESTRA HISTORIA... ${p}%`;
-                    progressFill.style.width = `${p}%`;
                     
-                    // Mostrar primer frame nada más cargar la primera imagen
-                    if(loaded === 1) renderFrame();
-
-                    if (loaded === totalFrames) {
-                        document.getElementById('entrar-btn').style.display = 'block';
+                    if (i <= PRELOAD_COUNT) {
+                        criticalLoaded++;
+                        let p = Math.floor((criticalLoaded / PRELOAD_COUNT) * 100);
+                        document.getElementById('loader-text').innerText = `CARGANDO NUESTRA HISTORIA... ${p}%`;
+                        progressFill.style.width = `${p}%`;
+                        
+                        if(criticalLoaded === 1) renderFrame();
+                        
+                        if (criticalLoaded === PRELOAD_COUNT) {
+                            document.getElementById('loader-text').innerText = "¡LISTO!";
+                            document.getElementById('entrar-btn').style.display = 'block';
+                        }
                     }
                 };
+                
+                img.src = `${folder}/scene00${idx}.jpg`;
                 frames.push(img);
             }
         }
@@ -277,9 +326,10 @@
             loader.style.opacity = '0';
             setTimeout(() => loader.style.display = 'none', 800);
             renderFrame();
-            // Descomenta esto para activar música al entrar
-            // miMusica.play().catch(() => console.log("Audio requiere click"));
-            // document.getElementById('music-btn').classList.add('playing');
+            
+            /*miMusica.play().then(() => {
+                document.getElementById('music-btn').classList.add('playing');
+            }).catch(error => console.warn("El navegador bloqueó el audio:", error));*/
         }
 
         function renderFrame() {
@@ -293,16 +343,23 @@
             }
         }
 
+        const encodedIBAN = "RVMwMCAxMTExIDIyMjIgMzMzMyA0NDQ0IDU1NTU=";
+        
         function copiarIBAN(btn) {
-            const text = document.getElementById('iban').innerText;
+            const text = atob(encodedIBAN);
             navigator.clipboard.writeText(text).then(() => {
+                const display = document.getElementById('iban-display');
+                display.innerText = text;
+                
                 const originalText = btn.innerText;
                 btn.innerText = "¡COPIADO!";
-                btn.style.background = "#4CAF50";
+                btn.classList.add('btn-success');
+                
                 setTimeout(() => {
                     btn.innerText = originalText;
-                    btn.style.background = "var(--color-oro)";
-                }, 2000);
+                    btn.classList.remove('btn-success');
+                    display.innerText = "ES00 **** **** **** **** 5555";
+                }, 3000);
             });
         }
 
@@ -310,13 +367,21 @@
             requestAnimationFrame(renderFrame);
         }, { passive: true });
 
-        // Protección contra resize por teclado en móvil
+        // Evento resize únicamente para manejar la orientación y actualizar assets
         let lastWidth = window.innerWidth;
         window.addEventListener('resize', () => {
-            ajustarAltura();
             if(window.innerWidth !== lastWidth) {
                 const currentOrient = window.innerWidth > window.innerHeight;
-                if(currentOrient !== isHorizontal) location.reload();
+                if(currentOrient !== isHorizontal) {
+                    isHorizontal = currentOrient;
+                    folder = isHorizontal ? '../recursos/frames_1' : '../recursos/frames_3';
+                    
+                    frames.forEach((img, index) => {
+                        const idx = String(index + 1).padStart(3, '0');
+                        img.src = `${folder}/scene00${idx}.jpg`;
+                    });
+                    renderFrame(); 
+                }
                 lastWidth = window.innerWidth;
             }
         });
@@ -329,6 +394,15 @@
         }
 
         document.getElementById('menu-overlay').addEventListener('click', toggleMenu);
+
+        document.querySelectorAll('[role="button"]').forEach(btn => {
+            btn.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    this.click();
+                }
+            });
+        });
 
         function toggleMusic() {
             if (miMusica.paused) {
@@ -345,10 +419,10 @@
             const now = new Date().getTime();
             const diff = target - now;
             if (diff < 0) return;
-            document.getElementById('days').innerText = Math.floor(diff / (1000 * 60 * 60 * 24));
-            document.getElementById('hours').innerText = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            document.getElementById('min').innerText = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-            document.getElementById('sec').innerText = Math.floor((diff % (1000 * 60)) / 1000);
+            document.getElementById('days').innerText = String(Math.floor(diff / (1000 * 60 * 60 * 24))).padStart(2, '0');
+            document.getElementById('hours').innerText = String(Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))).padStart(2, '0');
+            document.getElementById('min').innerText = String(Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0');
+            document.getElementById('sec').innerText = String(Math.floor((diff % (1000 * 60)) / 1000)).padStart(2, '0');
         }, 1000);
 
         preload();

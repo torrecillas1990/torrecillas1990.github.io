@@ -84,6 +84,12 @@ const proyectos = [
         ruta: 'cops/index.html'
     },
     {
+        categoria: 'utilidades',
+        titulo: 'Predictor',
+        descripcion: 'Herramienta Predictor.',
+        ruta: 'predictor/index.html'
+    },
+    {
         categoria: 'juegos',
         titulo: 'Juego RPG',
         descripcion: 'Juego.',

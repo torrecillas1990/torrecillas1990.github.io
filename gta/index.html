@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Open World Third Person PWA</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="app-container">
+        
+        <div id="street-view"></div>
+
+        <div id="player-container">
+            <div id="player-avatar"></div>
+        </div>
+
+        <div id="ui-layer">
+            <div class="card">
+                <h3>Mundo Abierto</h3>
+                <p>Usa WASD para moverte y girar.</p>
+                <p>Coordenadas: <span id="debug-coords">...</span></p>
+            </div>
+        </div>
+    </div>
+
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBu21xGOgZnMKqWZxWiA9cWAo9-YxaNgjI&callback=initApp"></script>
+
+    <script>
+        let panorama;
+        const playerAvatar = document.getElementById('player-avatar');
+
+        // Configuración inicial del juego
+        const config = {
+            // Coordenadas de inicio (Ej: NYC Times Square)
+            startPos: { lat: 40.7580, lng: -73.9855 },
+            rotationSpeed: 10, // Cuánto gira la cámara por pulsación
+        };
+
+        // Función principal que inicia Google Maps
+        function initApp() {
+            console.log("Inicializando Street View...");
+            
+            panorama = new google.maps.StreetViewPanorama(
+                document.getElementById('street-view'), {
+                    position: config.startPos,
+                    pov: { heading: 0, pitch: 0 }, // Mirando al norte, recto
+                    zoom: 1,
+                    // DESACTIVAMOS LA UI DE GOOGLE PARA QUE PAREZCA UN JUEGO
+                    disableDefaultUI: true, 
+                    clickToGo: true,      // Permitimos clic en el suelo para avanzar rápido
+                    linksControl: false,  // Ocultamos las flechas flotantes feos
+                    scrollwheel: false,   // Desactivamos zoom con rueda
+                    panControl: false,    // Ocultamos brújula circular
+                    zoomControl: false,
+                    addressControl: false // Ocultamos barra de dirección
+                }
+            );
+
+            // Evento: Al cambiar la posición del mapa (movimiento)
+            panorama.addListener('position_changed', () => {
+                updateDebugInfo();
+                animateCharacterMovement();
+            });
+
+            // Evento: Al cambiar el ángulo de visión (giro)
+            panorama.addListener('pov_changed', () => {
+                // Pequeño efecto visual de inclinación al girar
+                // playerAvatar.style.transform = `rotate(${panorama.getPov().heading * 0.1}deg)`;
+            });
+
+            // Iniciar escucha de teclado
+            initControls();
+            updateDebugInfo();
+        }
+
+        // --- SISTEMA DE CONTROLES (WASD) ---
+        function initControls() {
+            document.addEventListener('keydown', (e) => {
+                const currentPov = panorama.getPov();
+                let newHeading = currentPov.heading;
+
+                switch(e.key.toLowerCase()) {
+                    case 'w': // Avanzar
+                        moveToNextNode();
+                        break;
+                    case 'a': // Girar Izquierda
+                        newHeading -= config.rotationSpeed;
+                        panorama.setPov({ heading: newHeading, pitch: currentPov.pitch });
+                        break;
+                    case 'd': // Girar Derecha
+                        newHeading += config.rotationSpeed;
+                        panorama.setPov({ heading: newHeading, pitch: currentPov.pitch });
+                        break;
+                    // Street view no permite retroceder fácilmente sin girar la cámara 180º primero.
+                }
+            });
+        }
+
+        // Lógica para saltar al siguiente nodo en la dirección en la que miras
+        function moveToNextNode() {
+            const currentPov = panorama.getPov();
+            const links = panorama.getLinks();
+
+            if (!links) return; // No hay caminos disponibles
+
+            console.log("Buscando nodo adelante...");
+
+            // Encontramos el link cuyo 'heading' sea más parecido a nuestro 'heading' actual
+            let bestLink = null;
+            let minDiff = 180;
+
+            links.forEach(link => {
+                // Cálculo de diferencia de ángulo circular
+                let diff = Math.abs(currentPov.heading - link.heading);
+                if (diff > 180) diff = 360 - diff;
+
+                // Si está a menos de 45 grados adelante
+                if (diff < 45 && diff < minDiff) {
+                    minDiff = diff;
+                    bestLink = link;
+                }
+            });
+
+            if (bestLink) {
+                // Hacemos el "salto" al siguiente nodo
+                panorama.setPano(bestLink.pano);
+            } else {
+                console.log("Muro invisible: No hay camino directo adelante.");
+                // Aquí podrías hacer que el personaje haga una animación de "choque"
+            }
+        }
+
+        // --- EFECTOS VISUALES ---
+        function animateCharacterMovement() {
+            // Simulamos que el personaje corre brevemente al cambiar de nodo
+            playerAvatar.style.transform = 'translateY(-10px) scale(1.05)';
+            // Si tuvieras un GIF de correr, aquí lo cambias.
+            
+            setTimeout(() => {
+                // Volvemos a idle
+                playerAvatar.style.transform = 'translateY(0px) scale(1)';
+            }, 300);
+        }
+
+        function updateDebugInfo() {
+            const pos = panorama.getPosition();
+            if(!pos) return;
+            document.getElementById('debug-coords').innerText = 
+                `${pos.lat().toFixed(4)}, ${pos.lng().toFixed(4)}`;
+        }
+
+        // Registro de PWA (básico)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(()=>{});
+        }
+    </script>
+</body>
+</html>

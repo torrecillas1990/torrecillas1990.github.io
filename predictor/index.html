@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predictor Híbrido Estructural</title>
+    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIlByZWRpY3RvciBFc3RhZMOtc3RpY28gUFdBIiwKICAic2hvcnRfbmFtZSI6ICJQcmVkaWN0b3IiLAogICJzdGFydF91cmwiOiAiLi9pbmRleC5odG1sIiwKICAidGhlbWVfY29sb3IiOiAiIzI1NjNlYiIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIKfQ==">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans min-h-screen flex flex-col">
+
+    <header class="bg-blue-600 text-white p-4 shadow-md flex justify-between items-center">
+        <h1 class="text-xl font-bold tracking-tight">🔮 Predictor Quant Atómico-Estructural</h1>
+    </header>
+
+    <main class="flex-1 max-w-6xl w-full mx-auto p-4 md:p-6 space-y-6">
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex flex-col justify-between">
+                <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">1. Carga de Datos</h2>
+                <div class="flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-3 bg-gray-50 hover:bg-gray-100 relative h-20 cursor-pointer transition">
+                    <input type="file" id="json-input" accept=".json" class="absolute inset-0 opacity-0 cursor-pointer" />
+                    <p class="text-gray-500 text-xs text-center font-medium" id="upload-text">Selecciona tu origen de datos .json</p>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 space-y-3">
+                <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider">2. Tratamiento Matricial</h2>
+                <div>
+                    <select id="analysis-mode" class="w-full text-xs bg-gray-50 border border-gray-300 rounded-lg p-2 focus:ring-blue-500">
+                        <option value="auto">Detección Automática estructural</option>
+                        <option value="single">Serie de Números Individuales</option>
+                        <option value="set">Serie de Conjuntos de Números</option>
+                    </select>
+                </div>
+                <div id="set-size-container" class="hidden">
+                    <label class="block text-[10px] font-semibold text-gray-500 mb-0.5">Elementos por Bloque:</label>
+                    <input type="number" id="set-size" value="3" min="2" max="10" class="w-full text-xs bg-gray-50 border border-gray-300 rounded-lg p-1.5">
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 space-y-3">
+                <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider">3. Reglas de Validación</h2>
+                <div class="space-y-2">
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" id="ignore-order-checkbox" class="w-3.5 h-3.5 text-blue-600 rounded border-gray-300">
+                        <span class="text-xs text-gray-700 font-medium">Ignorar orden de entrada</span>
+                    </label>
+                    <label class="flex items-start gap-2 cursor-pointer select-none">
+                        <input type="checkbox" id="force-ascending-checkbox" class="w-3.5 h-3.5 text-blue-600 rounded border-gray-300 mt-0.5">
+                        <div class="text-xs">
+                            <span class="text-gray-700 font-bold block">Orden Lineal Estricto</span>
+                            <span class="text-gray-400 text-[10px]">Forzar (N1 < N2 < N3) en el resultado</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+            <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">📚 Glosario de Indicadores Cuantitativos</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
+                <div class="flex items-start gap-3">
+                    <span class="text-xl">⚙️</span>
+                    <div>
+                        <span class="text-xs font-bold text-gray-800 block">Calibración (Grid Search)</span>
+                        <span class="text-[11px] text-gray-500 leading-tight">Simula el pasado para hallar los pesos matemáticos perfectos antes de predecir.</span>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <span class="text-xl">🧠</span>
+                    <div>
+                        <span class="text-xs font-bold text-gray-800 block">Memoria O2 (Markov)</span>
+                        <span class="text-[11px] text-gray-500 leading-tight">Detecta vectores profundos analizando los últimos dos saltos en lugar de solo uno.</span>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <span class="text-xl">🔗</span>
+                    <div>
+                        <span class="text-xs font-bold text-gray-800 block">Bayes Cruzado</span>
+                        <span class="text-[11px] text-gray-500 leading-tight">Inferencia de arrastre: Mide cómo el valor de una posición condiciona el de la siguiente.</span>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <span class="text-xl">🌪️</span>
+                    <div>
+                        <span class="text-xs font-bold text-gray-800 block">Entropía Dinámica</span>
+                        <span class="text-[11px] text-gray-500 leading-tight">Detecta alta volatilidad reciente y reduce la confianza del motor para evitar el "ruido".</span>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <span class="text-xl">📈</span>
+                    <div>
+                        <span class="text-xs font-bold text-gray-800 block">Inercia RSI / SMA</span>
+                        <span class="text-[11px] text-gray-500 leading-tight">Prevé rebotes o retrocesos si detecta que la serie numérica sufre sobrecompra/sobreventa.</span>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <span class="text-xl">⚠️</span>
+                    <div>
+                        <span class="text-xs font-bold text-gray-800 block">Anomalía Gap (Z-Score)</span>
+                        <span class="text-[11px] text-gray-500 leading-tight">Penaliza el bloque si la distancia (salto) entre sus números es estadísticamente atípica.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <section id="results-section" class="hidden space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 text-center">
+                    <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Total Muestras</span>
+                    <span id="stat-total" class="text-xl font-bold text-gray-800">-</span>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 text-center md:col-span-2">
+                    <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Último Bloque Registrado</span>
+                    <span id="stat-last" class="text-sm font-mono font-bold text-blue-600 truncate block mt-1">-</span>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 text-center flex flex-col items-center justify-center">
+                    <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Motor de Ensamble</span>
+                    <span id="stat-method" class="text-[10px] font-semibold text-emerald-700 mt-1 block truncate bg-emerald-100 px-2 py-1 rounded">-</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 md:col-span-2 flex flex-col justify-between">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Distribución de Probabilidades Próximas</h3>
+                    <div class="relative h-64 w-full mt-2">
+                        <canvas id="probability-chart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex flex-col">
+                    <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Síntesis Atómica (Por Posición)</h4>
+                    <div id="atomic-summary-container" class="space-y-2 flex-1 overflow-y-auto">
+                        </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Modelado y Trazabilidad de Escenarios</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-gray-200 bg-gray-50 text-gray-500 text-xs font-bold uppercase tracking-wider">
+                                <th class="p-3">Bloque Candidato</th>
+                                <th class="p-3">Prob. Final</th>
+                                <th class="p-3">Componentes de Evidencia Cuantitativa</th>
+                            </tr>
+                        </thead>
+                        <tbody id="probability-table-body" class="text-sm divide-y divide-gray-100">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-gray-800 text-gray-400 text-xs text-center p-4 mt-auto">
+        PWA Engine Quant v4.0 • 100% Client-Side Processing • Grid Search Auto-Tuning
+    </footer>
+
+    <script src="predictor.js"></script>
+    <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .catch(err => console.error('SW Error:', err));
+            });
+        }
+    </script>
+</body>
+</html>
