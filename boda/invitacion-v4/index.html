@@ -7,7 +7,7 @@
     
     <meta property="og:title" content="Boda de Gemma & Manuel">
     <meta property="og:description" content="24 de Abril de 2027. ¡Acompáñanos en nuestro gran día!">
-    <meta property="og:image" content="https://tudominio.com/recursos/preview-whatsapp.jpg">
+    <meta property="og:image" content="https://torrecillas1990.github.io/boda/recursos/preview-whatsapp.jpg">
     <meta property="og:url" content="https://tudominio.com">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
@@ -39,15 +39,17 @@
             -webkit-font-smoothing: antialiased;
         }
 
+        /* Parche Safari 1: Uso de lvh o vh clásico para el fondo fijo. 
+           Eliminada la transición de CSS para no pelear con JavaScript. 
+        */
         #bg-sticky-container {
             position: fixed; top: 0; left: 0;
-            width: 100%; height: 100dvh; /* Reemplaza el hack de JS */
+            width: 100%; height: 100lvh; 
             z-index: 1;
             background-position: center;
             background-size: cover;
             background-repeat: no-repeat;
             will-change: background-image;
-            transition: background-image 0.15s ease-in-out; 
             image-rendering: -webkit-optimize-contrast;
         }
 
@@ -76,8 +78,11 @@
         /* SECCIONES */
         .header-img { width: 95%; max-width: 500px; filter: drop-shadow(0 0 20px rgba(0,0,0,1)); }
         
+        /* Parche Safari 2: Uso de svh (Small Viewport Height) 
+           Congela la altura ignorando la aparición/desaparición de las barras 
+        */
         .section-container {
-            min-height: 100dvh; /* Uso de dVH para evitar desajustes en móviles */
+            min-height: 100svh; 
             display: flex; flex-direction: column;
             justify-content: center; align-items: center;
             padding: 60px 20px;
@@ -174,6 +179,7 @@
     </noscript>
 
     <div id="loader">
+		<img src="../recursos/logo_2_sin_fondo_2.png" class="header-img" alt="Gemma & Manuel">
         <div id="loader-text" class="loader-text">CARGANDO NUESTRA HISTORIA... 0%</div>
         <div class="progress-bar"><div id="progress-fill"></div></div>
         <button id="entrar-btn" class="btn-action btn-outline" style="display:none; margin-top:30px;" onclick="startExperience()">ENTRAR</button>
@@ -290,6 +296,19 @@
 
         let isHorizontal = window.innerWidth > window.innerHeight;
         let folder = isHorizontal ? '../recursos/frames_1' : '../recursos/frames_3';
+        
+        // Variable global para cachear el tamaño del scroll
+        let cachedMaxScroll = 1;
+
+        function calcularMaxScroll() {
+            setTimeout(() => {
+                cachedMaxScroll = document.documentElement.scrollHeight - window.innerHeight;
+                if (cachedMaxScroll <= 0) cachedMaxScroll = 1; 
+            }, 100);
+        }
+
+        // Llamada inicial
+        calcularMaxScroll();
 
         function preload() {
             let loaded = 0;
@@ -315,6 +334,11 @@
                             document.getElementById('entrar-btn').style.display = 'block';
                         }
                     }
+                    
+                    // Recalcula el maxScroll de forma segura cuando termina de cargar todo
+                    if(loaded === totalFrames) {
+                        calcularMaxScroll();
+                    }
                 };
                 
                 img.src = `${folder}/scene00${idx}.jpg`;
@@ -325,6 +349,9 @@
         function startExperience() {
             loader.style.opacity = '0';
             setTimeout(() => loader.style.display = 'none', 800);
+            
+            // Forzar un cálculo final al entrar
+            calcularMaxScroll();
             renderFrame();
             
             /*miMusica.play().then(() => {
@@ -332,10 +359,14 @@
             }).catch(error => console.warn("El navegador bloqueó el audio:", error));*/
         }
 
+        // Función de renderizado parcheada para ignorar el rubber-banding 
+        // y usar la caché matemática
         function renderFrame() {
             const scrollTop = window.pageYOffset;
-            const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-            const scrollFraction = scrollTop / maxScroll;
+            
+            if (scrollTop < 0) return; 
+
+            const scrollFraction = scrollTop / cachedMaxScroll;
             const frameIndex = Math.min(totalFrames - 1, Math.max(0, Math.floor(scrollFraction * totalFrames)));
             
             if(frames[frameIndex] && frames[frameIndex].complete) {
@@ -367,7 +398,7 @@
             requestAnimationFrame(renderFrame);
         }, { passive: true });
 
-        // Evento resize únicamente para manejar la orientación y actualizar assets
+        // Evento resize limitado a cambios de orientación
         let lastWidth = window.innerWidth;
         window.addEventListener('resize', () => {
             if(window.innerWidth !== lastWidth) {
@@ -380,6 +411,8 @@
                         const idx = String(index + 1).padStart(3, '0');
                         img.src = `${folder}/scene00${idx}.jpg`;
                     });
+                    
+                    calcularMaxScroll();
                     renderFrame(); 
                 }
                 lastWidth = window.innerWidth;
