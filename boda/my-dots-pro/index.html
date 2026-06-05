@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galería de Recuerdos Boda Gemma & Manuel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="../recursos/favicon_2.ico">
+    
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
+
+    <style>
+        /* [EL CSS SE MANTIENE EXACTAMENTE IGUAL AL DE LA VERSIÓN ANTERIOR] */
+        :root { --accent: #d4af37; --bg: #fcfcfc; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; color: #333; }
+        body.no-scroll { overflow: hidden; position: fixed; width: 100%; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.98); z-index: 200; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        input[type="text"] { font-size: 16px !important; }
+        header { padding: 40px 20px; text-align: center; }
+        h1 { font-weight: 300; letter-spacing: 4px; margin: 0; text-transform: uppercase; }
+        .header-img { width: 95%; max-width: 200px; filter: drop-shadow(0 0 10px rgba(0,0,0,0.1)); user-select: none; -webkit-user-drag: none; }
+        .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; padding: 15px; max-width: 1200px; margin: 0 auto; transition: opacity 0.3s ease; }
+        @media (min-width: 600px) { .gallery { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); } }
+        .gallery-refreshing { opacity: 0.3; }
+        .photo-card { position: relative; background: #f0f0f0; display: flex; flex-direction: column; overflow: hidden; cursor: pointer; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .photo-card:active { transform: scale(0.95); }
+        .photo-card:hover { transform: translateY(-5px); }
+        .photo-card.loading::after { content: ""; position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); width: 25px; height: 25px; border: 3px solid rgba(212, 175, 55, 0.2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; z-index: 10; }
+        .photo-card img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; opacity: 0; transition: opacity 0.6s ease-in-out; }
+        .photo-card.loaded img { opacity: 1; }
+        .photo-card.loaded::after { display: none; }
+        .photo-card p { font-size: 0.85rem; margin: 0; color: #666; text-align: center; padding: 10px; background: white; z-index: 2; flex-grow: 1; display: flex; align-items: center; justify-content: center; }
+        .photo-card b { color: var(--accent); font-weight: 600; margin-left: 4px; }
+        #lightbox { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 300; justify-content: center; align-items: center; flex-direction: column; cursor: pointer; }
+        #lightbox img { max-width: 95%; max-height: 80%; border-radius: 5px; box-shadow: 0 0 20px rgba(0,0,0,0.5); cursor: default; }
+        #lightbox-caption { color: white; margin-top: 15px; font-size: 1.1rem; text-align: center; cursor: default; }
+        .close-lightbox { position: absolute; top: 20px; right: 20px; color: white; font-size: 40px; cursor: pointer; padding: 20px; line-height: 1; }
+        .fab { position: fixed; bottom: 30px; right: 30px; width: 65px; height: 65px; background: #000; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 35px; cursor: pointer; box-shadow: 0 10px 25px rgba(0,0,0,0.3); z-index: 100; line-height: 0; }
+        .fab:active { transform: scale(0.9); }
+        .modal-content { max-width: 450px; margin: 40px auto; padding: 30px; text-align: center; }
+        input[type="text"], input[type="file"] { width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; }
+        .btn-send { width: 100%; padding: 18px; background: #000; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 1rem; font-weight: 600; transition: opacity 0.2s; }
+        .btn-send:disabled { background: #666; cursor: not-allowed; }
+        .close-modal { margin-top: 25px; display: inline-block; color: #999; cursor: pointer; font-size: 0.9rem; text-decoration: underline; }
+        #progress-container { margin: 20px 0; text-align: left; }
+        #preview-area { display: flex; gap: 8px; flex-wrap: wrap; margin: 15px 0; justify-content: center; }
+        .thumb-wrapper { position: relative; width: 80px; height: 80px; border-radius: 8px; overflow: hidden; background: #000; }
+        .thumb-wrapper img { width: 100%; height: 100%; object-fit: cover; transition: opacity 0.4s ease, filter 0.4s ease; }
+        .thumb-wrapper.uploading img { opacity: 0.5; }
+        .thumb-wrapper.uploading .spinner { display: block; }
+        .thumb-wrapper.done img { filter: brightness(0.3) grayscale(100%); opacity: 0.8; }
+        .thumb-wrapper.done::after { content: "✓"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--accent); font-weight: bold; font-size: 1.2rem; }
+        .spinner { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 24px; height: 24px; border: 3px solid rgba(255, 255, 255, 0.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; z-index: 10; display: none; }
+        #infinite-loader { grid-column: 1 / -1; display: none; text-align: center; padding: 20px; }
+        .dots-spinner { display: inline-block; width: 40px; height: 40px; border: 3px solid rgba(212, 175, 55, 0.3); border-radius: 50%; border-top-color: var(--accent); animation: spin 1s ease-in-out infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #loading-gallery { margin: 20px 0; grid-column: 1/-1; text-align: center; color: #999; }
+    </style>
+</head>
+<body>
+    <header>
+        <img src="../recursos/texto.png" class="header-img" alt="Gemma & Manuel">
+        <p style="color: #999; font-weight: 300;">Recuerdos de un día especial</p>
+    </header>
+
+    <main class="gallery" id="gallery">
+        <p id="loading-gallery"></p>
+    </main>
+    
+    <div id="infinite-loader">
+        <div class="dots-spinner"></div>
+        <p style="font-size: 0.8rem; color: #999; margin-top: 10px;">Buscando recuerdos...</p>
+    </div>
+    
+    <div class="fab" onclick="toggleModal(true)">+</div>
+
+    <div class="modal" id="uploadModal">
+        <div class="modal-content">
+            <img src="../recursos/texto.png" class="header-img" alt="Gemma & Manuel">
+            <h2 style="font-weight: 400;">Subir Fotos</h2>
+            <input type="text" id="author" placeholder="Tu nombre">
+            <input type="file" id="fileInput" accept="image/*" multiple onchange="handlePreview(event)">
+            
+            <div id="preview-area"></div>
+            
+            <div id="progress-container" style="display:none;">
+                <div style="background:#eee; height:8px; border-radius:10px; overflow:hidden;">
+                    <div id="progress-bar" style="background:var(--accent); width:0%; height:100%; transition: width 0.3s;"></div>
+                </div>
+                <p id="progress-text" style="font-size: 0.75rem; margin-top: 8px; color: #666;"></p>
+            </div>
+
+            <button class="btn-send" id="btnUpload" onclick="upload()">Enviar a la nube</button>
+            <br>
+            <span class="close-modal" onclick="toggleModal(false)">Volver a la galería</span>
+            <p id="msg" style="margin-top: 15px; font-size: 0.9rem; color: #333; font-weight: bold;"></p>
+        </div>
+    </div>
+    
+    <div id="lightbox">
+        <span class="close-lightbox" onclick="document.getElementById('lightbox').style.display='none'">&times;</span>
+        <img id="lightbox-img" src="">
+        <div id="lightbox-caption"></div>
+        <a id="download-btn" href="" download="boda-recuerdo.jpg" style="color: var(--accent); text-decoration: none; margin-top: 10px; font-size: 0.9rem; border: 1px solid var(--accent); padding: 5px 15px; border-radius: 20px; cursor: pointer; pointer-events: auto;">Descargar Foto</a>
+    </div>
+
+    <script type="module">
+        // 1. Importaciones de Firebase SDK
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs, startAfter, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
+        import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-storage.js";
+
+        // 2. Configuración de tu Proyecto (¡REEMPLAZA ESTO CON LOS DATOS DE TU CONSOLA DE FIREBASE!)
+        const firebaseConfig = {
+            apiKey: "TU_API_KEY",
+            authDomain: "TU_PROYECTO.firebaseapp.com",
+            projectId: "TU_PROYECTO",
+            storageBucket: "TU_PROYECTO.appspot.com",
+            messagingSenderId: "TU_SENDER_ID",
+            appId: "TU_APP_ID"
+        };
+
+        // 3. Inicialización
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        // Variables de estado
+        let selectedFiles = [];
+        let isLoading = false;
+        let allPhotosLoaded = false;
+        let isFetchingPage = false; 
+        let lastVisibleDoc = null; // Cursor para el paginador de Firestore
+        let scrollPos = 0;
+
+        // Autenticación Anónima Silenciosa (necesaria para escribir)
+        signInAnonymously(auth).catch((error) => console.error("Error de autenticación anonima:", error));
+
+        // 4. Lógica de UI básica
+        window.onload = () => {
+            const savedAuthor = localStorage.getItem('boda_author');
+            if(savedAuthor) document.getElementById('author').value = savedAuthor;
+            
+            // Esperamos a que la autenticación confirme para cargar la primera página
+            onAuthStateChanged(auth, (user) => {
+                if (user && !lastVisibleDoc && !isLoading) {
+                    loadGallery();
+                }
+            });
+        };
+
+        // 5. Carga de Galería (Firestore Paginado)
+        async function loadGallery() {
+            if (isLoading || allPhotosLoaded) return;
+            
+            isLoading = true;
+            const footerLoader = document.getElementById('infinite-loader');
+            const loadingInitial = document.getElementById('loading-gallery');
+
+            if (lastVisibleDoc && footerLoader) footerLoader.style.display = 'block';
+            if (!lastVisibleDoc && loadingInitial) loadingInitial.style.display = 'block';
+
+            try {
+                // Construimos la query base: orden descendente, límite 12
+                const fotosRef = collection(db, "fotos_boda");
+                let q = query(fotosRef, orderBy("timestamp", "desc"), limit(12));
+                
+                // Si tenemos un cursor de la carga anterior, empezamos después de él
+                if (lastVisibleDoc) {
+                    q = query(fotosRef, orderBy("timestamp", "desc"), startAfter(lastVisibleDoc), limit(12));
+                }
+
+                const querySnapshot = await getDocs(q);
+                
+                if (querySnapshot.empty) {
+                    allPhotosLoaded = true;
+                    if (!lastVisibleDoc) {
+                        document.getElementById('gallery').innerHTML = '<p style="grid-column:1/-1; text-align:center; color:#999;">Aún no hay fotos.</p>';
+                    }
+                    if (footerLoader) footerLoader.style.display = 'none';
+                    return;
+                }
+
+                // Guardamos el último documento como cursor para la próxima llamada
+                lastVisibleDoc = querySnapshot.docs[querySnapshot.docs.length - 1];
+
+                const imagesData = querySnapshot.docs.map(doc => {
+                    const data = doc.data();
+                    return {
+                        url: data.url,
+                        author: data.author
+                    };
+                });
+
+                await renderBatch(imagesData);
+
+            } catch (error) {
+                console.error("Error cargando desde Firestore:", error);
+            } finally {
+                isLoading = false;
+                if (footerLoader) footerLoader.style.display = 'none';
+                if (loadingInitial) loadingInitial.style.display = 'none';
+            }
+        }
+
+        async function renderBatch(images) {
+            const gallery = document.getElementById('gallery');
+            for (const img of images) {
+                if (document.querySelector(`img[src="${img.url}"]`)) continue;
+
+                await new Promise((resolve) => {
+                    const card = document.createElement('div');
+                    card.className = 'photo-card loading';
+                    card.onclick = () => window.openLightbox(img.url, img.author);
+                    
+                    const imageElement = document.createElement('img');
+                    imageElement.setAttribute('loading', 'lazy'); 
+                    imageElement.onload = () => {
+                        card.classList.remove('loading');
+                        card.classList.add('loaded');
+                        setTimeout(resolve, 50); 
+                    };
+                    imageElement.onerror = resolve;
+                    imageElement.src = img.url;
+
+                    const info = document.createElement('p');
+                    info.innerHTML = `Por: <b>${img.author}</b>`;
+
+                    card.appendChild(imageElement);
+                    card.appendChild(info);
+                    gallery.appendChild(card);
+                });
+            }
+        }
+
+        // Observer para el scroll
+        const sentinel = document.createElement('div');
+        sentinel.id = 'sentinel';
+        sentinel.style.height = '50px'; 
+        document.getElementById('gallery').after(sentinel);
+
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting && !isLoading && !allPhotosLoaded && !isFetchingPage) {
+                isFetchingPage = true;
+                loadGallery().finally(() => {
+                    isFetchingPage = false;
+                });
+            }
+        }, { rootMargin: '300px' }); 
+        observer.observe(sentinel);
+
+        // --- FUNCIONES EXPUESTAS AL SCOPE GLOBAL ---
+        
+        window.openLightbox = function(url, author) {
+            const lb = document.getElementById('lightbox');
+            document.getElementById('lightbox-img').src = url;
+            document.getElementById('download-btn').href = url; 
+            document.getElementById('lightbox-caption').innerHTML = `Foto de <b>${author}</b>`;
+            lb.style.display = 'flex';
+        };
+
+        document.getElementById('lightbox').addEventListener('click', function(e) {
+            if (e.target === this) this.style.display = 'none';
+        });
+
+        window.toggleModal = function(show) {
+            const modal = document.getElementById('uploadModal');
+            const body = document.body;
+
+            if (show) {
+                scrollPos = window.pageYOffset;
+                modal.style.display = 'block';
+                body.classList.add('no-scroll');
+                body.style.top = `-${scrollPos}px`;
+            } else {
+                modal.style.display = 'none';
+                body.classList.remove('no-scroll');
+                body.style.top = '';
+                window.scrollTo(0, scrollPos);
+                
+                const area = document.getElementById('preview-area');
+                area.querySelectorAll('img').forEach(img => URL.revokeObjectURL(img.src));
+                area.innerHTML = '';
+                
+                document.getElementById('msg').innerText = '';
+                document.getElementById('progress-container').style.display = 'none';
+                document.getElementById('fileInput').value = '';
+                selectedFiles = [];
+            }
+        };
+
+        window.handlePreview = function(e) {
+            selectedFiles = Array.from(e.target.files);
+            const area = document.getElementById('preview-area');
+            
+            area.querySelectorAll('img').forEach(img => URL.revokeObjectURL(img.src));
+            area.innerHTML = '';
+            
+            selectedFiles.forEach((file, index) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'thumb-wrapper';
+                wrapper.id = `thumb-${index}`;
+                const objectUrl = URL.createObjectURL(file);
+                wrapper.innerHTML = `<div class="spinner"></div><img src="${objectUrl}">`;
+                area.appendChild(wrapper);
+            });
+        };
+
+        window.upload = async function() {
+            const btn = document.getElementById('btnUpload');
+            if (btn.disabled) return; 
+
+            const author = document.getElementById('author').value.trim() || "Invitado";
+            const progContainer = document.getElementById('progress-container');
+            const progBar = document.getElementById('progress-bar');
+            const progText = document.getElementById('progress-text');
+            const msgArea = document.getElementById('msg');
+
+            if (selectedFiles.length === 0) {
+                alert("Selecciona al menos una foto.");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+            msgArea.innerText = "";
+            progContainer.style.display = "block";
+            localStorage.setItem('boda_author', author);
+
+            const options = {
+                maxSizeMB: 1, 
+                maxWidthOrHeight: 1200,
+                useWebWorker: true,
+                fileType: "image/jpeg"
+            };
+
+            const CONCURRENCY_LIMIT = 3;
+            let activeUploads = 0;
+            let currentIndex = 0;
+            let errores = 0;
+
+            async function processPool() {
+                if (currentIndex >= selectedFiles.length) return;
+                
+                const i = currentIndex++;
+                const originalFile = selectedFiles[i];
+                const thumb = document.getElementById(`thumb-${i}`);
+                
+                if (thumb) thumb.classList.add('uploading');
+                activeUploads++;
+                
+                try {
+                    // 1. Compresión local
+                    const compressedFile = await imageCompression(originalFile, options);
+                    
+                    // 2. Generar nombre único
+                    const timestamp = Date.now();
+                    const fileName = `fotos_boda/${timestamp}_${i}_${compressedFile.name}`;
+                    const storageRef = ref(storage, fileName);
+
+                    // 3. Subir el BLOB directamente a Storage
+                    const uploadTask = await uploadBytesResumable(storageRef, compressedFile);
+                    
+                    // 4. Obtener la URL pública de descarga
+                    const downloadURL = await getDownloadURL(storageRef);
+
+                    // 5. Guardar registro en Firestore Database
+                    await addDoc(collection(db, "fotos_boda"), {
+                        url: downloadURL,
+                        author: author,
+                        timestamp: serverTimestamp()
+                    });
+
+                    if (thumb) {
+                        thumb.classList.remove('uploading');
+                        thumb.classList.add('done');
+                    }
+                } catch (error) {
+                    console.error("Fallo al subir:", error);
+                    errores++;
+                    if (thumb) {
+                        thumb.classList.remove('uploading');
+                        thumb.style.border = "2px solid red"; 
+                    }
+                } finally {
+                    activeUploads--;
+                    const procesadas = currentIndex - activeUploads;
+                    const totalPercent = Math.round((procesadas / selectedFiles.length) * 100);
+                    progBar.style.width = totalPercent + "%";
+                    progText.innerText = `Subiendo ${procesadas} de ${selectedFiles.length}...`;
+                    
+                    await processPool(); // Lanzar la siguiente en el hueco
+                }
+            }
+
+            // Iniciar workers en paralelo
+            const workers = [];
+            for (let w = 0; w < CONCURRENCY_LIMIT; w++) workers.push(processPool());
+            await Promise.all(workers);
+
+            progBar.style.width = "100%";
+            
+            if (errores === 0) {
+                msgArea.innerText = "✅ ¡Guardado con éxito!";
+            } else {
+                msgArea.innerText = `⚠️ Terminado, pero ${errores} foto(s) fallaron.`;
+                msgArea.style.color = "red";
+            }
+            
+            setTimeout(() => {
+                if (errores === 0) {
+                    window.toggleModal(false);
+                    // Reseteamos y forzamos recarga fresca desde la DB
+                    document.getElementById('gallery').innerHTML = '';
+                    lastVisibleDoc = null; 
+                    allPhotosLoaded = false;
+                    loadGallery();
+                }
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            }, 2500);
+        };
+    </script>
+</body>
+</html>
