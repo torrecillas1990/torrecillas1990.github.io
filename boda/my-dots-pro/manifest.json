@@ -1,0 +1,15 @@
+{
+  "name": "Boda Gemma & Manuel",
+  "short_name": "Boda G&M",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#fcfcfc",
+  "theme_color": "#d4af37",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/1076/1076983.png", 
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
