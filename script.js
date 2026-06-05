@@ -42,6 +42,12 @@ const proyectos = [
         ruta: 'boda/my-dots-pro/index.html'
     },
     {
+        categoria: 'boda',
+        titulo: 'My Dots PRO modo admin',
+        descripcion: 'Herramienta de gestión PRO de recuerdos/fotos de la boda.',
+        ruta: 'boda/my-dots-pro/index.html?modo=admin'
+    },
+    {
         categoria: 'manuel-torrecillas-sl',
         titulo: 'Manuel Torrecillas SL',
         descripcion: 'Web corporativa oficial.',
