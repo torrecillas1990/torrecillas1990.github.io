@@ -21,6 +21,7 @@
         :root {
             --color-oro: #d4af37;
             --color-vino: #990033;
+            --color-vino-suave: rgba(153, 0, 51, 0.7);
             --color-exito: #4CAF50;
             --bg-oscuro: #000;
             --bg-loader: #0a0a0a;
@@ -39,9 +40,6 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        /* Parche Safari 1: Uso de lvh o vh clásico para el fondo fijo. 
-           Eliminada la transición de CSS para no pelear con JavaScript. 
-        */
         #bg-sticky-container {
             position: fixed; top: 0; left: 0;
             width: 100%; height: 100lvh; 
@@ -58,7 +56,36 @@
             background-image: url('../recursos/watermark.jpg'); background-repeat: repeat; 
             background-size: 150px; opacity: 0.15; z-index: 2; pointer-events: none;
         }
+		
+		.scroll-down {
+			color: black;
+			position: absolute;
+			bottom: 40px;
+			left: 50%;
+			transform: translateX(-50%);
+			cursor: pointer;
+			transition: 0.3s;
+		}
 
+		.scroll-down:hover {
+			opacity: 0.7;
+		}
+
+		.scroll-down span {
+			display: block;
+			width: 20px;
+			height: 20px;
+			border-bottom: 3px solid var(--color-vino-suave);
+			border-right: 3px solid var(--color-vino-suave);
+			transform: rotate(45deg);
+			animation: bounce-arrow 2s infinite;
+		}
+
+        @keyframes bounce-arrow {
+            0%, 100% { transform: translateY(0) rotate(45deg); }
+            50% { transform: translateY(10px) rotate(45deg); }
+        }
+		
         /* UI FIJA */
         .btn-flotante {
             position: fixed; top: 25px; z-index: 200;
@@ -78,9 +105,6 @@
         /* SECCIONES */
         .header-img { width: 95%; max-width: 500px; filter: drop-shadow(0 0 20px rgba(0,0,0,1)); }
         
-        /* Parche Safari 2: Uso de svh (Small Viewport Height) 
-           Congela la altura ignorando la aparición/desaparición de las barras 
-        */
         .section-container {
             min-height: 100svh; 
             display: flex; flex-direction: column;
@@ -148,8 +172,13 @@
         #progress-fill { width: 0%; height: 100%; background: var(--color-oro); transition: width 0.3s; }
 
         /* MENU */
-        #side-menu { position: fixed; top: 0; left: -320px; height: 100%; width: 280px; background: rgba(0,0,0,0.98); z-index: 300; transition: 0.5s; padding: 80px 30px; box-sizing: border-box; }
-        #side-menu.open { left: 0; }
+        #side-menu { 
+            position: fixed; top: 0; left: -320px; height: 100%; width: 280px; 
+            background: rgba(0,0,0,0.98); z-index: 300; transition: 0.5s; 
+            padding: 80px 30px; box-sizing: border-box; 
+            visibility: hidden;
+        }
+        #side-menu.open { left: 0; visibility: visible; }
         #menu-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 250; display: none; }
         
         .menu-link { display:block; color:white; text-decoration:none; margin:25px 0; font-size: 1.3rem; }
@@ -166,7 +195,12 @@
         
         /* Utilidades tipográficas */
         .txt-destacado { color:var(--color-oro); font-family:'Great Vibes'; font-size:3rem; text-align: center; }
-        .txt-iban { color:var(--color-oro); letter-spacing:1px; font-weight: bold; margin: 15px 0; }
+        .txt-iban { color:var(--color-oro); letter-spacing:1px; font-weight: bold; margin: 10px 0; font-size: 1.1rem; }
+        
+        /* Contenedor interno para las cuentas individuales */
+        .cuenta-block { margin-top: 25px; border-top: 1px solid rgba(212, 175, 55, 0.1); padding-top: 15px; }
+        .cuenta-block:first-of-type { border-top: none; padding-top: 0; }
+        .cuenta-titular { font-size: 1rem; letter-spacing: 2px; text-transform: uppercase; margin: 0; opacity: 0.9; }
     </style>
 </head>
 <body>
@@ -218,6 +252,10 @@
         <div class="section-container" id="sec-intro">
             <img src="../recursos/texto.png" class="header-img" alt="Gemma & Manuel">
             <p style="color: black; font-style:italic; margin-top:30px; letter-spacing: 2px;">DESLIZA PARA DESCUBRIR</p>
+			
+            <a href="#sec-ceremonia" class="scroll-down" aria-label="Bajar a la siguiente sección">
+                <span></span>
+            </a>
         </div>
 
         <div class="section-container" id="sec-ceremonia">
@@ -251,9 +289,19 @@
             <img src="../recursos/fotos/foto4.jpeg" class="foto-real" alt="Regalo">
             <div class="dynamic-section">
                 <h2>¿Nos echas una mano?</h2>
-                <p>Si quieres tener un detalle con nosotros, te dejamos nuestra cuenta:</p>
-                <p id="iban-display" class="txt-iban">ES00 **** **** **** **** 5555</p>
-                <button onclick="copiarIBAN(this)" class="btn-secundario">COPIAR IBAN</button>
+                <p style="margin-bottom: 20px;">Si quieres tener un detalle con nosotros, te dejamos nuestras cuentas bancarias:</p>
+                
+                <div class="cuenta-block">
+                    <p class="cuenta-titular">Cuenta Manuel</p>
+                    <p id="iban-manuel" class="txt-iban">ES00 **** **** **** **** 1111</p>
+                    <button onclick="copiarIBAN(this, 'manuel')" class="btn-secundario" style="margin-top: 5px; padding: 8px 20px; font-size: 0.85rem;">COPIAR IBAN</button>
+                </div>
+
+                <div class="cuenta-block">
+                    <p class="cuenta-titular">Cuenta Gemma</p>
+                    <p id="iban-gemma" class="txt-iban">ES00 **** **** **** **** 2222</p>
+                    <button onclick="copiarIBAN(this, 'gemma')" class="btn-secundario" style="margin-top: 5px; padding: 8px 20px; font-size: 0.85rem;">COPIAR IBAN</button>
+                </div>
             </div>
         </div>
         
@@ -268,7 +316,7 @@
                         ABRIR PLAYLIST
                     </a>
                 </div>
-                <iframe style="border-radius:12px" src="https://open.spotify.com/embed/playlist/5U9WvTg9igE8aw6sJ8EPIz?utm_source=generator" width="100%" height="152" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+                <iframe style="border-radius:12px; border:0;" src="https://open.spotify.com/embed/playlist/5U9WvTg9igE8aw6sJ8EPIz?utm_source=generator" width="100%" height="152" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
             </div>
         </div>
         
@@ -296,8 +344,6 @@
 
         let isHorizontal = window.innerWidth > window.innerHeight;
         let folder = isHorizontal ? '../recursos/frames_1' : '../recursos/frames_3';
-        
-        // Variable global para cachear el tamaño del scroll
         let cachedMaxScroll = 1;
 
         function calcularMaxScroll() {
@@ -307,7 +353,6 @@
             }, 100);
         }
 
-        // Llamada inicial
         calcularMaxScroll();
 
         function preload() {
@@ -335,7 +380,6 @@
                         }
                     }
                     
-                    // Recalcula el maxScroll de forma segura cuando termina de cargar todo
                     if(loaded === totalFrames) {
                         calcularMaxScroll();
                     }
@@ -350,20 +394,12 @@
             loader.style.opacity = '0';
             setTimeout(() => loader.style.display = 'none', 800);
             
-            // Forzar un cálculo final al entrar
             calcularMaxScroll();
             renderFrame();
-            
-            /*miMusica.play().then(() => {
-                document.getElementById('music-btn').classList.add('playing');
-            }).catch(error => console.warn("El navegador bloqueó el audio:", error));*/
         }
 
-        // Función de renderizado parcheada para ignorar el rubber-banding 
-        // y usar la caché matemática
         function renderFrame() {
             const scrollTop = window.pageYOffset;
-            
             if (scrollTop < 0) return; 
 
             const scrollFraction = scrollTop / cachedMaxScroll;
@@ -374,12 +410,20 @@
             }
         }
 
-        const encodedIBAN = "RVMwMCAxMTExIDIyMjIgMzMzMyA0NDQ0IDU1NTU=";
+        // LÓGICA MODIFICADA: Dos constantes independientes y paso de parámetros dinámico
+        // Reemplaza estos valores placeholder por vuestros IBAN reales codificados en Base64
+        const encodedManuel = "RVMwMCAxMTExIDIyMjIgMzMzMyA0NDQ0IDExMTE="; // ES00 1111 2222 3333 4444 1111
+        const encodedGemma = "RVMwMCA1NTU1IDY2NjYgNzc3NyA4ODg4IDIyMjI=";  // ES00 5555 6666 7777 8888 2222
         
-        function copiarIBAN(btn) {
-            const text = atob(encodedIBAN);
+        function copiarIBAN(btn, propietario) {
+            const esManuel = propietario === 'manuel';
+            const encodedText = esManuel ? encodedManuel : encodedGemma;
+            const displayId = esManuel ? 'iban-manuel' : 'iban-gemma';
+            const mask = esManuel ? "ES00 **** **** **** **** 1111" : "ES00 **** **** **** **** 2222";
+            
+            const text = atob(encodedText);
             navigator.clipboard.writeText(text).then(() => {
-                const display = document.getElementById('iban-display');
+                const display = document.getElementById(displayId);
                 display.innerText = text;
                 
                 const originalText = btn.innerText;
@@ -389,8 +433,10 @@
                 setTimeout(() => {
                     btn.innerText = originalText;
                     btn.classList.remove('btn-success');
-                    display.innerText = "ES00 **** **** **** **** 5555";
+                    display.innerText = mask;
                 }, 3000);
+            }).catch(err => {
+                console.error("Error al copiar al portapapeles: ", err);
             });
         }
 
@@ -398,7 +444,6 @@
             requestAnimationFrame(renderFrame);
         }, { passive: true });
 
-        // Evento resize limitado a cambios de orientación
         let lastWidth = window.innerWidth;
         window.addEventListener('resize', () => {
             if(window.innerWidth !== lastWidth) {
