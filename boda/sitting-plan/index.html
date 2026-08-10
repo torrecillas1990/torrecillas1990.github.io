@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <title>Seating Plan - 24 Abril 2027</title>
-    <!-- Importamos la librería principal -->
+    <!-- Importamos la librería principal para manejar Drag & Drop en el canvas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+    <!-- Para leer archivos Excel (.xlsx, .csv) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         body {
             display: flex;
@@ -49,7 +51,60 @@
         <button onclick="agregarMesa()" style="padding: 8px 16px; background-color: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">+ Añadir Mesa</button>
         <button onclick="eliminarMesa()" style="padding: 8px 16px; background-color: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">🗑️ Eliminar Seleccionada</button>
     </div>
+	
+	<!-- Panel de controles para Invitados -->
+    <div style="margin-bottom: 20px; display: flex; gap: 10px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; width: fit-content;">
+        <input type="text" id="nombreInvitado" placeholder="Nombre (ej. Tío Juan)" style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px;">
+        
+        <button onclick="agregarInvitado()" style="padding: 8px 16px; background-color: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">+ Añadir Invitado</button>
+        <button onclick="eliminarInvitado()" style="padding: 8px 16px; background-color: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">🗑️ Eliminar Seleccionado</button>
+    </div>
+	
+	<!-- Panel de Importación / Exportación -->
+    <div style="margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; width: fit-content;">
+        
+        <!-- Fila de Botones -->
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <!-- Importar Excel -->
+            <input type="file" id="inputExcel" accept=".xlsx, .xls, .csv" style="display: none;">
+            <button onclick="document.getElementById('inputExcel').click()" style="padding: 8px 16px; background-color: #0ea5e9; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                📥 Cargar Excel de Invitados
+            </button>
+            
+            <!-- Botón de ayuda para el Excel -->
+            <button onclick="toggleAyudaExcel()" style="padding: 4px 10px; background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; border-radius: 15px; cursor: pointer; font-size: 12px; font-weight: bold;" title="Ver formato del Excel">
+                ? Ayuda Formato
+            </button>
 
+            <!-- Separador visual -->
+            <div style="width: 1px; height: 30px; background-color: #cbd5e1; margin: 0 5px;"></div>
+
+            <!-- Guardar/Cargar Proyecto JSON -->
+            <button onclick="guardarProyecto()" style="padding: 8px 16px; background-color: #64748b; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                💾 Guardar Plano (.json)
+            </button>
+            
+            <input type="file" id="inputJSON" accept=".json" style="display: none;">
+            <button onclick="document.getElementById('inputJSON').click()" style="padding: 8px 16px; background-color: #64748b; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                📂 Cargar Plano (.json)
+            </button>
+        </div>
+
+        <!-- Caja de Ayuda Oculta por defecto -->
+        <div id="cajaAyudaExcel" style="display: none; background-color: #f8fafc; border: 1px solid #bfdbfe; padding: 10px; border-radius: 4px; font-size: 13px; color: #334155;">
+            <strong>Formato del archivo Excel (.xlsx o .csv):</strong>
+            <ul style="margin-top: 5px; margin-bottom: 0; padding-left: 20px;">
+                <li>Los datos deben estar en la <strong>primera pestaña (Hoja 1)</strong>.</li>
+                <li>Los nombres de los invitados deben estar en la <strong>Columna A</strong>.</li>
+                <li>No incluyas fila de cabecera (como "Nombre"). Si la pones, se añadirá como un invitado más (tendrás que borrarlo manualmente).</li>
+                <li>Ejemplo: <br>
+                    <code style="background: #e2e8f0; padding: 2px 4px; border-radius: 3px;">A1: Juan Pérez</code><br>
+                    <code style="background: #e2e8f0; padding: 2px 4px; border-radius: 3px;">A2: María García</code>
+                </li>
+            </ul>
+        </div>
+    </div>
+	
     <!-- El área de trabajo -->
     <canvas id="lienzo-boda" width="900" height="700"></canvas>
 	
@@ -126,11 +181,13 @@
                 originX: 'center', // Clave para centrar exactamente en la coordenada calculada
                 originY: 'center',
                 hasControls: false,
-                hasBorders: false,
+                hasBorders: true,        // MODIFICADO: Mostrar borde al seleccionar
+                borderColor: '#dc2626',  // NUEVO: Borde rojo fuerte para destacarlo
+                borderDashArray: [4, 4], // NUEVO: Borde punteado
                 tipoObjeto: 'invitado',
                 nombreAsignado: nombre
             });
-            
+			
             return invitado;
         }
 
@@ -222,15 +279,12 @@
         // 6. CARGA DE DATOS INICIALES (MOCKUP)
         
         // Instanciar mesas (x, y, nombre, capacidad)
-        const mesa1 = crearMesa(300, 350, 'Mesa 1', 6);
-        const mesa2 = crearMesa(600, 350, 'Mesa 2', 6);
-        canvas.add(mesa1, mesa2);
+        //const mesa1 = crearMesa(300, 350, 'Mesa 1', 6);
+        //const mesa2 = crearMesa(600, 350, 'Mesa 2', 6);
+        //canvas.add(mesa1, mesa2);
 
         // Lista de invitados de prueba
-        const listaNombres = [
-            'Gemma', 'Manuel', 'María (Madre)', 'Manuel (Padre)',
-            'M. Luz (Hrmna)', 'Brígida', 'Manuel S.', 'Matilde'
-        ];
+        const listaNombres = [];
 
         // Instanciar invitados en una columna inicial
         listaNombres.forEach((nombre, index) => {
@@ -242,7 +296,7 @@
 		
 		// 7. NUEVAS FUNCIONES: AÑADIR Y QUITAR MESAS
 
-        let contadorNuevasMesas = 3; // Ya tenemos 1 y 2 en los datos de prueba
+        let contadorNuevasMesas = 1; // Ya tenemos 1 y 2 en los datos de prueba
 
         function agregarMesa() {
             const inputNombre = document.getElementById('nombreMesa');
@@ -299,16 +353,222 @@
             }
         }
 		
+		// 8. NUEVAS FUNCIONES: AÑADIR Y QUITAR INVITADOS
+
+        function agregarInvitado() {
+            const inputNombre = document.getElementById('nombreInvitado');
+            const nombre = inputNombre.value.trim();
+            
+            if (!nombre) {
+                alert("Por favor, introduce el nombre del invitado.");
+                return;
+            }
+
+            // Los hacemos aparecer en el lado izquierdo de la pantalla (zona de "pendientes")
+            // Añadimos un poco de aleatoriedad para que no caigan exactamente uno encima del otro
+            const xInicial = 100 + (Math.random() * 20 - 10);
+            const yInicial = 100 + (Math.random() * 300);
+
+            const nuevoInvitado = crearInvitado(xInicial, yInicial, nombre);
+            canvas.add(nuevoInvitado);
+            
+            // Limpiamos el input y devolvemos el foco para que puedas escribir rápido
+            inputNombre.value = ''; 
+            inputNombre.focus();
+        }
+
+        function eliminarInvitado() {
+            const objetoActivo = canvas.getActiveObject();
+
+            if (!objetoActivo) {
+                alert("Primero haz clic en el invitado que quieres eliminar.");
+                return;
+            }
+
+            if (objetoActivo.tipoObjeto === 'invitado') {
+                // 1. Si está en una mesa, quitarlo del array de la mesa y reordenar
+                const mesas = canvas.getObjects().filter(obj => obj.tipoObjeto === 'mesa');
+                mesas.forEach(m => {
+                    if (m.invitadosSentados.includes(objetoActivo)) {
+                        // Lo quitamos del array interno de la mesa
+                        m.invitadosSentados = m.invitadosSentados.filter(inv => inv !== objetoActivo);
+                        // ¡Clave! Reposicionamos la mesa para que se cierre el hueco
+                        reposicionarInvitadosEnCirculo(m); 
+                    }
+                });
+
+                // 2. Eliminar al invitado del lienzo
+                canvas.remove(objetoActivo);
+                canvas.discardActiveObject();
+                canvas.renderAll();
+                
+            } else if (objetoActivo.tipoObjeto === 'mesa') {
+                alert("Has seleccionado una mesa. Usa el botón de eliminar mesa.");
+            }
+        }
+		
+		// ==========================================
+        // 9. IMPORTAR Y EXPORTAR DATOS
+        // ==========================================
+
+        // --- A. IMPORTAR INVITADOS DESDE EXCEL ---
+        document.getElementById('inputExcel').addEventListener('change', function(evento) {
+            const archivo = evento.target.files[0];
+            if (!archivo) return;
+
+            const lector = new FileReader();
+            lector.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                
+                // Cogemos la primera pestaña del Excel
+                const primeraHoja = workbook.Sheets[workbook.SheetNames[0]];
+                // Convertimos a array (header: 1 devuelve un array de arrays por filas)
+                const filas = XLSX.utils.sheet_to_json(primeraHoja, {header: 1});
+
+                let contadorY = 50;
+                let contadorX = 50;
+
+                filas.forEach(fila => {
+                    const nombre = fila[0]; // Suponemos que el nombre está en la Columna A
+                    if (nombre && typeof nombre === 'string' && nombre.trim() !== '') {
+                        // Los colocamos en forma de cuadrícula a la izquierda
+                        const nuevoInvitado = crearInvitado(contadorX, contadorY, nombre.trim());
+                        canvas.add(nuevoInvitado);
+                        
+                        contadorY += 40;
+                        if (contadorY > canvas.height - 50) {
+                            contadorY = 50;
+                            contadorX += 110;
+                        }
+                    }
+                });
+                
+                // Reseteamos el input por si quieres cargar el mismo archivo otra vez
+                evento.target.value = ''; 
+                canvas.renderAll();
+                alert("Invitados cargados con éxito.");
+            };
+            lector.readAsArrayBuffer(archivo);
+        });
+
+        // --- B. EXPORTAR ESTADO (GUARDAR JSON) ---
+        function guardarProyecto() {
+            const estado = { mesas: [], invitados: [] };
+
+            canvas.getObjects().forEach(obj => {
+                if (obj.tipoObjeto === 'mesa') {
+                    estado.mesas.push({
+                        nombre: obj.nombreAsignado,
+                        capacidadMax: obj.capacidadMax,
+                        left: obj.left,
+                        top: obj.top
+                    });
+                } else if (obj.tipoObjeto === 'invitado') {
+                    // Buscar si el invitado está dentro del array de alguna mesa
+                    const mesas = canvas.getObjects().filter(o => o.tipoObjeto === 'mesa');
+                    const mesaAsignada = mesas.find(m => m.invitadosSentados.includes(obj));
+
+                    estado.invitados.push({
+                        nombre: obj.nombreAsignado,
+                        left: obj.left,
+                        top: obj.top,
+                        mesaId: mesaAsignada ? mesaAsignada.nombreAsignado : null
+                    });
+                }
+            });
+
+            // Crear el archivo para descargar
+            const dataStr = JSON.stringify(estado, null, 2);
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            
+            const enlace = document.createElement('a');
+            enlace.href = url;
+            enlace.download = 'seating_plan_boda.json';
+            enlace.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // --- C. IMPORTAR ESTADO (CARGAR JSON) ---
+        document.getElementById('inputJSON').addEventListener('change', function(evento) {
+            const archivo = evento.target.files[0];
+            if (!archivo) return;
+
+            const lector = new FileReader();
+            lector.onload = function(e) {
+                try {
+                    const estado = JSON.parse(e.target.result);
+                    
+                    // Limpiar lienzo
+                    canvas.clear();
+                    
+                    const diccionarioMesas = {}; // Para enlazar rápido los invitados
+
+                    // 1. Recrear Mesas
+                    if (estado.mesas) {
+                        estado.mesas.forEach(m => {
+                            const nuevaMesa = crearMesa(m.left, m.top, m.nombre, m.capacidadMax);
+                            canvas.add(nuevaMesa);
+                            diccionarioMesas[m.nombre] = nuevaMesa;
+                        });
+                    }
+
+                    // 2. Recrear Invitados
+                    if (estado.invitados) {
+                        estado.invitados.forEach(inv => {
+                            const nuevoInv = crearInvitado(inv.left, inv.top, inv.nombre);
+                            canvas.add(nuevoInv);
+                            
+                            // Si estaba en una mesa, lo volvemos a meter en su array
+                            if (inv.mesaId && diccionarioMesas[inv.mesaId]) {
+                                diccionarioMesas[inv.mesaId].invitadosSentados.push(nuevoInv);
+                            }
+                        });
+                    }
+
+                    // 3. Reordenar las mesas cargadas para actualizar los colores a verde
+                    Object.values(diccionarioMesas).forEach(mesa => {
+                        reposicionarInvitadosEnCirculo(mesa);
+                    });
+
+                    canvas.renderAll();
+                    // Reseteamos input
+                    evento.target.value = '';
+                    
+                } catch (error) {
+                    alert("Error al cargar el archivo JSON. Verifica que sea válido.");
+                }
+            };
+            lector.readAsText(archivo);
+        });
+		
+		// 10. FUNCIÓN PARA MOSTRAR/OCULTAR LA AYUDA DEL EXCEL
+        function toggleAyudaExcel() {
+            const caja = document.getElementById('cajaAyudaExcel');
+            if (caja.style.display === 'none') {
+                caja.style.display = 'block';
+            } else {
+                caja.style.display = 'none';
+            }
+        }
+		
 		// Añadir este listener en cualquier parte de tu script
         window.addEventListener('keydown', function(evento) {
             if (evento.key === 'Delete' || evento.key === 'Backspace') {
                 const objetoActivo = canvas.getActiveObject();
-                // Solo si el usuario no está escribiendo en el input de texto
-                if (document.activeElement.tagName !== 'INPUT' && objetoActivo && objetoActivo.tipoObjeto === 'mesa') {
-                    eliminarMesa();
+                
+                // Evitamos borrar cosas si estás escribiendo dentro de un <input>
+                if (document.activeElement.tagName !== 'INPUT' && objetoActivo) {
+                    if (objetoActivo.tipoObjeto === 'mesa') {
+                        eliminarMesa();
+                    } else if (objetoActivo.tipoObjeto === 'invitado') {
+                        eliminarInvitado();
+                    }
                 }
             }
         });
+		
     </script>
 </body>
 </html>
