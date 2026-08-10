@@ -135,15 +135,16 @@
             <div id="cajaAyudaExcel" style="display: none; background-color: #f8fafc; border: 1px solid #bfdbfe; padding: 10px; border-radius: 4px; font-size: 12px; color: #334155; margin-top: 5px; line-height: 1.5;">
                 <strong>Formato del Excel (.xlsx):</strong><br>
                 - Usar la <strong>1ª pestaña</strong> (Hoja 1).<br>
-                - <strong>Fila 1:</strong> Nombres de cabecera (el sistema ignorará esta primera fila).<br>
+                - <strong>Fila 1:</strong> Cabeceras (el sistema las ignorará).<br>
                 - <strong>Orden estricto de columnas:</strong>
                 <ul style="margin: 4px 0 0 0; padding-left: 20px;">
-                    <li><strong>A:</strong> Nombre <em>(ej. María)</em></li>
+                    <li><strong>A:</strong> Nombre <em>(ej. Familia Tía Koke)</em></li>
                     <li><strong>B:</strong> Lado <em>(ej. Manuel o Gemma)</em></li>
                     <li><strong>C:</strong> Relación <em>(ej. Familia o Amigos)</em></li>
                     <li><strong>D:</strong> Origen <em>(ej. Orihuela o Benejúzar)</em></li>
-                    <li><strong>E:</strong> Edad <em>(Adulto o Niño)</em></li>
-                    <li><strong>F:</strong> ID_Grupo <em>(ej. Fam_Madre - texto igual para parejas/núcleos que no deben separarse)</em></li>
+                    <li><strong>E:</strong> Edad <em>(Adultos o Niños)</em></li>
+                    <li><strong>F:</strong> De parte de <em>(ej. Madre o Padre)</em></li>
+                    <li><strong>G:</strong> Cantidad <em>(ej. 4)</em></li>
                 </ul>
             </div>
 
@@ -210,19 +211,21 @@
         }
 
         // 3. FUNCIÓN: Crear un Invitado
-        function crearInvitado(x, y, nombre) {
+        function crearInvitado(x, y, nombre, cantidad = 1) {
             const fondo = new fabric.Rect({
-                width: 90,
+                width: 130, // Más ancho para que quepa "Nombre (X)"
                 height: 30,
-                fill: '#fecaca', // Rojo por defecto
-                rx: 15,          // Bordes redondeados
+                fill: '#fecaca',
+                rx: 15,
                 ry: 15,
                 originX: 'center',
                 originY: 'center'
             });
             
-            const texto = new fabric.Text(nombre, {
-                fontSize: 14,
+            const textoMostrar = cantidad > 1 ? `${nombre} (${cantidad})` : nombre;
+            
+            const texto = new fabric.Text(textoMostrar, {
+                fontSize: 13,
                 fontFamily: 'sans-serif',
                 fill: '#7f1d1d',
                 originX: 'center',
@@ -232,16 +235,18 @@
             const invitado = new fabric.Group([fondo, texto], {
                 left: x,
                 top: y,
-                originX: 'center', // Clave para centrar exactamente en la coordenada calculada
+                originX: 'center',
                 originY: 'center',
                 hasControls: false,
-                hasBorders: true,        // MODIFICADO: Mostrar borde al seleccionar
-                borderColor: '#dc2626',  // NUEVO: Borde rojo fuerte para destacarlo
-                borderDashArray: [4, 4], // NUEVO: Borde punteado
+                hasBorders: true,
+                borderColor: '#dc2626',
+                borderDashArray: [4, 4],
                 tipoObjeto: 'invitado',
-                nombreAsignado: nombre
+                nombreAsignado: nombre,
+                cantidad: cantidad, // NUEVO: Guardamos el peso del grupo
+                deParteDe: ''       // NUEVO: Inicializamos la propiedad
             });
-			
+            
             return invitado;
         }
 
@@ -310,12 +315,14 @@
 
             // B. Evaluar el destino
             if (mesaDestino) {
-                // Comprobar capacidad
-                if (mesaDestino.invitadosSentados.length >= mesaDestino.capacidadMax) {
-                    // Si está llena, devolvemos al invitado a un estado "sin mesa" (rojo)
+                // Comprobar capacidad sumando las cantidades, no contando los rectángulos
+                const ocupacionActual = mesaDestino.invitadosSentados.reduce((total, inv) => total + inv.cantidad, 0);
+                
+                if (ocupacionActual + objetoMovido.cantidad > mesaDestino.capacidadMax) {
+                    // Si no caben, lo devolvemos a estado pendiente (rojo)
                     objetoMovido.item(0).set('fill', '#fecaca'); 
                     objetoMovido.item(1).set('fill', '#7f1d1d');
-                    alert(`La ${mesaDestino.nombreAsignado} ya está al máximo de su capacidad.`);
+                    alert(`Capacidad excedida: La ${mesaDestino.nombreAsignado} tiene hueco para ${mesaDestino.capacidadMax - ocupacionActual} personas, y este grupo es de ${objetoMovido.cantidad}.`);
                 } else {
                     // Añadir a la nueva mesa y reposicionar
                     mesaDestino.invitadosSentados.push(objetoMovido);
@@ -496,14 +503,14 @@
                     const nombre = fila[0];
                     
                     if (nombre && typeof nombre === 'string' && nombre.trim() !== '') {
-                        const nuevoInvitado = crearInvitado(contadorX, contadorY, nombre.trim());
+                        const cantidad = parseInt(fila[6]) || 1; // Columna G
+                        const nuevoInvitado = crearInvitado(contadorX, contadorY, nombre.trim(), cantidad);
                         
-                        // INYECTAMOS LOS METADATOS DEL EXCEL AL OBJETO FABRIC
-                        nuevoInvitado.lado = fila[1] || 'Sin definir';     // Col B
-                        nuevoInvitado.relacion = fila[2] || 'Sin definir'; // Col C
-                        nuevoInvitado.origen = fila[3] || 'Sin definir';   // Col D
-                        nuevoInvitado.edad = fila[4] || 'Adulto';          // Col E
-                        nuevoInvitado.idGrupo = fila[5] || `Indiv_${i}`;   // Col F (Si no tiene, le damos un ID único)
+                        nuevoInvitado.lado = fila[1] || 'Sin definir';
+                        nuevoInvitado.relacion = fila[2] || 'Sin definir';
+                        nuevoInvitado.origen = fila[3] || 'Sin definir';
+                        nuevoInvitado.edad = fila[4] || 'Adultos';
+                        nuevoInvitado.deParteDe = fila[5] || 'General'; // Columna F
 
                         canvas.add(nuevoInvitado);
                         
@@ -654,7 +661,6 @@
         // ==========================================
 
         function autoAsignarMesas() {
-            // 1. Recopilar todos los invitados que NO están en una mesa
             const todosLosInvitados = canvas.getObjects().filter(obj => obj.tipoObjeto === 'invitado');
             const invitadosPendientes = todosLosInvitados.filter(inv => {
                 const mesas = canvas.getObjects().filter(m => m.tipoObjeto === 'mesa');
@@ -666,15 +672,12 @@
                 return;
             }
 
-            // 2. Agrupar por afinidad lógica (Lado -> Relación -> Origen)
-            // Creamos un diccionario donde la clave es el hash de sus categorías
+            // 1. Agrupar incluyendo 'deParteDe'
             const gruposLogicos = {};
-            
             invitadosPendientes.forEach(inv => {
-                // Separamos a los niños en una lógica distinta si quisieras
-                const claveAgrupacion = inv.edad.toLowerCase() === 'niño' ? 
+                const claveAgrupacion = inv.edad.toLowerCase() === 'niños' || inv.edad.toLowerCase() === 'niño' ? 
                     'Mesa_Infantil' : 
-                    `${inv.lado}_${inv.relacion}_${inv.origen}`;
+                    `${inv.lado}_${inv.relacion}_${inv.origen}_${inv.deParteDe}`;
 
                 if (!gruposLogicos[claveAgrupacion]) {
                     gruposLogicos[claveAgrupacion] = [];
@@ -682,38 +685,45 @@
                 gruposLogicos[claveAgrupacion].push(inv);
             });
 
-            // 3. Crear mesas dinámicamente y sentar a la gente
             const capacidadEstandar = parseInt(document.getElementById('capacidadAuto').value) || 8;
-            
-            // Coordenadas iniciales para generar las mesas nuevas en cascada
             let xMesa = 300;
             let yMesa = 150;
 
+            // 2. Llenado algorítmico de mesas
             Object.keys(gruposLogicos).forEach(clave => {
                 let bloquePersonas = gruposLogicos[clave];
                 
-                // Mientras haya gente en este grupo lógico, seguimos abriendo mesas
                 while (bloquePersonas.length > 0) {
                     
-                    // Extraemos un "chunk" de personas igual a la capacidad de la mesa
-                    // (Aquí en un futuro puedes refinar el corte para no separar idGrupos)
-                    const asignadosAEstaMesa = bloquePersonas.splice(0, capacidadEstandar);
-                    
-                    // Creamos una nueva mesa física en el lienzo
+                    // Control de seguridad: Si un solo grupo es más grande que la mesa entera
+                    if (bloquePersonas[0].cantidad > capacidadEstandar) {
+                        alert(`Atención: El grupo '${bloquePersonas[0].nombreAsignado}' (${bloquePersonas[0].cantidad} pers.) supera la capacidad máxima de la mesa (${capacidadEstandar}). Debes dividirlo en el Excel o aumentar el tamaño de las mesas.`);
+                        // Lo sacamos del array para evitar un bucle infinito
+                        bloquePersonas.shift();
+                        continue; 
+                    }
+
                     const nombreMesaAuto = clave === 'Mesa_Infantil' ? 'Infantil' : `Mesa ${contadorNuevasMesas}`;
                     const nuevaMesa = crearMesa(xMesa, yMesa, nombreMesaAuto, capacidadEstandar);
                     canvas.add(nuevaMesa);
                     contadorNuevasMesas++;
 
-                    // Sentamos a los invitados extraídos en esta nueva mesa
-                    asignadosAEstaMesa.forEach(inv => {
-                        nuevaMesa.invitadosSentados.push(inv);
-                    });
+                    let asientosOcupados = 0;
+                    
+                    // Algoritmo de empaquetado: recorrer el bloque e intentar meter a todos los que quepan
+                    for (let i = 0; i < bloquePersonas.length; i++) {
+                        if (asientosOcupados + bloquePersonas[i].cantidad <= capacidadEstandar) {
+                            nuevaMesa.invitadosSentados.push(bloquePersonas[i]);
+                            asientosOcupados += bloquePersonas[i].cantidad;
+                            
+                            // Lo sacamos del array de pendientes
+                            bloquePersonas.splice(i, 1);
+                            i--; // Reajustamos el índice porque el array acaba de encoger
+                        }
+                    }
 
-                    // Ejecutamos la trigonometría para que se coloquen visualmente
                     reposicionarInvitadosEnCirculo(nuevaMesa);
 
-                    // Desplazamos las coordenadas para la siguiente mesa
                     xMesa += 250;
                     if (xMesa > canvas.width - 100) {
                         xMesa = 300;
