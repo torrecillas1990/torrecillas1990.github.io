@@ -89,7 +89,18 @@
             <h1>Seating Plan</h1>
             <div class="instrucciones">Arrastra los invitados a las mesas. Pulsa <code>Supr</code> para eliminar lo seleccionado.</div>
         </div>
-
+		
+		<!-- Panel de Navegación -->
+        <div class="panel">
+            <h3>Navegación del Plano</h3>
+            <div class="instrucciones" style="margin-bottom: 5px; font-size: 11px;">Rueda del ratón = Zoom. Clic y arrastrar en el fondo = Moverse.</div>
+            <div class="row-flex">
+                <button class="btn btn-light" onclick="hacerZoom(1.2)">🔍 +</button>
+                <button class="btn btn-light" onclick="hacerZoom(0.8)">🔍 -</button>
+                <button class="btn btn-light" onclick="resetearVista()">Centrar Vista</button>
+            </div>
+        </div>
+		
         <!-- Panel de Mesas -->
         <div class="panel">
             <h3>Mesas</h3>
@@ -340,9 +351,9 @@
         // 6. CARGA DE DATOS INICIALES (MOCKUP)
         
         // Instanciar mesas (x, y, nombre, capacidad)
-        const mesa1 = crearMesa(300, 350, 'Mesa 1', 6);
+        //const mesa1 = crearMesa(300, 350, 'Mesa 1', 6);
         //const mesa2 = crearMesa(600, 350, 'Mesa 2', 6);
-        canvas.add(mesa1);
+        //canvas.add(mesa1, mesa2);
 
         // Lista de invitados de prueba
         const listaNombres = [];
@@ -482,55 +493,45 @@
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, {type: 'array'});
                 
-                // Cogemos la primera pestaña del Excel
                 const primeraHoja = workbook.Sheets[workbook.SheetNames[0]];
-                // Convertimos a array (header: 1 devuelve un array de arrays por filas)
                 const filas = XLSX.utils.sheet_to_json(primeraHoja, {header: 1});
 
                 let contadorY = 50;
                 let contadorX = 50;
 
-                filas.forEach(fila => {
-                    // (Mantén la parte superior de la función igual...)
-                const filas = XLSX.utils.sheet_to_json(primeraHoja, {header: 1});
-
-                let contadorY = 50;
-                let contadorX = 50;
-
-                // Asumimos que la Fila 0 son las cabeceras, iteramos desde la Fila 1
+                // --- INICIO DEL BUCLE ---
                 for (let i = 1; i < filas.length; i++) {
                     const fila = filas[i];
-                    const nombre = fila[0];
+                    const nombre = fila[0]; // Columna A
                     
                     if (nombre && typeof nombre === 'string' && nombre.trim() !== '') {
                         const cantidad = parseInt(fila[6]) || 1; // Columna G
                         const nuevoInvitado = crearInvitado(contadorX, contadorY, nombre.trim(), cantidad);
                         
-                        nuevoInvitado.lado = fila[1] || 'Sin definir';
-                        nuevoInvitado.relacion = fila[2] || 'Sin definir';
-                        nuevoInvitado.origen = fila[3] || 'Sin definir';
-                        nuevoInvitado.edad = fila[4] || 'Adultos';
-                        nuevoInvitado.deParteDe = fila[5] || 'General'; // Columna F
+                        nuevoInvitado.lado = fila[1] || 'Sin definir';       // Col B
+                        nuevoInvitado.relacion = fila[2] || 'Sin definir';   // Col C
+                        nuevoInvitado.origen = fila[3] || 'Sin definir';     // Col D
+                        nuevoInvitado.edad = fila[4] || 'Adultos';           // Col E
+                        nuevoInvitado.deParteDe = fila[5] || 'General';      // Col F
 
                         canvas.add(nuevoInvitado);
                         
                         contadorY += 40;
                         if (contadorY > canvas.height - 50) {
                             contadorY = 50;
-                            contadorX += 110;
+                            contadorX += 140; // Un poco más de margen horizontal
                         }
                     }
                 }
-                
+                // --- FIN DEL BUCLE ---
+
+                // Estas líneas SÓLO se ejecutan una vez, cuando el bucle ha terminado
                 evento.target.value = ''; 
                 canvas.renderAll();
+                
+                // Si quieres que sea menos molesto, puedes cambiar el alert por un console.log
+                // console.log(`Se han cargado ${filas.length - 1} grupos de invitados.`);
                 alert("Invitados y categorías cargados con éxito.");
-                });
-                
-                // Reseteamos el input por si quieres cargar el mismo archivo otra vez
-                evento.target.value = ''; 
-                canvas.renderAll();
-                alert("Invitados cargados con éxito.");
             };
             lector.readAsArrayBuffer(archivo);
         });
@@ -638,21 +639,51 @@
 		
 		// 11. EXPORTAR LIENZO A IMAGEN (PNG)
         function exportarImagen() {
-            // 1. Quitamos la selección activa para que no salgan los bordes punteados en la foto
             canvas.discardActiveObject();
             canvas.renderAll();
 
-            // 2. Extraemos la imagen del canvas
+            // 1. Guardamos dónde estaba mirando el usuario para no arruinarle su vista actual
+            const vptOriginal = [...canvas.viewportTransform];
+            
+            // 2. Escaneamos TODO el lienzo para encontrar los extremos (la "caja delimitadora")
+            let minX = 0, minY = 0, maxX = canvas.width, maxY = canvas.height;
+            
+            canvas.getObjects().forEach(obj => {
+                const rect = obj.getBoundingRect();
+                if (rect.left < minX) minX = rect.left;
+                if (rect.top < minY) minY = rect.top;
+                if (rect.left + rect.width > maxX) maxX = rect.left + rect.width;
+                if (rect.top + rect.height > maxY) maxY = rect.top + rect.height;
+            });
+
+            // Añadimos un margen de seguridad de 100px para que las mesas no queden pegadas al borde
+            const margen = 100;
+            minX -= margen;
+            minY -= margen;
+            maxX += margen;
+            maxY += margen;
+
+            // 3. Reseteamos la cámara virtual a 0 para que la foto no salga distorsionada
+            canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+
+            // 4. Exportamos diciéndole exactamente qué recuadro matemático queremos capturar
             const dataURL = canvas.toDataURL({
                 format: 'png',
                 quality: 1,
-                multiplier: 2 // Multiplica la resolución x2 para impresión de alta calidad
+                multiplier: 2, // Mantener x2 para calidad de imprenta
+                left: minX,
+                top: minY,
+                width: (maxX - minX),
+                height: (maxY - minY)
             });
 
-            // 3. Forzamos la descarga del archivo
+            // 5. Devolvemos la cámara al punto exacto donde estaba el usuario
+            canvas.setViewportTransform(vptOriginal);
+            
+            // 6. Descargar el archivo
             const enlace = document.createElement('a');
             enlace.href = dataURL;
-            enlace.download = 'plano_salon_24_abril.png';
+            enlace.download = 'plano_salon_24_abril_completo.png';
             enlace.click();
         }
 		
@@ -732,6 +763,71 @@
                 }
             });
 
+            canvas.renderAll();
+        }
+		
+		// ==========================================
+        // 13. NAVEGACIÓN: ZOOM Y DESPLAZAMIENTO (PAN)
+        // ==========================================
+
+        // A. Zoom con la rueda del ratón
+        canvas.on('mouse:wheel', function(opt) {
+            const delta = opt.e.deltaY;
+            let zoom = canvas.getZoom();
+            zoom *= 0.999 ** delta;
+            
+            // Limitamos el zoom (no acercarse a lo microscópico ni alejarse al infinito)
+            if (zoom > 5) zoom = 5;
+            if (zoom < 0.1) zoom = 0.1;
+            
+            // Hacemos zoom hacia el punto donde está el ratón
+            canvas.zoomToPoint({ x: opt.e.offsetX, y: opt.e.offsetY }, zoom);
+            opt.e.preventDefault();
+            opt.e.stopPropagation();
+        });
+
+        // B. Desplazamiento (Pan) haciendo clic en el fondo vacío
+        canvas.on('mouse:down', function(opt) {
+            const evt = opt.e;
+            // Si hacemos clic pero NO hay un objeto debajo (target es nulo), estamos tocando el fondo
+            if (!opt.target) {
+                this.isDragging = true;
+                this.lastPosX = evt.clientX;
+                this.lastPosY = evt.clientY;
+            }
+        });
+
+        canvas.on('mouse:move', function(opt) {
+            if (this.isDragging) {
+                const e = opt.e;
+                const vpt = this.viewportTransform;
+                // Movemos la cámara la misma distancia que hemos movido el ratón
+                vpt[4] += e.clientX - this.lastPosX;
+                vpt[5] += e.clientY - this.lastPosY;
+                this.requestRenderAll();
+                this.lastPosX = e.clientX;
+                this.lastPosY = e.clientY;
+            }
+        });
+
+        canvas.on('mouse:up', function(opt) {
+            // Cuando soltamos el ratón, paramos de arrastrar y guardamos el estado de la cámara
+            this.setViewportTransform(this.viewportTransform);
+            this.isDragging = false;
+        });
+
+        // C. Funciones para los botones de la interfaz
+        function hacerZoom(factor) {
+            let zoom = canvas.getZoom() * factor;
+            if (zoom > 5) zoom = 5;
+            if (zoom < 0.1) zoom = 0.1;
+            // Zoom desde el centro de la pantalla
+            canvas.zoomToPoint({ x: canvas.width / 2, y: canvas.height / 2 }, zoom);
+        }
+
+        function resetearVista() {
+            // Restablece la cámara a escala 1:1 y coordenadas 0,0
+            canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
             canvas.renderAll();
         }
 		
