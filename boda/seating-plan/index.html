@@ -10,7 +10,7 @@
         /* Layout Principal */
         body {
             display: flex;
-            flex-direction: row; /* Cambio a layout horizontal */
+            flex-direction: row;
             background-color: #f8fafc;
             margin: 0;
             padding: 20px;
@@ -18,7 +18,7 @@
             height: 100vh;
             box-sizing: border-box;
             gap: 20px;
-            overflow: hidden; /* Evita scroll en toda la página */
+            overflow: hidden;
         }
 
         /* Panel Lateral (Sidebar) */
@@ -28,7 +28,7 @@
             display: flex;
             flex-direction: column;
             gap: 15px;
-            overflow-y: auto; /* Scroll solo en el panel lateral si hay muchos controles */
+            overflow-y: auto;
             padding-right: 5px;
         }
         
@@ -61,18 +61,18 @@
         .btn-gray { background-color: #64748b; color: white; }
         .btn-light { background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
         
-        /* Hover states */
         .btn:hover { filter: brightness(0.95); }
 
         /* Lienzo */
         .canvas-wrapper {
-            flex-grow: 1; /* Ocupa el resto del espacio disponible */
+            flex-grow: 1;
             display: flex;
             justify-content: center;
             align-items: center;
-            background-color: #e2e8f0; /* Fondo gris para diferenciar el área de trabajo */
+            background-color: #e2e8f0;
             border-radius: 8px;
             overflow: hidden;
+            position: relative;
         }
         .canvas-container {
             background-color: #ffffff;
@@ -89,8 +89,8 @@
             <h1>Seating Plan</h1>
             <div class="instrucciones">Arrastra los invitados a las mesas. Pulsa <code>Supr</code> para eliminar lo seleccionado.</div>
         </div>
-		
-		<!-- Panel de Navegación -->
+        
+        <!-- Panel de Navegación -->
         <div class="panel">
             <h3>Navegación del Plano</h3>
             <div class="instrucciones" style="margin-bottom: 5px; font-size: 11px;">Rueda del ratón = Zoom. Clic y arrastrar en el fondo = Moverse.</div>
@@ -100,25 +100,38 @@
                 <button class="btn btn-light" onclick="resetearVista()">Centrar Vista</button>
             </div>
         </div>
-		
+        
         <!-- Panel de Mesas -->
         <div class="panel">
             <h3>Mesas</h3>
-            <input type="text" id="nombreMesa" class="input-text" placeholder="Nombre (ej. Mesa 3)">
-            <label class="row-flex" style="font-size: 13px; color: #475569;">
-                Capacidad: 
-                <input type="number" id="capacidadMesa" class="input-text" value="8" min="2" max="15" style="width: 70px;">
-            </label>
+            
+			<div class="row-flex">
+                <input type="text" id="nombreMesa" class="input-text" placeholder="Nombre (ej. Mesa 3)">
+				<label class="row-flex" style="font-size: 13px; color: #475569;">Capacidad: 
+					<input type="number" id="capacidadMesa" class="input-text" value="10" min="2" max="30" style="width: 70px;">
+				</label>
+            </div>
+            
             <div class="row-flex">
                 <button class="btn btn-blue" onclick="agregarMesa()">+ Añadir</button>
                 <button class="btn btn-red" onclick="eliminarMesa()">🗑️ Borrar</button>
             </div>
+            
+            <hr style="width: 100%; border: 0; border-top: 1px dashed #e2e8f0; margin: 5px 0;">
+            <button class="btn btn-gray" onclick="renumerarMesas(); canvas.renderAll(); actualizarContadorTotal();" title="Ordena los números de las mesas según su posición en el plano">🔢 Renumerar por Posición</button>
         </div>
 
         <!-- Panel de Invitados -->
         <div class="panel">
             <h3>Invitados Individuales</h3>
-            <input type="text" id="nombreInvitado" class="input-text" placeholder="Nombre (ej. Tío Juan)">
+			
+			<div class="row-flex">
+                <input type="text" id="nombreInvitado" class="input-text" placeholder="Nombre (ej. Tío Juan)">
+				<label class="row-flex" style="font-size: 13px; color: #475569;">Cantidad: 
+					<input type="number" id="cantidadInvitado" class="input-text" value="1" min="1" max="30" style="width: 70px;">
+				</label>
+            </div>
+            
             <div class="row-flex">
                 <button class="btn btn-green" onclick="agregarInvitado()">+ Añadir</button>
                 <button class="btn btn-red" onclick="eliminarInvitado()">🗑️ Borrar</button>
@@ -129,19 +142,23 @@
         <div class="panel">
             <h3>Importar / Exportar</h3>
             
-            <input type="file" id="inputExcel" accept=".xlsx, .xls, .csv" style="display: none;">
-            <button class="btn btn-cyan" onclick="document.getElementById('inputExcel').click()">📥 Cargar Excel de Invitados</button>
+			<div class="row-flex">
+                <input type="file" id="inputExcel" accept=".xlsx, .xls, .csv" style="display: none;">
+				<button class="btn btn-cyan" onclick="document.getElementById('inputExcel').click()">📥 Cargar Excel de Invitados</button>
+				<button class="btn btn-cyan" onclick="exportarExcel()" style="background-color: #0284c7; margin-top: 5px;">📤 Exportar Invitados a Excel</button>
+            </div>
             
+			
             <!-- Automatización Auto-Asignación -->
             <div style="margin-top: 10px; border-top: 1px dashed #cbd5e1; padding-top: 10px;">
                 <label class="row-flex" style="font-size: 13px; color: #475569; margin-bottom: 8px;">
-                    <strong>Tamaño de mesas auto:</strong> 
-                    <input type="number" id="capacidadAuto" class="input-text" value="8" min="2" max="15" style="width: 60px;">
+                    <strong>Tamaño de mesas:</strong> 
+                    <input type="number" id="capacidadAuto" class="input-text" value="10" min="2" max="30" style="width: 60px;">
                 </label>
                 <button class="btn btn-blue" onclick="autoAsignarMesas()" style="background-color: #8b5cf6;">✨ Auto-Organizar Mesas</button>
             </div>
-			
-            <button class="btn btn-light" onclick="toggleAyudaExcel()">? Ayuda formato Excel</button>
+            
+            <button class="btn btn-light" onclick="toggleAyudaExcel()" style="margin-top: 5px;">? Ayuda formato Excel</button>
             
             <div id="cajaAyudaExcel" style="display: none; background-color: #f8fafc; border: 1px solid #bfdbfe; padding: 10px; border-radius: 4px; font-size: 12px; color: #334155; margin-top: 5px; line-height: 1.5;">
                 <strong>Formato del Excel (.xlsx):</strong><br>
@@ -155,17 +172,18 @@
                     <li><strong>D:</strong> Origen <em>(ej. Orihuela o Benejúzar)</em></li>
                     <li><strong>E:</strong> Edad <em>(Adultos o Niños)</em></li>
                     <li><strong>F:</strong> De parte de <em>(ej. Madre o Padre)</em></li>
-                    <li><strong>G:</strong> Cantidad <em>(ej. 4)</em></li>
+                    <li><strong>G:</strong> Cantidad <em>(ej. 4 - poner 0 para ignorar)</em></li>
                 </ul>
             </div>
 
             <hr style="width: 100%; border: 0; border-top: 1px solid #e2e8f0; margin: 5px 0;">
-
-            <button class="btn btn-gray" onclick="guardarProyecto()">💾 Guardar Plano (.json)</button>
-            <input type="file" id="inputJSON" accept=".json" style="display: none;">
-            <button class="btn btn-gray" onclick="document.getElementById('inputJSON').click()">📂 Cargar Plano (.json)</button>
+			
+			<div class="row-flex">
+                <button class="btn btn-gray" onclick="guardarProyecto()">💾 Guardar Plano (.json)</button>
+				<input type="file" id="inputJSON" accept=".json" style="display: none;">
+				<button class="btn btn-gray" onclick="document.getElementById('inputJSON').click()">📂 Cargar Plano (.json)</button>
+            </div>
             
-            <!-- NUEVO: Botón para exportar a imagen -->
             <hr style="width: 100%; border: 0; border-top: 1px solid #e2e8f0; margin: 5px 0;">
             <button class="btn btn-blue" onclick="exportarImagen()">🖼️ Exportar a PNG (Imprimir)</button>
         </div>
@@ -173,32 +191,55 @@
 
     <!-- ÁREA PRINCIPAL: Lienzo -->
     <main class="canvas-wrapper">
-        <!-- El tamaño del canvas puede quedarse fijo o puedes hacerlo dinámico por JS luego -->
+        <!-- NUEVO: Contador flotante de invitados -->
+        <div id="contador-total" style="position: absolute; top: 15px; right: 15px; background: white; padding: 8px 15px; border-radius: 6px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); font-weight: bold; font-size: 13px; color: #334155; pointer-events: none; z-index: 10; border: 1px solid #cbd5e1;">
+            Total Asistentes: 0
+        </div>
+        
         <canvas id="lienzo-boda" width="900" height="750"></canvas>
     </main>
-
+	
     <script>
-        // 1. Inicializar Lienzo
-        // Desactivamos la selección grupal para evitar arrastrar accidentalmente mesa + invitados a la vez
         const canvas = new fabric.Canvas('lienzo-boda', { selection: false });
         const radioMesaVisual = 60; 
 
-        // 2. FUNCIÓN: Crear una Mesa
-        function crearMesa(x, y, nombre, capacidadMax) {
+        // 2. FUNCIÓN: Crear una Mesa (Multilínea y Colores)
+        function crearMesa(x, y, idUnico, linea1, linea2, capacidadMax) {
+            let colorFondo = '#f1f5f9';
+            let colorBorde = '#3b82f6';
+            const textoL1 = linea1.toLowerCase();
+            
+            if (textoL1.includes('manuel')) {
+                colorFondo = textoL1.includes('familia') ? '#dbeafe' : '#e0e7ff';
+                colorBorde = textoL1.includes('familia') ? '#2563eb' : '#4f46e5';
+            } else if (textoL1.includes('gemma')) {
+                colorFondo = textoL1.includes('familia') ? '#fce7f3' : '#fae8ff';
+                colorBorde = textoL1.includes('familia') ? '#db2777' : '#c084fc';
+            } else if (textoL1.includes('niños') || textoL1.includes('infantil')) {
+                colorFondo = '#fef9c3';
+                colorBorde = '#ca8a04';
+            }
+
             const circulo = new fabric.Circle({
-                radius: radioMesaVisual,
-                fill: '#f1f5f9',
-                stroke: '#3b82f6',
+                radius: radioMesaVisual + 5,
+                fill: colorFondo,
+                stroke: colorBorde,
                 strokeWidth: 3,
                 originX: 'center',
                 originY: 'center'
             });
             
-            const texto = new fabric.Text(nombre + ` (${capacidadMax})`, {
-                fontSize: 16,
+            const textoMostrar = linea2 && linea2 !== '' 
+                ? `${linea1}\n${linea2}\n(0/${capacidadMax})`
+                : `${linea1}\n(0/${capacidadMax})`;
+
+            const texto = new fabric.Text(textoMostrar, {
+                fontSize: 12,
                 fontFamily: 'sans-serif',
                 fontWeight: 'bold',
                 fill: '#1e293b',
+                textAlign: 'center',
+                lineHeight: 1.2,
                 originX: 'center',
                 originY: 'center'
             });
@@ -209,11 +250,13 @@
                 originX: 'center',
                 originY: 'center',
                 hasControls: false,
-                hasBorders: true,         // MODIFICADO: Mostrar borde al seleccionar
-                borderColor: '#f59e0b',   // NUEVO: Borde naranja para saber cuál está seleccionada
-                borderDashArray: [5, 5],  // NUEVO: Borde punteado
+                hasBorders: true,
+                borderColor: '#f59e0b',
+                borderDashArray: [5, 5],
                 tipoObjeto: 'mesa',
-                nombreAsignado: nombre,
+                nombreAsignado: idUnico,
+                linea1: linea1,
+                linea2: linea2,
                 capacidadMax: capacidadMax,
                 invitadosSentados: []
             });
@@ -224,7 +267,7 @@
         // 3. FUNCIÓN: Crear un Invitado
         function crearInvitado(x, y, nombre, cantidad = 1) {
             const fondo = new fabric.Rect({
-                width: 130, // Más ancho para que quepa "Nombre (X)"
+                width: 130,
                 height: 30,
                 fill: '#fecaca',
                 rx: 15,
@@ -254,8 +297,8 @@
                 borderDashArray: [4, 4],
                 tipoObjeto: 'invitado',
                 nombreAsignado: nombre,
-                cantidad: cantidad, // NUEVO: Guardamos el peso del grupo
-                deParteDe: ''       // NUEVO: Inicializamos la propiedad
+                cantidad: cantidad,
+                deParteDe: ''
             });
             
             return invitado;
@@ -263,30 +306,48 @@
 
         // 4. FUNCIÓN MAESTRA: Reposicionar en círculo
         function reposicionarInvitadosEnCirculo(mesa) {
+            const ocupacionActual = mesa.invitadosSentados.reduce((total, inv) => total + inv.cantidad, 0);
+            
+            const textoMostrar = mesa.linea2 && mesa.linea2 !== '' 
+                ? `${mesa.linea1}\n${mesa.linea2}\n(${ocupacionActual}/${mesa.capacidadMax})`
+                : `${mesa.linea1}\n(${ocupacionActual}/${mesa.capacidadMax})`;
+                
+            mesa.item(1).set('text', textoMostrar);
+
+            let colorFondo = '#f1f5f9';
+            let colorBorde = '#3b82f6';
+            const textoL1 = mesa.linea1.toLowerCase();
+
+            if (textoL1.includes('manuel')) {
+                colorFondo = textoL1.includes('familia') ? '#dbeafe' : '#e0e7ff';
+                colorBorde = textoL1.includes('familia') ? '#2563eb' : '#4f46e5';
+            } else if (textoL1.includes('gemma')) {
+                colorFondo = textoL1.includes('familia') ? '#fce7f3' : '#fae8ff';
+                colorBorde = textoL1.includes('familia') ? '#db2777' : '#c084fc';
+            } else if (textoL1.includes('niños') || textoL1.includes('infantil')) {
+                colorFondo = '#fef9c3';
+                colorBorde = '#ca8a04';
+            }
+
+            mesa.item(0).set({ fill: colorFondo, stroke: colorBorde });
+
             const invitados = mesa.invitadosSentados;
             const numInvitados = invitados.length;
+            
             if (numInvitados === 0) return;
-
-            // Al tener originX/originY en 'center', left y top son el centro exacto
+            
             const cx = mesa.left; 
             const cy = mesa.top;
-
-            // Distancia del centro de la mesa al centro del invitado
             const radioAsiento = radioMesaVisual + 40; 
 
             invitados.forEach((invitadoObj, index) => {
-                // Cálculo del ángulo en radianes
                 const angulo = (index / numInvitados) * (2 * Math.PI);
-
-                // Fórmula trigonométrica
                 const xFinal = cx + (radioAsiento * Math.cos(angulo));
                 const yFinal = cy + (radioAsiento * Math.sin(angulo));
 
-                // Mover invitado y ponerlo por encima de todo
                 invitadoObj.set({ left: xFinal, top: yFinal });
                 invitadoObj.bringToFront();
                 
-                // Actualizar estilo visual a "sentado" (Verde)
                 invitadoObj.item(0).set('fill', '#dcfce7'); 
                 invitadoObj.item(1).set('fill', '#166534');
             });
@@ -296,11 +357,10 @@
         canvas.on('object:modified', function(options) {
             const objetoMovido = options.target;
             
-            // Solo procesamos colisiones si movemos un invitado o una mesa
             if (objetoMovido.tipoObjeto === 'mesa') {
-                // Si movemos la mesa, reposicionamos a todos sus invitados para que la sigan
                 reposicionarInvitadosEnCirculo(objetoMovido);
                 canvas.renderAll();
+				actualizarContadorTotal();
                 return;
             }
             
@@ -309,90 +369,53 @@
             const mesas = canvas.getObjects().filter(obj => obj.tipoObjeto === 'mesa');
             let mesaDestino = null;
 
-            // Comprobar si soltamos el invitado sobre alguna mesa
             mesas.forEach(mesa => {
                 if (objetoMovido.intersectsWithObject(mesa)) {
                     mesaDestino = mesa;
                 }
             });
 
-            // A. Primero, limpiar el invitado de cualquier mesa anterior en la que estuviera
             mesas.forEach(m => {
                 if (m.invitadosSentados.includes(objetoMovido)) {
                     m.invitadosSentados = m.invitadosSentados.filter(inv => inv !== objetoMovido);
-                    reposicionarInvitadosEnCirculo(m); // Reajustar a los que se quedan
+                    reposicionarInvitadosEnCirculo(m); 
                 }
             });
 
-            // B. Evaluar el destino
             if (mesaDestino) {
-                // Comprobar capacidad sumando las cantidades, no contando los rectángulos
-                const ocupacionActual = mesaDestino.invitadosSentados.reduce((total, inv) => total + inv.cantidad, 0);
-                
-                if (ocupacionActual + objetoMovido.cantidad > mesaDestino.capacidadMax) {
-                    // Si no caben, lo devolvemos a estado pendiente (rojo)
-                    objetoMovido.item(0).set('fill', '#fecaca'); 
-                    objetoMovido.item(1).set('fill', '#7f1d1d');
-                    alert(`Capacidad excedida: La ${mesaDestino.nombreAsignado} tiene hueco para ${mesaDestino.capacidadMax - ocupacionActual} personas, y este grupo es de ${objetoMovido.cantidad}.`);
-                } else {
-                    // Añadir a la nueva mesa y reposicionar
-                    mesaDestino.invitadosSentados.push(objetoMovido);
-                    reposicionarInvitadosEnCirculo(mesaDestino);
-                }
+                mesaDestino.invitadosSentados.push(objetoMovido);
+                reposicionarInvitadosEnCirculo(mesaDestino);
             } else {
-                // Si se ha soltado en el vacío, marcar como "pendiente" (rojo)
                 objetoMovido.item(0).set('fill', '#fecaca'); 
                 objetoMovido.item(1).set('fill', '#7f1d1d');
             }
 
             canvas.renderAll();
+			actualizarContadorTotal();
         });
 
-        // 6. CARGA DE DATOS INICIALES (MOCKUP)
-        
-        // Instanciar mesas (x, y, nombre, capacidad)
-        //const mesa1 = crearMesa(300, 350, 'Mesa 1', 6);
-        //const mesa2 = crearMesa(600, 350, 'Mesa 2', 6);
-        //canvas.add(mesa1, mesa2);
-
-        // Lista de invitados de prueba
-        const listaNombres = [];
-
-        // Instanciar invitados en una columna inicial
-        listaNombres.forEach((nombre, index) => {
-            const xInicial = 100;
-            const yInicial = 50 + (index * 45); // Espaciado vertical
-            const inv = crearInvitado(xInicial, yInicial, nombre);
-            canvas.add(inv);
-        });
-		
-		// 7. NUEVAS FUNCIONES: AÑADIR Y QUITAR MESAS
-
-        let contadorNuevasMesas = 1; // Ya tenemos 1 y 2 en los datos de prueba
+        // 7. GESTIÓN MANUAL DE MESAS
+        let contadorNuevasMesas = 1;
 
         function agregarMesa() {
             const inputNombre = document.getElementById('nombreMesa');
             const inputCapacidad = document.getElementById('capacidadMesa');
             
-            // Si el campo está vacío, generamos un nombre automático
             const nombre = inputNombre.value.trim() || `Mesa ${contadorNuevasMesas}`;
-            const capacidad = parseInt(inputCapacidad.value) || 8;
+            const capacidad = parseInt(inputCapacidad.value) || 10;
 
-            // Las colocamos en el centro del lienzo, con un ligero desvío aleatorio 
-            // para que si creas varias rápido, no se solapen exactamente
             const xCentro = (canvas.width / 2) + (Math.random() * 40 - 20);
             const yCentro = (canvas.height / 2) + (Math.random() * 40 - 20);
-
-            const nuevaMesa = crearMesa(xCentro, yCentro, nombre, capacidad);
+            
+            const idUnico = `mesa_manual_${contadorNuevasMesas}`;
+            const nuevaMesa = crearMesa(xCentro, yCentro, idUnico, nombre, "", capacidad);
             canvas.add(nuevaMesa);
             
-            // Preparamos el terreno para la siguiente
             contadorNuevasMesas++;
             inputNombre.value = ''; 
         }
 
         function eliminarMesa() {
-            // Obtenemos el objeto que el usuario tiene seleccionado con el ratón
             const objetoActivo = canvas.getActiveObject();
 
             if (!objetoActivo) {
@@ -401,51 +424,60 @@
             }
 
             if (objetoActivo.tipoObjeto === 'mesa') {
-                // 1. Liberar a los invitados sentados
                 objetoActivo.invitadosSentados.forEach(invitadoObj => {
-                    // Volver a pintarlos de rojo (pendientes)
                     invitadoObj.item(0).set('fill', '#fecaca'); 
                     invitadoObj.item(1).set('fill', '#7f1d1d');
                     
-                    // Opcional: moverlos un poco hacia el centro para que no queden 
-                    // haciendo un círculo en el vacío.
                     invitadoObj.set({
                         left: canvas.width / 2 + (Math.random() * 100 - 50),
                         top: canvas.height / 2 + (Math.random() * 100 - 50)
                     });
                 });
 
-                // 2. Eliminar la mesa del lienzo
                 canvas.remove(objetoActivo);
-                canvas.discardActiveObject(); // Quitar la selección
+                canvas.discardActiveObject(); 
+                renumerarMesas();
                 canvas.renderAll();
+				actualizarContadorTotal();
                 
             } else if (objetoActivo.tipoObjeto === 'invitado') {
                 alert("Has seleccionado a un invitado. Esta función solo elimina mesas.");
             }
         }
-		
-		// 8. NUEVAS FUNCIONES: AÑADIR Y QUITAR INVITADOS
-
+        
+        // 8. GESTIÓN DE INVITADOS
         function agregarInvitado() {
             const inputNombre = document.getElementById('nombreInvitado');
+            const inputCantidad = document.getElementById('cantidadInvitado');
+            
             const nombre = inputNombre.value.trim();
+            const cantidad = parseInt(inputCantidad.value) || 1;
             
             if (!nombre) {
                 alert("Por favor, introduce el nombre del invitado.");
                 return;
             }
 
-            // Los hacemos aparecer en el lado izquierdo de la pantalla (zona de "pendientes")
-            // Añadimos un poco de aleatoriedad para que no caigan exactamente uno encima del otro
             const xInicial = 100 + (Math.random() * 20 - 10);
             const yInicial = 100 + (Math.random() * 300);
 
-            const nuevoInvitado = crearInvitado(xInicial, yInicial, nombre);
+            const nuevoInvitado = crearInvitado(xInicial, yInicial, nombre, cantidad);
+            
+            // Asignar metadatos por defecto para compatibilidad con exportaciones y filtros
+            nuevoInvitado.lado = 'General';
+            nuevoInvitado.relacion = 'General';
+            nuevoInvitado.origen = 'General';
+            nuevoInvitado.edad = 'Adultos';
+            nuevoInvitado.deParteDe = 'General';
+
             canvas.add(nuevoInvitado);
             
-            // Limpiamos el input y devolvemos el foco para que puedas escribir rápido
+            // Actualizar el contador flotante del lienzo
+            actualizarContadorTotal();
+            
+            // Limpiar inputs y devolver el foco
             inputNombre.value = ''; 
+            inputCantidad.value = '1';
             inputNombre.focus();
         }
 
@@ -458,32 +490,26 @@
             }
 
             if (objetoActivo.tipoObjeto === 'invitado') {
-                // 1. Si está en una mesa, quitarlo del array de la mesa y reordenar
                 const mesas = canvas.getObjects().filter(obj => obj.tipoObjeto === 'mesa');
                 mesas.forEach(m => {
                     if (m.invitadosSentados.includes(objetoActivo)) {
-                        // Lo quitamos del array interno de la mesa
                         m.invitadosSentados = m.invitadosSentados.filter(inv => inv !== objetoActivo);
-                        // ¡Clave! Reposicionamos la mesa para que se cierre el hueco
                         reposicionarInvitadosEnCirculo(m); 
                     }
                 });
 
-                // 2. Eliminar al invitado del lienzo
                 canvas.remove(objetoActivo);
                 canvas.discardActiveObject();
                 canvas.renderAll();
+				actualizarContadorTotal();
                 
             } else if (objetoActivo.tipoObjeto === 'mesa') {
                 alert("Has seleccionado una mesa. Usa el botón de eliminar mesa.");
             }
         }
-		
-		// ==========================================
+        
         // 9. IMPORTAR Y EXPORTAR DATOS
-        // ==========================================
-
-        // --- A. IMPORTAR INVITADOS DESDE EXCEL ---
+        // --- A. IMPORTAR O ACTUALIZAR INVITADOS DESDE EXCEL ---
         document.getElementById('inputExcel').addEventListener('change', function(evento) {
             const archivo = evento.target.files[0];
             if (!archivo) return;
@@ -499,62 +525,165 @@
                 let contadorY = 50;
                 let contadorX = 50;
 
-                // --- INICIO DEL BUCLE ---
+                // Obtenemos los invitados que ya están actualmente en el lienzo
+                const invitadosActuales = canvas.getObjects().filter(obj => obj.tipoObjeto === 'invitado');
+
                 for (let i = 1; i < filas.length; i++) {
                     const fila = filas[i];
                     const nombre = fila[0]; // Columna A
                     
                     if (nombre && typeof nombre === 'string' && nombre.trim() !== '') {
-                        const cantidad = parseInt(fila[6]) || 1; // Columna G
-                        const nuevoInvitado = crearInvitado(contadorX, contadorY, nombre.trim(), cantidad);
+                        let cantidad = parseInt(fila[6]); // Columna G
+                        const nombreLimpio = nombre.trim();
                         
-                        nuevoInvitado.lado = fila[1] || 'Sin definir';       // Col B
-                        nuevoInvitado.relacion = fila[2] || 'Sin definir';   // Col C
-                        nuevoInvitado.origen = fila[3] || 'Sin definir';     // Col D
-                        nuevoInvitado.edad = fila[4] || 'Adultos';           // Col E
-                        nuevoInvitado.deParteDe = fila[5] || 'General';      // Col F
+                        // Buscamos si el invitado ya existe en el plano por su nombre
+                        const invitadoExistente = invitadosActuales.find(
+                            inv => inv.nombreAsignado.toLowerCase() === nombreLimpio.toLowerCase()
+                        );
 
-                        canvas.add(nuevoInvitado);
+                        // Si la cantidad es 0, y ya existía, lo eliminamos del plano
+                        if (cantidad === 0) {
+                            if (invitadoExistente) {
+                                // Quitarlo de cualquier mesa en la que estuviera sentado
+                                const mesas = canvas.getObjects().filter(m => m.tipoObjeto === 'mesa');
+                                mesas.forEach(m => {
+                                    if (m.invitadosSentados.includes(invitadoExistente)) {
+                                        m.invitadosSentados = m.invitadosSentados.filter(inv => inv !== invitadoExistente);
+                                        reposicionarInvitadosEnCirculo(m);
+                                    }
+                                });
+                                canvas.remove(invitadoExistente);
+                            }
+                            continue; 
+                        }
                         
-                        contadorY += 40;
-                        if (contadorY > canvas.height - 50) {
-                            contadorY = 50;
-                            contadorX += 140; // Un poco más de margen horizontal
+                        if (isNaN(cantidad) || cantidad < 1) {
+                            cantidad = 1;
+                        }
+
+                        const lado = fila[1] || 'General';
+                        const relacion = fila[2] || 'General';
+                        const origen = fila[3] || 'General';
+                        const edad = fila[4] || 'Adultos';
+                        const deParteDe = fila[5] || 'General';
+
+                        if (invitadoExistente) {
+                            // --- ACTUALIZAR INVITADO EXISTENTE ---
+                            invitadoExistente.cantidad = cantidad;
+                            invitadoExistente.lado = lado;
+                            invitadoExistente.relacion = relacion;
+                            invitadoExistente.origen = origen;
+                            invitadoExistente.edad = edad;
+                            invitadoExistente.deParteDe = deParteDe;
+
+                            // Actualizar texto visual del rectángulo
+                            const textoMostrar = cantidad > 1 ? `${nombreLimpio} (${cantidad})` : nombreLimpio;
+                            invitadoExistente.item(1).set('text', textoMostrar);
+
+                            // Si estaba sentado en una mesa, actualizar el contador visual de la mesa
+                            const mesas = canvas.getObjects().filter(m => m.tipoObjeto === 'mesa');
+                            mesas.forEach(m => {
+                                if (m.invitadosSentados.includes(invitadoExistente)) {
+                                    reposicionarInvitadosEnCirculo(m);
+                                }
+                            });
+
+                        } else {
+                            // --- CREAR NUEVO INVITADO ---
+                            const nuevoInvitado = crearInvitado(contadorX, contadorY, nombreLimpio, cantidad);
+                            
+                            nuevoInvitado.lado = lado;
+                            nuevoInvitado.relacion = relacion;
+                            nuevoInvitado.origen = origen;
+                            nuevoInvitado.edad = edad;
+                            nuevoInvitado.deParteDe = deParteDe;
+
+                            canvas.add(nuevoInvitado);
+                            
+                            contadorY += 40;
+                            if (contadorY > canvas.height - 50) {
+                                contadorY = 50;
+                                contadorX += 140; 
+                            }
                         }
                     }
                 }
-                // --- FIN DEL BUCLE ---
-
-                // Estas líneas SÓLO se ejecutan una vez, cuando el bucle ha terminado
+                
                 evento.target.value = ''; 
                 canvas.renderAll();
-                
-                // Si quieres que sea menos molesto, puedes cambiar el alert por un console.log
-                // console.log(`Se han cargado ${filas.length - 1} grupos de invitados.`);
-                alert("Invitados y categorías cargados con éxito.");
+				actualizarContadorTotal();
+                alert("Sincronización de invitados completada con éxito.");
             };
             lector.readAsArrayBuffer(archivo);
         });
+		
+		// --- EXPORTAR INVITADOS A EXCEL ---
+        function exportarExcel() {
+            const invitados = canvas.getObjects().filter(obj => obj.tipoObjeto === 'invitado');
+            if (invitados.length === 0) {
+                alert("No hay invitados en el plano para exportar.");
+                return;
+            }
 
-        // --- B. EXPORTAR ESTADO (GUARDAR JSON) ---
+            const mesas = canvas.getObjects().filter(obj => obj.tipoObjeto === 'mesa');
+
+            // Fila de cabeceras
+            const datosExcel = [
+                ["Nombre", "Lado", "Relación", "Origen", "Edad", "De parte de", "Cantidad", "Mesa Asignada"]
+            ];
+
+            invitados.forEach(inv => {
+                // Buscar en qué mesa está sentado
+                const mesaAsignada = mesas.find(m => m.invitadosSentados.includes(inv));
+                // Extraer el nombre limpio de la mesa (quitando los saltos de línea del contador)
+                const nombreMesa = mesaAsignada ? mesaAsignada.linea1.split('\n')[0] : "Sin asignar";
+
+                datosExcel.push([
+                    inv.nombreAsignado,
+                    inv.lado || '',
+                    inv.relacion || '',
+                    inv.origen || '',
+                    inv.edad || '',
+                    inv.deParteDe || '',
+                    inv.cantidad || 1,
+                    nombreMesa
+                ]);
+            });
+
+            // Crear hoja y libro de trabajo con SheetJS
+            const worksheet = XLSX.utils.aoa_to_sheet(datosExcel);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Invitados Actualizados");
+
+            // Descargar archivo Excel
+            XLSX.writeFile(workbook, "listado_invitados_boda.xlsx");
+        }
+
         function guardarProyecto() {
             const estado = { mesas: [], invitados: [] };
 
             canvas.getObjects().forEach(obj => {
                 if (obj.tipoObjeto === 'mesa') {
                     estado.mesas.push({
-                        nombre: obj.nombreAsignado,
+                        idUnico: obj.nombreAsignado,
+                        linea1: obj.linea1,
+                        linea2: obj.linea2,
                         capacidadMax: obj.capacidadMax,
                         left: obj.left,
                         top: obj.top
                     });
                 } else if (obj.tipoObjeto === 'invitado') {
-                    // Buscar si el invitado está dentro del array de alguna mesa
                     const mesas = canvas.getObjects().filter(o => o.tipoObjeto === 'mesa');
                     const mesaAsignada = mesas.find(m => m.invitadosSentados.includes(obj));
 
                     estado.invitados.push({
                         nombre: obj.nombreAsignado,
+                        cantidad: obj.cantidad,
+                        lado: obj.lado,
+                        relacion: obj.relacion,
+                        origen: obj.origen,
+                        edad: obj.edad,
+                        deParteDe: obj.deParteDe,
                         left: obj.left,
                         top: obj.top,
                         mesaId: mesaAsignada ? mesaAsignada.nombreAsignado : null
@@ -562,11 +691,9 @@
                 }
             });
 
-            // Crear el archivo para descargar
             const dataStr = JSON.stringify(estado, null, 2);
             const blob = new Blob([dataStr], { type: "application/json" });
             const url = URL.createObjectURL(blob);
-            
             const enlace = document.createElement('a');
             enlace.href = url;
             enlace.download = 'seating_plan_boda.json';
@@ -574,7 +701,6 @@
             URL.revokeObjectURL(url);
         }
 
-        // --- C. IMPORTAR ESTADO (CARGAR JSON) ---
         document.getElementById('inputJSON').addEventListener('change', function(evento) {
             const archivo = evento.target.files[0];
             if (!archivo) return;
@@ -583,114 +709,160 @@
             lector.onload = function(e) {
                 try {
                     const estado = JSON.parse(e.target.result);
-                    
-                    // Limpiar lienzo
                     canvas.clear();
-                    
-                    const diccionarioMesas = {}; // Para enlazar rápido los invitados
+                    const diccionarioMesas = {}; 
 
-                    // 1. Recrear Mesas
                     if (estado.mesas) {
                         estado.mesas.forEach(m => {
-                            const nuevaMesa = crearMesa(m.left, m.top, m.nombre, m.capacidadMax);
+                            const id = m.idUnico || m.nombre || `mesa_${Math.random()}`;
+                            const l1 = m.linea1 || m.nombre || "Mesa";
+                            const l2 = m.linea2 || "";
+                            const cap = m.capacidadMax || 10;
+                            
+                            const nuevaMesa = crearMesa(m.left || 300, m.top || 300, id, l1, l2, cap);
                             canvas.add(nuevaMesa);
-                            diccionarioMesas[m.nombre] = nuevaMesa;
+                            diccionarioMesas[id] = nuevaMesa;
                         });
                     }
 
-                    // 2. Recrear Invitados
                     if (estado.invitados) {
                         estado.invitados.forEach(inv => {
-                            const nuevoInv = crearInvitado(inv.left, inv.top, inv.nombre);
+                            const nombre = inv.nombre || inv.nombreAsignado || "Invitado";
+                            const cantidad = inv.cantidad || 1;
+                            
+                            const nuevoInv = crearInvitado(inv.left || 100, inv.top || 100, nombre, cantidad);
+                            
+                            nuevoInv.lado = inv.lado || 'General';
+                            nuevoInv.relacion = inv.relacion || 'General';
+                            nuevoInv.origen = inv.origen || 'General';
+                            nuevoInv.edad = inv.edad || 'Adultos';
+                            nuevoInv.deParteDe = inv.deParteDe || 'General';
+
                             canvas.add(nuevoInv);
                             
-                            // Si estaba en una mesa, lo volvemos a meter en su array
                             if (inv.mesaId && diccionarioMesas[inv.mesaId]) {
                                 diccionarioMesas[inv.mesaId].invitadosSentados.push(nuevoInv);
                             }
                         });
                     }
 
-                    // 3. Reordenar las mesas cargadas para actualizar los colores a verde
                     Object.values(diccionarioMesas).forEach(mesa => {
                         reposicionarInvitadosEnCirculo(mesa);
                     });
 
                     canvas.renderAll();
-                    // Reseteamos input
+					actualizarContadorTotal();
                     evento.target.value = '';
+                    alert("Plano cargado con éxito.");
                     
                 } catch (error) {
-                    alert("Error al cargar el archivo JSON. Verifica que sea válido.");
+                    console.error(error);
+                    alert("Error crítico al procesar el archivo JSON. Asegúrate de que es un plano válido de la aplicación.");
                 }
             };
             lector.readAsText(archivo);
         });
-		
-		// 10. FUNCIÓN PARA MOSTRAR/OCULTAR LA AYUDA DEL EXCEL
+        
         function toggleAyudaExcel() {
             const caja = document.getElementById('cajaAyudaExcel');
-            if (caja.style.display === 'none') {
-                caja.style.display = 'block';
-            } else {
-                caja.style.display = 'none';
-            }
+            caja.style.display = caja.style.display === 'none' ? 'block' : 'none';
         }
-		
-		// 11. EXPORTAR LIENZO A IMAGEN (PNG)
+        
+        // 11. EXPORTAR LIENZO A IMAGEN (PNG) - BLINDADO CON CONTADOR INCLUIDO
         function exportarImagen() {
+            // 1. Quitar selección y forzar recalculo de coordenadas
             canvas.discardActiveObject();
+            canvas.getObjects().forEach(obj => obj.setCoords());
             canvas.renderAll();
 
-            // 1. Guardamos dónde estaba mirando el usuario para no arruinarle su vista actual
+            // 2. Guardar dónde estaba mirando el usuario
             const vptOriginal = [...canvas.viewportTransform];
             
-            // 2. Escaneamos TODO el lienzo para encontrar los extremos (la "caja delimitadora")
-            let minX = 0, minY = 0, maxX = canvas.width, maxY = canvas.height;
+            // 3. Escaneo exhaustivo de TODOS los objetos del lienzo
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            const objetos = canvas.getObjects();
             
-            canvas.getObjects().forEach(obj => {
-                const rect = obj.getBoundingRect();
-                if (rect.left < minX) minX = rect.left;
-                if (rect.top < minY) minY = rect.top;
-                if (rect.left + rect.width > maxX) maxX = rect.left + rect.width;
-                if (rect.top + rect.height > maxY) maxY = rect.top + rect.height;
-            });
+            if (objetos.length === 0) {
+                minX = 0; minY = 0; maxX = canvas.width; maxY = canvas.height;
+            } else {
+                objetos.forEach(obj => {
+                    const rect = obj.getBoundingRect(true, true);
+                    if (rect.left < minX) minX = rect.left;
+                    if (rect.top < minY) minY = rect.top;
+                    if (rect.left + rect.width > maxX) maxX = rect.left + rect.width;
+                    if (rect.top + rect.height > maxY) maxY = rect.top + rect.height;
+                });
+            }
 
-            // Añadimos un margen de seguridad de 100px para que las mesas no queden pegadas al borde
-            const margen = 100;
+            const margen = 250;
             minX -= margen;
             minY -= margen;
             maxX += margen;
             maxY += margen;
 
-            // 3. Reseteamos la cámara virtual a 0 para que la foto no salga distorsionada
-            canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+            // --- DIBUJAR TEMPORALMENTE EL CONTADOR EN EL CANVAS ---
+            const contadorHTML = document.getElementById('contador-total');
+            const textoContador = contadorHTML ? contadorHTML.textContent : "Resumen del Plano";
 
-            // 4. Exportamos diciéndole exactamente qué recuadro matemático queremos capturar
+            const tempText = new fabric.Text(textoContador, {
+                fontSize: 14,
+                fontFamily: 'sans-serif',
+                fill: '#334155',
+                left: 12,
+                top: 10
+            });
+
+            const tempRect = new fabric.Rect({
+                width: tempText.width + 24,
+                height: tempText.height + 20,
+                fill: '#ffffff',
+                stroke: '#cbd5e1',
+                strokeWidth: 1,
+                rx: 6,
+                ry: 6,
+                left: 0,
+                top: 0
+            });
+
+            const badgeGroup = new fabric.Group([tempRect, tempText], {
+                left: maxX - tempText.width - 60, // Posicionado arriba a la derecha del área exportada
+                top: minY + 40,
+                selectable: false,
+                evented: false
+            });
+
+            canvas.add(badgeGroup);
+
+            // 4. Resetear la cámara virtual a (0,0)
+            canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+            canvas.renderAll();
+
+            // 5. Generar la imagen PNG de alta resolución
             const dataURL = canvas.toDataURL({
                 format: 'png',
                 quality: 1,
-                multiplier: 2, // Mantener x2 para calidad de imprenta
+                multiplier: 2,
                 left: minX,
                 top: minY,
                 width: (maxX - minX),
                 height: (maxY - minY)
             });
 
-            // 5. Devolvemos la cámara al punto exacto donde estaba el usuario
+            // 6. Retirar el contador temporal del canvas
+            canvas.remove(badgeGroup);
+
+            // 7. Devolver la cámara a la posición original del usuario
             canvas.setViewportTransform(vptOriginal);
+            canvas.renderAll();
             
-            // 6. Descargar el archivo
+            // 8. Descargar el archivo
             const enlace = document.createElement('a');
             enlace.href = dataURL;
             enlace.download = 'plano_salon_24_abril_completo.png';
             enlace.click();
         }
-		
-		// ==========================================
+        
         // 12. ALGORITMO DE AUTO-ASIGNACIÓN
-        // ==========================================
-
         function autoAsignarMesas() {
             const todosLosInvitados = canvas.getObjects().filter(obj => obj.tipoObjeto === 'invitado');
             const invitadosPendientes = todosLosInvitados.filter(inv => {
@@ -703,7 +875,6 @@
                 return;
             }
 
-            // 1. Agrupar incluyendo 'deParteDe'
             const gruposLogicos = {};
             invitadosPendientes.forEach(inv => {
                 const claveAgrupacion = inv.edad.toLowerCase() === 'niños' || inv.edad.toLowerCase() === 'niño' ? 
@@ -716,40 +887,45 @@
                 gruposLogicos[claveAgrupacion].push(inv);
             });
 
-            const capacidadEstandar = parseInt(document.getElementById('capacidadAuto').value) || 8;
+            const capacidadEstandar = parseInt(document.getElementById('capacidadAuto').value) || 10;
             let xMesa = 300;
             let yMesa = 150;
 
-            // 2. Llenado algorítmico de mesas
             Object.keys(gruposLogicos).forEach(clave => {
                 let bloquePersonas = gruposLogicos[clave];
                 
                 while (bloquePersonas.length > 0) {
-                    
-                    // Control de seguridad: Si un solo grupo es más grande que la mesa entera
                     if (bloquePersonas[0].cantidad > capacidadEstandar) {
-                        alert(`Atención: El grupo '${bloquePersonas[0].nombreAsignado}' (${bloquePersonas[0].cantidad} pers.) supera la capacidad máxima de la mesa (${capacidadEstandar}). Debes dividirlo en el Excel o aumentar el tamaño de las mesas.`);
-                        // Lo sacamos del array para evitar un bucle infinito
+                        alert(`Atención: El grupo '${bloquePersonas[0].nombreAsignado}' (${bloquePersonas[0].cantidad} pers.) supera la capacidad máxima de la mesa (${capacidadEstandar}).`);
                         bloquePersonas.shift();
                         continue; 
                     }
 
-                    const nombreMesaAuto = clave === 'Mesa_Infantil' ? 'Infantil' : `Mesa ${contadorNuevasMesas}`;
-                    const nuevaMesa = crearMesa(xMesa, yMesa, nombreMesaAuto, capacidadEstandar);
+                    let linea1 = "";
+                    let linea2 = "";
+                    
+                    if (clave === 'Mesa_Infantil') {
+                        linea1 = `Niños #${contadorNuevasMesas}`;
+                        linea2 = "Infantil";
+                    } else {
+                        linea1 = `${bloquePersonas[0].lado} #${contadorNuevasMesas}`;
+                        linea2 = `${bloquePersonas[0].relacion} - ${bloquePersonas[0].deParteDe}`;
+                    }
+
+                    const idUnico = `mesa_auto_${contadorNuevasMesas}`;
+                    const nuevaMesa = crearMesa(xMesa, yMesa, idUnico, linea1, linea2, capacidadEstandar);
                     canvas.add(nuevaMesa);
                     contadorNuevasMesas++;
-
+                    
                     let asientosOcupados = 0;
                     
-                    // Algoritmo de empaquetado: recorrer el bloque e intentar meter a todos los que quepan
                     for (let i = 0; i < bloquePersonas.length; i++) {
                         if (asientosOcupados + bloquePersonas[i].cantidad <= capacidadEstandar) {
                             nuevaMesa.invitadosSentados.push(bloquePersonas[i]);
                             asientosOcupados += bloquePersonas[i].cantidad;
                             
-                            // Lo sacamos del array de pendientes
                             bloquePersonas.splice(i, 1);
-                            i--; // Reajustamos el índice porque el array acaba de encoger
+                            i--; 
                         }
                     }
 
@@ -764,32 +940,25 @@
             });
 
             canvas.renderAll();
+			actualizarContadorTotal();
         }
-		
-		// ==========================================
-        // 13. NAVEGACIÓN: ZOOM Y DESPLAZAMIENTO (PAN)
-        // ==========================================
-
-        // A. Zoom con la rueda del ratón
+        
+        // 13. NAVEGACIÓN: ZOOM Y PAN
         canvas.on('mouse:wheel', function(opt) {
             const delta = opt.e.deltaY;
             let zoom = canvas.getZoom();
             zoom *= 0.999 ** delta;
             
-            // Limitamos el zoom (no acercarse a lo microscópico ni alejarse al infinito)
             if (zoom > 5) zoom = 5;
             if (zoom < 0.1) zoom = 0.1;
             
-            // Hacemos zoom hacia el punto donde está el ratón
             canvas.zoomToPoint({ x: opt.e.offsetX, y: opt.e.offsetY }, zoom);
             opt.e.preventDefault();
             opt.e.stopPropagation();
         });
 
-        // B. Desplazamiento (Pan) haciendo clic en el fondo vacío
         canvas.on('mouse:down', function(opt) {
             const evt = opt.e;
-            // Si hacemos clic pero NO hay un objeto debajo (target es nulo), estamos tocando el fondo
             if (!opt.target) {
                 this.isDragging = true;
                 this.lastPosX = evt.clientX;
@@ -801,7 +970,6 @@
             if (this.isDragging) {
                 const e = opt.e;
                 const vpt = this.viewportTransform;
-                // Movemos la cámara la misma distancia que hemos movido el ratón
                 vpt[4] += e.clientX - this.lastPosX;
                 vpt[5] += e.clientY - this.lastPosY;
                 this.requestRenderAll();
@@ -811,32 +979,74 @@
         });
 
         canvas.on('mouse:up', function(opt) {
-            // Cuando soltamos el ratón, paramos de arrastrar y guardamos el estado de la cámara
             this.setViewportTransform(this.viewportTransform);
             this.isDragging = false;
         });
 
-        // C. Funciones para los botones de la interfaz
         function hacerZoom(factor) {
             let zoom = canvas.getZoom() * factor;
             if (zoom > 5) zoom = 5;
             if (zoom < 0.1) zoom = 0.1;
-            // Zoom desde el centro de la pantalla
             canvas.zoomToPoint({ x: canvas.width / 2, y: canvas.height / 2 }, zoom);
         }
 
         function resetearVista() {
-            // Restablece la cámara a escala 1:1 y coordenadas 0,0
             canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
             canvas.renderAll();
+			actualizarContadorTotal();
         }
-		
-		// Añadir este listener en cualquier parte de tu script
+        
+        // 14. RENUMERACIÓN INTELIGENTE
+        function renumerarMesas() {
+            const mesas = canvas.getObjects().filter(obj => obj.tipoObjeto === 'mesa');
+            
+            mesas.sort((a, b) => {
+                if (Math.abs(a.top - b.top) > 50) { 
+                    return a.top - b.top;
+                }
+                return a.left - b.left; 
+            });
+
+            let nuevoContador = 1;
+
+            mesas.forEach(mesa => {
+                if (mesa.linea1) {
+                    if (mesa.linea1.includes('#')) {
+                        mesa.linea1 = mesa.linea1.replace(/#\d+/, `#${nuevoContador}`);
+                    } else if (mesa.linea1.match(/Mesa \d+/i)) {
+                        mesa.linea1 = mesa.linea1.replace(/Mesa \d+/i, `Mesa ${nuevoContador}`);
+                    }
+                }
+                reposicionarInvitadosEnCirculo(mesa);
+                nuevoContador++;
+            });
+
+            contadorNuevasMesas = nuevoContador;
+        }
+        
+		// ==========================================
+        // 15. CONTADOR TOTAL DE ASISTENTES Y MESAS
+        // ==========================================
+        function actualizarContadorTotal() {
+            // Contamos los invitados y sumamos el peso (personas) de cada grupo
+            const invitados = canvas.getObjects().filter(obj => obj.tipoObjeto === 'invitado');
+            const totalPersonas = invitados.reduce((sum, inv) => sum + (inv.cantidad || 1), 0);
+            
+            // Contamos las mesas totales en el lienzo
+            const mesasTotales = canvas.getObjects().filter(obj => obj.tipoObjeto === 'mesa').length;
+            
+            const el = document.getElementById('contador-total');
+            if (el) {
+                // Actualizamos el texto con toda la información clave
+                el.textContent = `Total Asistentes: ${totalPersonas} | Mesas: ${mesasTotales} | Grupos: ${invitados.length}`;
+            }
+        }
+		// ==========================================
+        // Listeners
+        // ==========================================
         window.addEventListener('keydown', function(evento) {
             if (evento.key === 'Delete' || evento.key === 'Backspace') {
                 const objetoActivo = canvas.getActiveObject();
-                
-                // Evitamos borrar cosas si estás escribiendo dentro de un <input>
                 if (document.activeElement.tagName !== 'INPUT' && objetoActivo) {
                     if (objetoActivo.tipoObjeto === 'mesa') {
                         eliminarMesa();
@@ -846,7 +1056,6 @@
                 }
             }
         });
-		
     </script>
 </body>
 </html>
