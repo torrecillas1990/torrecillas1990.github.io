@@ -239,7 +239,76 @@
             const inv = crearInvitado(xInicial, yInicial, nombre);
             canvas.add(inv);
         });
+		
+		// 7. NUEVAS FUNCIONES: AÑADIR Y QUITAR MESAS
 
+        let contadorNuevasMesas = 3; // Ya tenemos 1 y 2 en los datos de prueba
+
+        function agregarMesa() {
+            const inputNombre = document.getElementById('nombreMesa');
+            const inputCapacidad = document.getElementById('capacidadMesa');
+            
+            // Si el campo está vacío, generamos un nombre automático
+            const nombre = inputNombre.value.trim() || `Mesa ${contadorNuevasMesas}`;
+            const capacidad = parseInt(inputCapacidad.value) || 8;
+
+            // Las colocamos en el centro del lienzo, con un ligero desvío aleatorio 
+            // para que si creas varias rápido, no se solapen exactamente
+            const xCentro = (canvas.width / 2) + (Math.random() * 40 - 20);
+            const yCentro = (canvas.height / 2) + (Math.random() * 40 - 20);
+
+            const nuevaMesa = crearMesa(xCentro, yCentro, nombre, capacidad);
+            canvas.add(nuevaMesa);
+            
+            // Preparamos el terreno para la siguiente
+            contadorNuevasMesas++;
+            inputNombre.value = ''; 
+        }
+
+        function eliminarMesa() {
+            // Obtenemos el objeto que el usuario tiene seleccionado con el ratón
+            const objetoActivo = canvas.getActiveObject();
+
+            if (!objetoActivo) {
+                alert("Primero haz clic en la mesa que quieres eliminar.");
+                return;
+            }
+
+            if (objetoActivo.tipoObjeto === 'mesa') {
+                // 1. Liberar a los invitados sentados
+                objetoActivo.invitadosSentados.forEach(invitadoObj => {
+                    // Volver a pintarlos de rojo (pendientes)
+                    invitadoObj.item(0).set('fill', '#fecaca'); 
+                    invitadoObj.item(1).set('fill', '#7f1d1d');
+                    
+                    // Opcional: moverlos un poco hacia el centro para que no queden 
+                    // haciendo un círculo en el vacío.
+                    invitadoObj.set({
+                        left: canvas.width / 2 + (Math.random() * 100 - 50),
+                        top: canvas.height / 2 + (Math.random() * 100 - 50)
+                    });
+                });
+
+                // 2. Eliminar la mesa del lienzo
+                canvas.remove(objetoActivo);
+                canvas.discardActiveObject(); // Quitar la selección
+                canvas.renderAll();
+                
+            } else if (objetoActivo.tipoObjeto === 'invitado') {
+                alert("Has seleccionado a un invitado. Esta función solo elimina mesas.");
+            }
+        }
+		
+		// Añadir este listener en cualquier parte de tu script
+        window.addEventListener('keydown', function(evento) {
+            if (evento.key === 'Delete' || evento.key === 'Backspace') {
+                const objetoActivo = canvas.getActiveObject();
+                // Solo si el usuario no está escribiendo en el input de texto
+                if (document.activeElement.tagName !== 'INPUT' && objetoActivo && objetoActivo.tipoObjeto === 'mesa') {
+                    eliminarMesa();
+                }
+            }
+        });
     </script>
 </body>
 </html>
