@@ -47,6 +47,12 @@ const proyectos = [
         descripcion: 'Herramienta de gestión PRO de recuerdos/fotos de la boda.',
         ruta: 'boda/my-dots-pro/index.html?modo=admin'
     },
+	{
+        categoria: 'boda',
+        titulo: 'Sitting Plan',
+        descripcion: 'Herramienta para la creacion del sitting plan de la boda.',
+        ruta: 'boda/sitting-plan/index.html'
+    },
     {
         categoria: 'manuel-torrecillas-sl',
         titulo: 'Manuel Torrecillas SL',

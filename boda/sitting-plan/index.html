@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Seating Plan - 24 Abril 2027</title>
+    <!-- Importamos la librería principal -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f8fafc;
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        h1 {
+            color: #334155;
+            margin-bottom: 10px;
+        }
+        .instrucciones {
+            color: #64748b;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .canvas-container {
+            border: 2px dashed #cbd5e1;
+            background-color: #ffffff;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Distribución de Mesas</h1>
+    <div class="instrucciones">Arrastra los invitados hacia las mesas para asignarlos. Arrástralos fuera para quitarlos.</div>
+    
+    <!-- Panel de controles para las mesas -->
+    <div style="margin-bottom: 20px; display: flex; gap: 10px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0;">
+        <input type="text" id="nombreMesa" placeholder="Nombre (ej. Mesa 3)" style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px;">
+        
+        <label style="display: flex; align-items: center; gap: 5px; color: #475569; font-size: 14px;">
+            Capacidad:
+            <input type="number" id="capacidadMesa" value="8" min="2" max="15" style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; width: 60px;">
+        </label>
+        
+        <button onclick="agregarMesa()" style="padding: 8px 16px; background-color: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">+ Añadir Mesa</button>
+        <button onclick="eliminarMesa()" style="padding: 8px 16px; background-color: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">🗑️ Eliminar Seleccionada</button>
+    </div>
+
+    <!-- El área de trabajo -->
+    <canvas id="lienzo-boda" width="900" height="700"></canvas>
+	
+    <!-- El área de trabajo -->
+    <canvas id="lienzo-boda" width="900" height="700"></canvas>
+
+    <script>
+        // 1. Inicializar Lienzo
+        // Desactivamos la selección grupal para evitar arrastrar accidentalmente mesa + invitados a la vez
+        const canvas = new fabric.Canvas('lienzo-boda', { selection: false });
+        const radioMesaVisual = 60; 
+
+        // 2. FUNCIÓN: Crear una Mesa
+        function crearMesa(x, y, nombre, capacidadMax) {
+            const circulo = new fabric.Circle({
+                radius: radioMesaVisual,
+                fill: '#f1f5f9',
+                stroke: '#3b82f6',
+                strokeWidth: 3,
+                originX: 'center',
+                originY: 'center'
+            });
+            
+            const texto = new fabric.Text(nombre + ` (${capacidadMax})`, {
+                fontSize: 16,
+                fontFamily: 'sans-serif',
+                fontWeight: 'bold',
+                fill: '#1e293b',
+                originX: 'center',
+                originY: 'center'
+            });
+
+            const mesa = new fabric.Group([circulo, texto], {
+                left: x,
+                top: y,
+                originX: 'center',
+                originY: 'center',
+                hasControls: false,
+                hasBorders: true,         // MODIFICADO: Mostrar borde al seleccionar
+                borderColor: '#f59e0b',   // NUEVO: Borde naranja para saber cuál está seleccionada
+                borderDashArray: [5, 5],  // NUEVO: Borde punteado
+                tipoObjeto: 'mesa',
+                nombreAsignado: nombre,
+                capacidadMax: capacidadMax,
+                invitadosSentados: []
+            });
+            
+            return mesa;
+        }
+
+        // 3. FUNCIÓN: Crear un Invitado
+        function crearInvitado(x, y, nombre) {
+            const fondo = new fabric.Rect({
+                width: 90,
+                height: 30,
+                fill: '#fecaca', // Rojo por defecto
+                rx: 15,          // Bordes redondeados
+                ry: 15,
+                originX: 'center',
+                originY: 'center'
+            });
+            
+            const texto = new fabric.Text(nombre, {
+                fontSize: 14,
+                fontFamily: 'sans-serif',
+                fill: '#7f1d1d',
+                originX: 'center',
+                originY: 'center'
+            });
+
+            const invitado = new fabric.Group([fondo, texto], {
+                left: x,
+                top: y,
+                originX: 'center', // Clave para centrar exactamente en la coordenada calculada
+                originY: 'center',
+                hasControls: false,
+                hasBorders: false,
+                tipoObjeto: 'invitado',
+                nombreAsignado: nombre
+            });
+            
+            return invitado;
+        }
+
+        // 4. FUNCIÓN MAESTRA: Reposicionar en círculo
+        function reposicionarInvitadosEnCirculo(mesa) {
+            const invitados = mesa.invitadosSentados;
+            const numInvitados = invitados.length;
+            if (numInvitados === 0) return;
+
+            // Al tener originX/originY en 'center', left y top son el centro exacto
+            const cx = mesa.left; 
+            const cy = mesa.top;
+
+            // Distancia del centro de la mesa al centro del invitado
+            const radioAsiento = radioMesaVisual + 40; 
+
+            invitados.forEach((invitadoObj, index) => {
+                // Cálculo del ángulo en radianes
+                const angulo = (index / numInvitados) * (2 * Math.PI);
+
+                // Fórmula trigonométrica
+                const xFinal = cx + (radioAsiento * Math.cos(angulo));
+                const yFinal = cy + (radioAsiento * Math.sin(angulo));
+
+                // Mover invitado y ponerlo por encima de todo
+                invitadoObj.set({ left: xFinal, top: yFinal });
+                invitadoObj.bringToFront();
+                
+                // Actualizar estilo visual a "sentado" (Verde)
+                invitadoObj.item(0).set('fill', '#dcfce7'); 
+                invitadoObj.item(1).set('fill', '#166534');
+            });
+        }
+
+        // 5. EVENTO: Lógica al terminar de arrastrar un objeto
+        canvas.on('object:modified', function(options) {
+            const objetoMovido = options.target;
+            
+            // Solo procesamos colisiones si movemos un invitado o una mesa
+            if (objetoMovido.tipoObjeto === 'mesa') {
+                // Si movemos la mesa, reposicionamos a todos sus invitados para que la sigan
+                reposicionarInvitadosEnCirculo(objetoMovido);
+                canvas.renderAll();
+                return;
+            }
+            
+            if (objetoMovido.tipoObjeto !== 'invitado') return;
+
+            const mesas = canvas.getObjects().filter(obj => obj.tipoObjeto === 'mesa');
+            let mesaDestino = null;
+
+            // Comprobar si soltamos el invitado sobre alguna mesa
+            mesas.forEach(mesa => {
+                if (objetoMovido.intersectsWithObject(mesa)) {
+                    mesaDestino = mesa;
+                }
+            });
+
+            // A. Primero, limpiar el invitado de cualquier mesa anterior en la que estuviera
+            mesas.forEach(m => {
+                if (m.invitadosSentados.includes(objetoMovido)) {
+                    m.invitadosSentados = m.invitadosSentados.filter(inv => inv !== objetoMovido);
+                    reposicionarInvitadosEnCirculo(m); // Reajustar a los que se quedan
+                }
+            });
+
+            // B. Evaluar el destino
+            if (mesaDestino) {
+                // Comprobar capacidad
+                if (mesaDestino.invitadosSentados.length >= mesaDestino.capacidadMax) {
+                    // Si está llena, devolvemos al invitado a un estado "sin mesa" (rojo)
+                    objetoMovido.item(0).set('fill', '#fecaca'); 
+                    objetoMovido.item(1).set('fill', '#7f1d1d');
+                    alert(`La ${mesaDestino.nombreAsignado} ya está al máximo de su capacidad.`);
+                } else {
+                    // Añadir a la nueva mesa y reposicionar
+                    mesaDestino.invitadosSentados.push(objetoMovido);
+                    reposicionarInvitadosEnCirculo(mesaDestino);
+                }
+            } else {
+                // Si se ha soltado en el vacío, marcar como "pendiente" (rojo)
+                objetoMovido.item(0).set('fill', '#fecaca'); 
+                objetoMovido.item(1).set('fill', '#7f1d1d');
+            }
+
+            canvas.renderAll();
+        });
+
+        // 6. CARGA DE DATOS INICIALES (MOCKUP)
+        
+        // Instanciar mesas (x, y, nombre, capacidad)
+        const mesa1 = crearMesa(300, 350, 'Mesa 1', 6);
+        const mesa2 = crearMesa(600, 350, 'Mesa 2', 6);
+        canvas.add(mesa1, mesa2);
+
+        // Lista de invitados de prueba
+        const listaNombres = [
+            'Gemma', 'Manuel', 'María (Madre)', 'Manuel (Padre)',
+            'M. Luz (Hrmna)', 'Brígida', 'Manuel S.', 'Matilde'
+        ];
+
+        // Instanciar invitados en una columna inicial
+        listaNombres.forEach((nombre, index) => {
+            const xInicial = 100;
+            const yInicial = 50 + (index * 45); // Espaciado vertical
+            const inv = crearInvitado(xInicial, yInicial, nombre);
+            canvas.add(inv);
+        });
+
+    </script>
+</body>
+</html>
