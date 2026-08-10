@@ -121,13 +121,30 @@
             <input type="file" id="inputExcel" accept=".xlsx, .xls, .csv" style="display: none;">
             <button class="btn btn-cyan" onclick="document.getElementById('inputExcel').click()">📥 Cargar Excel de Invitados</button>
             
+            <!-- Automatización Auto-Asignación -->
+            <div style="margin-top: 10px; border-top: 1px dashed #cbd5e1; padding-top: 10px;">
+                <label class="row-flex" style="font-size: 13px; color: #475569; margin-bottom: 8px;">
+                    <strong>Tamaño de mesas auto:</strong> 
+                    <input type="number" id="capacidadAuto" class="input-text" value="8" min="2" max="15" style="width: 60px;">
+                </label>
+                <button class="btn btn-blue" onclick="autoAsignarMesas()" style="background-color: #8b5cf6;">✨ Auto-Organizar Mesas</button>
+            </div>
+			
             <button class="btn btn-light" onclick="toggleAyudaExcel()">? Ayuda formato Excel</button>
             
-            <div id="cajaAyudaExcel" style="display: none; background-color: #f8fafc; border: 1px solid #bfdbfe; padding: 10px; border-radius: 4px; font-size: 12px; color: #334155; margin-top: 5px;">
+            <div id="cajaAyudaExcel" style="display: none; background-color: #f8fafc; border: 1px solid #bfdbfe; padding: 10px; border-radius: 4px; font-size: 12px; color: #334155; margin-top: 5px; line-height: 1.5;">
                 <strong>Formato del Excel (.xlsx):</strong><br>
-                - 1ª pestaña (Hoja 1).<br>
-                - Nombres en la <strong>Columna A</strong>.<br>
-                - Sin cabeceras (la fila 1 se importará).
+                - Usar la <strong>1ª pestaña</strong> (Hoja 1).<br>
+                - <strong>Fila 1:</strong> Nombres de cabecera (el sistema ignorará esta primera fila).<br>
+                - <strong>Orden estricto de columnas:</strong>
+                <ul style="margin: 4px 0 0 0; padding-left: 20px;">
+                    <li><strong>A:</strong> Nombre <em>(ej. María)</em></li>
+                    <li><strong>B:</strong> Lado <em>(ej. Manuel o Gemma)</em></li>
+                    <li><strong>C:</strong> Relación <em>(ej. Familia o Amigos)</em></li>
+                    <li><strong>D:</strong> Origen <em>(ej. Orihuela o Benejúzar)</em></li>
+                    <li><strong>E:</strong> Edad <em>(Adulto o Niño)</em></li>
+                    <li><strong>F:</strong> ID_Grupo <em>(ej. Fam_Madre - texto igual para parejas/núcleos que no deben separarse)</em></li>
+                </ul>
             </div>
 
             <hr style="width: 100%; border: 0; border-top: 1px solid #e2e8f0; margin: 5px 0;">
@@ -467,10 +484,27 @@
                 let contadorX = 50;
 
                 filas.forEach(fila => {
-                    const nombre = fila[0]; // Suponemos que el nombre está en la Columna A
+                    // (Mantén la parte superior de la función igual...)
+                const filas = XLSX.utils.sheet_to_json(primeraHoja, {header: 1});
+
+                let contadorY = 50;
+                let contadorX = 50;
+
+                // Asumimos que la Fila 0 son las cabeceras, iteramos desde la Fila 1
+                for (let i = 1; i < filas.length; i++) {
+                    const fila = filas[i];
+                    const nombre = fila[0];
+                    
                     if (nombre && typeof nombre === 'string' && nombre.trim() !== '') {
-                        // Los colocamos en forma de cuadrícula a la izquierda
                         const nuevoInvitado = crearInvitado(contadorX, contadorY, nombre.trim());
+                        
+                        // INYECTAMOS LOS METADATOS DEL EXCEL AL OBJETO FABRIC
+                        nuevoInvitado.lado = fila[1] || 'Sin definir';     // Col B
+                        nuevoInvitado.relacion = fila[2] || 'Sin definir'; // Col C
+                        nuevoInvitado.origen = fila[3] || 'Sin definir';   // Col D
+                        nuevoInvitado.edad = fila[4] || 'Adulto';          // Col E
+                        nuevoInvitado.idGrupo = fila[5] || `Indiv_${i}`;   // Col F (Si no tiene, le damos un ID único)
+
                         canvas.add(nuevoInvitado);
                         
                         contadorY += 40;
@@ -479,6 +513,11 @@
                             contadorX += 110;
                         }
                     }
+                }
+                
+                evento.target.value = ''; 
+                canvas.renderAll();
+                alert("Invitados y categorías cargados con éxito.");
                 });
                 
                 // Reseteamos el input por si quieres cargar el mismo archivo otra vez
@@ -608,6 +647,82 @@
             enlace.href = dataURL;
             enlace.download = 'plano_salon_24_abril.png';
             enlace.click();
+        }
+		
+		// ==========================================
+        // 12. ALGORITMO DE AUTO-ASIGNACIÓN
+        // ==========================================
+
+        function autoAsignarMesas() {
+            // 1. Recopilar todos los invitados que NO están en una mesa
+            const todosLosInvitados = canvas.getObjects().filter(obj => obj.tipoObjeto === 'invitado');
+            const invitadosPendientes = todosLosInvitados.filter(inv => {
+                const mesas = canvas.getObjects().filter(m => m.tipoObjeto === 'mesa');
+                return !mesas.some(m => m.invitadosSentados.includes(inv));
+            });
+
+            if (invitadosPendientes.length === 0) {
+                alert("No hay invitados pendientes de asignar.");
+                return;
+            }
+
+            // 2. Agrupar por afinidad lógica (Lado -> Relación -> Origen)
+            // Creamos un diccionario donde la clave es el hash de sus categorías
+            const gruposLogicos = {};
+            
+            invitadosPendientes.forEach(inv => {
+                // Separamos a los niños en una lógica distinta si quisieras
+                const claveAgrupacion = inv.edad.toLowerCase() === 'niño' ? 
+                    'Mesa_Infantil' : 
+                    `${inv.lado}_${inv.relacion}_${inv.origen}`;
+
+                if (!gruposLogicos[claveAgrupacion]) {
+                    gruposLogicos[claveAgrupacion] = [];
+                }
+                gruposLogicos[claveAgrupacion].push(inv);
+            });
+
+            // 3. Crear mesas dinámicamente y sentar a la gente
+            const capacidadEstandar = parseInt(document.getElementById('capacidadAuto').value) || 8;
+            
+            // Coordenadas iniciales para generar las mesas nuevas en cascada
+            let xMesa = 300;
+            let yMesa = 150;
+
+            Object.keys(gruposLogicos).forEach(clave => {
+                let bloquePersonas = gruposLogicos[clave];
+                
+                // Mientras haya gente en este grupo lógico, seguimos abriendo mesas
+                while (bloquePersonas.length > 0) {
+                    
+                    // Extraemos un "chunk" de personas igual a la capacidad de la mesa
+                    // (Aquí en un futuro puedes refinar el corte para no separar idGrupos)
+                    const asignadosAEstaMesa = bloquePersonas.splice(0, capacidadEstandar);
+                    
+                    // Creamos una nueva mesa física en el lienzo
+                    const nombreMesaAuto = clave === 'Mesa_Infantil' ? 'Infantil' : `Mesa ${contadorNuevasMesas}`;
+                    const nuevaMesa = crearMesa(xMesa, yMesa, nombreMesaAuto, capacidadEstandar);
+                    canvas.add(nuevaMesa);
+                    contadorNuevasMesas++;
+
+                    // Sentamos a los invitados extraídos en esta nueva mesa
+                    asignadosAEstaMesa.forEach(inv => {
+                        nuevaMesa.invitadosSentados.push(inv);
+                    });
+
+                    // Ejecutamos la trigonometría para que se coloquen visualmente
+                    reposicionarInvitadosEnCirculo(nuevaMesa);
+
+                    // Desplazamos las coordenadas para la siguiente mesa
+                    xMesa += 250;
+                    if (xMesa > canvas.width - 100) {
+                        xMesa = 300;
+                        yMesa += 250;
+                    }
+                }
+            });
+
+            canvas.renderAll();
         }
 		
 		// Añadir este listener en cualquier parte de tu script

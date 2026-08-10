@@ -51,7 +51,7 @@ const proyectos = [
         categoria: 'boda',
         titulo: 'Sitting Plan',
         descripcion: 'Herramienta para la creacion del sitting plan de la boda.',
-        ruta: 'boda/sitting-plan/index.html'
+        ruta: 'boda/seating-plan/index.html'
     },
     {
         categoria: 'manuel-torrecillas-sl',
