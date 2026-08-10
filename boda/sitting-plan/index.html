@@ -3,113 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <title>Seating Plan - 24 Abril 2027</title>
-    <!-- Importamos la librería principal para manejar Drag & Drop en el canvas -->
+    <!-- Librerías -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
-    <!-- Para leer archivos Excel (.xlsx, .csv) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
+        /* Layout Principal */
         body {
             display: flex;
-            flex-direction: column;
-            align-items: center;
+            flex-direction: row; /* Cambio a layout horizontal */
             background-color: #f8fafc;
             margin: 0;
             padding: 20px;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            height: 100vh;
+            box-sizing: border-box;
+            gap: 20px;
+            overflow: hidden; /* Evita scroll en toda la página */
         }
-        h1 {
-            color: #334155;
-            margin-bottom: 10px;
+
+        /* Panel Lateral (Sidebar) */
+        .sidebar {
+            width: 320px;
+            min-width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto; /* Scroll solo en el panel lateral si hay muchos controles */
+            padding-right: 5px;
         }
-        .instrucciones {
-            color: #64748b;
-            margin-bottom: 20px;
-            font-size: 14px;
+        
+        .sidebar h1 { margin: 0; color: #334155; font-size: 24px; }
+        .instrucciones { color: #64748b; font-size: 13px; margin-bottom: 10px; }
+
+        /* Tarjetas de Controles */
+        .panel {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            border: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .panel h3 { margin: 0; font-size: 15px; color: #475569; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px;}
+
+        /* Elementos de Formulario y Botones */
+        .input-text { padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; width: 100%; box-sizing: border-box; }
+        .row-flex { display: flex; gap: 10px; align-items: center; }
+        .btn { padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; width: 100%; box-sizing: border-box; display: flex; justify-content: center; align-items: center; gap: 5px;}
+        
+        /* Colores de Botones */
+        .btn-blue { background-color: #3b82f6; color: white; }
+        .btn-green { background-color: #10b981; color: white; }
+        .btn-red { background-color: #ef4444; color: white; }
+        .btn-cyan { background-color: #0ea5e9; color: white; }
+        .btn-gray { background-color: #64748b; color: white; }
+        .btn-light { background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+        
+        /* Hover states */
+        .btn:hover { filter: brightness(0.95); }
+
+        /* Lienzo */
+        .canvas-wrapper {
+            flex-grow: 1; /* Ocupa el resto del espacio disponible */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #e2e8f0; /* Fondo gris para diferenciar el área de trabajo */
+            border-radius: 8px;
+            overflow: hidden;
         }
         .canvas-container {
-            border: 2px dashed #cbd5e1;
             background-color: #ffffff;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
         }
     </style>
 </head>
 <body>
 
-    <h1>Distribución de Mesas</h1>
-    <div class="instrucciones">Arrastra los invitados hacia las mesas para asignarlos. Arrástralos fuera para quitarlos.</div>
-    
-    <!-- Panel de controles para las mesas -->
-    <div style="margin-bottom: 20px; display: flex; gap: 10px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0;">
-        <input type="text" id="nombreMesa" placeholder="Nombre (ej. Mesa 3)" style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px;">
+    <!-- SIDEBAR: Panel Izquierdo -->
+    <aside class="sidebar">
         
-        <label style="display: flex; align-items: center; gap: 5px; color: #475569; font-size: 14px;">
-            Capacidad:
-            <input type="number" id="capacidadMesa" value="8" min="2" max="15" style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; width: 60px;">
-        </label>
-        
-        <button onclick="agregarMesa()" style="padding: 8px 16px; background-color: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">+ Añadir Mesa</button>
-        <button onclick="eliminarMesa()" style="padding: 8px 16px; background-color: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">🗑️ Eliminar Seleccionada</button>
-    </div>
-	
-	<!-- Panel de controles para Invitados -->
-    <div style="margin-bottom: 20px; display: flex; gap: 10px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; width: fit-content;">
-        <input type="text" id="nombreInvitado" placeholder="Nombre (ej. Tío Juan)" style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px;">
-        
-        <button onclick="agregarInvitado()" style="padding: 8px 16px; background-color: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">+ Añadir Invitado</button>
-        <button onclick="eliminarInvitado()" style="padding: 8px 16px; background-color: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">🗑️ Eliminar Seleccionado</button>
-    </div>
-	
-	<!-- Panel de Importación / Exportación -->
-    <div style="margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; width: fit-content;">
-        
-        <!-- Fila de Botones -->
-        <div style="display: flex; gap: 10px; align-items: center;">
-            <!-- Importar Excel -->
+        <div>
+            <h1>Seating Plan</h1>
+            <div class="instrucciones">Arrastra los invitados a las mesas. Pulsa <code>Supr</code> para eliminar lo seleccionado.</div>
+        </div>
+
+        <!-- Panel de Mesas -->
+        <div class="panel">
+            <h3>Mesas</h3>
+            <input type="text" id="nombreMesa" class="input-text" placeholder="Nombre (ej. Mesa 3)">
+            <label class="row-flex" style="font-size: 13px; color: #475569;">
+                Capacidad: 
+                <input type="number" id="capacidadMesa" class="input-text" value="8" min="2" max="15" style="width: 70px;">
+            </label>
+            <div class="row-flex">
+                <button class="btn btn-blue" onclick="agregarMesa()">+ Añadir</button>
+                <button class="btn btn-red" onclick="eliminarMesa()">🗑️ Borrar</button>
+            </div>
+        </div>
+
+        <!-- Panel de Invitados -->
+        <div class="panel">
+            <h3>Invitados Individuales</h3>
+            <input type="text" id="nombreInvitado" class="input-text" placeholder="Nombre (ej. Tío Juan)">
+            <div class="row-flex">
+                <button class="btn btn-green" onclick="agregarInvitado()">+ Añadir</button>
+                <button class="btn btn-red" onclick="eliminarInvitado()">🗑️ Borrar</button>
+            </div>
+        </div>
+
+        <!-- Panel de Datos (I/O) -->
+        <div class="panel">
+            <h3>Importar / Exportar</h3>
+            
             <input type="file" id="inputExcel" accept=".xlsx, .xls, .csv" style="display: none;">
-            <button onclick="document.getElementById('inputExcel').click()" style="padding: 8px 16px; background-color: #0ea5e9; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
-                📥 Cargar Excel de Invitados
-            </button>
+            <button class="btn btn-cyan" onclick="document.getElementById('inputExcel').click()">📥 Cargar Excel de Invitados</button>
             
-            <!-- Botón de ayuda para el Excel -->
-            <button onclick="toggleAyudaExcel()" style="padding: 4px 10px; background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; border-radius: 15px; cursor: pointer; font-size: 12px; font-weight: bold;" title="Ver formato del Excel">
-                ? Ayuda Formato
-            </button>
-
-            <!-- Separador visual -->
-            <div style="width: 1px; height: 30px; background-color: #cbd5e1; margin: 0 5px;"></div>
-
-            <!-- Guardar/Cargar Proyecto JSON -->
-            <button onclick="guardarProyecto()" style="padding: 8px 16px; background-color: #64748b; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
-                💾 Guardar Plano (.json)
-            </button>
+            <button class="btn btn-light" onclick="toggleAyudaExcel()">? Ayuda formato Excel</button>
             
+            <div id="cajaAyudaExcel" style="display: none; background-color: #f8fafc; border: 1px solid #bfdbfe; padding: 10px; border-radius: 4px; font-size: 12px; color: #334155; margin-top: 5px;">
+                <strong>Formato del Excel (.xlsx):</strong><br>
+                - 1ª pestaña (Hoja 1).<br>
+                - Nombres en la <strong>Columna A</strong>.<br>
+                - Sin cabeceras (la fila 1 se importará).
+            </div>
+
+            <hr style="width: 100%; border: 0; border-top: 1px solid #e2e8f0; margin: 5px 0;">
+
+            <button class="btn btn-gray" onclick="guardarProyecto()">💾 Guardar Plano (.json)</button>
             <input type="file" id="inputJSON" accept=".json" style="display: none;">
-            <button onclick="document.getElementById('inputJSON').click()" style="padding: 8px 16px; background-color: #64748b; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
-                📂 Cargar Plano (.json)
-            </button>
+            <button class="btn btn-gray" onclick="document.getElementById('inputJSON').click()">📂 Cargar Plano (.json)</button>
+            
+            <!-- NUEVO: Botón para exportar a imagen -->
+            <hr style="width: 100%; border: 0; border-top: 1px solid #e2e8f0; margin: 5px 0;">
+            <button class="btn btn-blue" onclick="exportarImagen()">🖼️ Exportar a PNG (Imprimir)</button>
         </div>
+    </aside>
 
-        <!-- Caja de Ayuda Oculta por defecto -->
-        <div id="cajaAyudaExcel" style="display: none; background-color: #f8fafc; border: 1px solid #bfdbfe; padding: 10px; border-radius: 4px; font-size: 13px; color: #334155;">
-            <strong>Formato del archivo Excel (.xlsx o .csv):</strong>
-            <ul style="margin-top: 5px; margin-bottom: 0; padding-left: 20px;">
-                <li>Los datos deben estar en la <strong>primera pestaña (Hoja 1)</strong>.</li>
-                <li>Los nombres de los invitados deben estar en la <strong>Columna A</strong>.</li>
-                <li>No incluyas fila de cabecera (como "Nombre"). Si la pones, se añadirá como un invitado más (tendrás que borrarlo manualmente).</li>
-                <li>Ejemplo: <br>
-                    <code style="background: #e2e8f0; padding: 2px 4px; border-radius: 3px;">A1: Juan Pérez</code><br>
-                    <code style="background: #e2e8f0; padding: 2px 4px; border-radius: 3px;">A2: María García</code>
-                </li>
-            </ul>
-        </div>
-    </div>
-	
-    <!-- El área de trabajo -->
-    <canvas id="lienzo-boda" width="900" height="700"></canvas>
-	
-    <!-- El área de trabajo -->
-    <canvas id="lienzo-boda" width="900" height="700"></canvas>
+    <!-- ÁREA PRINCIPAL: Lienzo -->
+    <main class="canvas-wrapper">
+        <!-- El tamaño del canvas puede quedarse fijo o puedes hacerlo dinámico por JS luego -->
+        <canvas id="lienzo-boda" width="900" height="750"></canvas>
+    </main>
 
     <script>
         // 1. Inicializar Lienzo
@@ -279,9 +316,9 @@
         // 6. CARGA DE DATOS INICIALES (MOCKUP)
         
         // Instanciar mesas (x, y, nombre, capacidad)
-        //const mesa1 = crearMesa(300, 350, 'Mesa 1', 6);
+        const mesa1 = crearMesa(300, 350, 'Mesa 1', 6);
         //const mesa2 = crearMesa(600, 350, 'Mesa 2', 6);
-        //canvas.add(mesa1, mesa2);
+        canvas.add(mesa1);
 
         // Lista de invitados de prueba
         const listaNombres = [];
@@ -551,6 +588,26 @@
             } else {
                 caja.style.display = 'none';
             }
+        }
+		
+		// 11. EXPORTAR LIENZO A IMAGEN (PNG)
+        function exportarImagen() {
+            // 1. Quitamos la selección activa para que no salgan los bordes punteados en la foto
+            canvas.discardActiveObject();
+            canvas.renderAll();
+
+            // 2. Extraemos la imagen del canvas
+            const dataURL = canvas.toDataURL({
+                format: 'png',
+                quality: 1,
+                multiplier: 2 // Multiplica la resolución x2 para impresión de alta calidad
+            });
+
+            // 3. Forzamos la descarga del archivo
+            const enlace = document.createElement('a');
+            enlace.href = dataURL;
+            enlace.download = 'plano_salon_24_abril.png';
+            enlace.click();
         }
 		
 		// Añadir este listener en cualquier parte de tu script
