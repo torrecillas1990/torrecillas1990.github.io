@@ -2,10 +2,12 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Seating Plan - 24 Abril 2027</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seating Plan</title>
     <!-- Librerías -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="icon" type="image/x-icon" href="../recursos/favicon_2.ico">
     <style>
         /* Layout Principal */
         body {
@@ -858,7 +860,7 @@
             // 8. Descargar el archivo
             const enlace = document.createElement('a');
             enlace.href = dataURL;
-            enlace.download = 'plano_salon_24_abril_completo.png';
+            enlace.download = 'plano_salon.png';
             enlace.click();
         }
         
