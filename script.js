@@ -112,6 +112,12 @@ const proyectos = [
         titulo: 'Juego RPG',
         descripcion: 'Juego.',
         ruta: 'mon/index.html'
+    },
+    {
+        categoria: 'utilidades',
+        titulo: 'Traductor universal',
+        descripcion: 'Traductor universal con conversacion en tiempo real.',
+        ruta: 'traductor/index.html'
     }
 ];
 

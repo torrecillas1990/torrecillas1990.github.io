@@ -1,0 +1,2725 @@
+<!DOCTYPE html>
+<html lang="es" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#4f46e5">
+    <title>Kakehashi Pro | Suite Local de Traducción, Voz y Lingüística</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans JP', 'Noto Sans SC', 'Noto Sans KR', 'sans-serif']
+                    }
+                }
+            }
+        };
+    </script>
+    <!-- Google Fonts: Inter y Noto Sans para soporte multilingüe CJK y Cirílico -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans JP', 'Noto Sans SC', 'Noto Sans KR', sans-serif;
+            background: radial-gradient(circle at top left, #f8fafc, #e2e8f0);
+            transition: background 0.3s ease, color 0.2s ease;
+        }
+        html.dark body {
+            background: radial-gradient(circle at top left, #090d16, #0f172a);
+            color: #f1f5f9;
+        }
+        /* Animación de pulso para el micrófono activo */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.97); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 14px rgba(239, 68, 68, 0); }
+            100% { transform: scale(0.97); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        .mic-listening {
+            animation: pulse-ring 1.4s infinite;
+            background-color: #ef4444 !important;
+            color: white !important;
+            border-color: #ef4444 !important;
+        }
+        /* Animación de ondas para el altavoz activo */
+        @keyframes sound-wave {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+        .speaker-playing {
+            animation: sound-wave 0.8s infinite ease-in-out;
+            background-color: #4f46e5 !important;
+            color: white !important;
+            border-color: #4f46e5 !important;
+        }
+        /* Estilos para etiquetas Ruby (Furigana / Pinyin / Transliteración) */
+        ruby {
+            ruby-align: center;
+            margin: 0 1px;
+        }
+        rt {
+            font-size: 0.68em;
+            color: #6366f1;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            user-select: none;
+        }
+        html.dark rt {
+            color: #818cf8;
+        }
+        .token-chip {
+            display: inline-block;
+            padding: 4px 6px 2px 6px;
+            margin: 2px 1px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border-bottom: 2px dashed rgba(99, 102, 241, 0.35);
+        }
+        .token-chip:hover, .token-chip.active-token {
+            background-color: rgba(99, 102, 241, 0.15);
+            border-bottom-color: #4f46e5;
+            transform: translateY(-1px);
+        }
+        textarea::-webkit-scrollbar, .custom-scroll::-webkit-scrollbar {
+            width: 7px;
+            height: 7px;
+        }
+        textarea::-webkit-scrollbar-track, .custom-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        textarea::-webkit-scrollbar-thumb, .custom-scroll::-webkit-scrollbar-thumb {
+            background-color: rgba(148, 163, 184, 0.5);
+            border-radius: 20px;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 dark:text-slate-100 flex flex-col justify-between p-3 sm:p-6 selection:bg-indigo-500 selection:text-white">
+
+    <!-- Contenedor de Notificaciones (Toast) -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+
+    <!-- Tooltip Flotante para Desglose Palabra por Palabra -->
+    <div id="token-popover" class="hidden fixed z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-4 w-80 pointer-events-auto transition-all">
+        <div class="flex items-start justify-between gap-2 mb-2">
+            <div class="min-w-0">
+                <div id="popover-reading" class="text-xs font-bold text-indigo-600 dark:text-indigo-400"></div>
+                <div id="popover-romaji" class="text-[11px] font-medium text-rose-500 dark:text-rose-400 italic"></div>
+                <div id="popover-surface" class="text-2xl font-bold text-slate-900 dark:text-white mt-0.5 break-words"></div>
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+                <button id="popover-speak-btn" title="Escuchar esta palabra" class="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 transition">
+                    <i data-lucide="volume-2" class="w-4 h-4"></i>
+                </button>
+                <button id="popover-close-btn" class="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+        <div class="mb-2 flex items-center gap-2">
+            <span id="popover-pos" class="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300"></span>
+        </div>
+        <p id="popover-meaning" class="text-sm text-slate-700 dark:text-slate-200 font-medium border-t border-slate-100 dark:border-slate-700 pt-2"></p>
+    </div>
+
+    <!-- Modal de Configuración para Ejecución en Local -->
+    <div id="settings-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-lg w-full p-6 border border-slate-100 dark:border-slate-700 transform transition-all">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                    <i data-lucide="sliders" class="w-5 h-5 text-indigo-600 dark:text-indigo-400"></i>
+                    Configuración del Motor Local e IA
+                </h3>
+                <button id="close-settings-btn" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="space-y-4 text-sm text-slate-600 dark:text-slate-300">
+                <div class="p-3.5 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/60 text-xs leading-relaxed">
+                    <strong>Arquitectura Híbrida Garantizada:</strong>
+                    <ul class="list-disc pl-4 mt-1 space-y-1">
+                        <li><strong>Con Gemini API:</strong> Traducción adaptada por nivel de formalidad (Keigo/Casual/Honorífico), Furigana `<ruby>` exacto, desglose gramatical palabra por palabra y OCR multimodal instantáneo.</li>
+                        <li><strong>Sin API Key (100% gratis en local):</strong> Usa automáticamente <em>MyMemory API</em> + tokenizador nativo <code>Intl.Segmenter</code> + motor OCR <em>Tesseract.js</em>.</li>
+                    </ul>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
+                        Gemini API Key (Opcional para funciones avanzadas de IA)
+                    </label>
+                    <input type="password" id="custom-api-key" placeholder="AIzaSy..." class="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-slate-800 dark:text-slate-100">
+                    <p class="text-[11px] text-slate-400 mt-1">Se guarda exclusivamente en el almacenamiento local de tu navegador (<code>localStorage</code>).</p>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-6">
+                <button id="clear-key-btn" class="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition">Borrar clave</button>
+                <button id="save-key-btn" class="px-4 py-2 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition shadow-sm">Guardar configuración</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Atajos de Teclado (Cheat-Sheet) -->
+    <div id="shortcuts-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-100 dark:border-slate-700">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                    <i data-lucide="keyboard" class="w-5 h-5 text-indigo-600 dark:text-indigo-400"></i>
+                    Atajos de Teclado (Power-User)
+                </h3>
+                <button id="close-shortcuts-btn" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="space-y-2.5 text-sm">
+                <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60">
+                    <span class="text-slate-700 dark:text-slate-300">Traducir texto</span>
+                    <kbd class="px-2 py-1 text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm">Ctrl + Enter</kbd>
+                </div>
+                <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60">
+                    <span class="text-slate-700 dark:text-slate-300">Invertir idiomas (Swap)</span>
+                    <kbd class="px-2 py-1 text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm">Ctrl + Shift + S</kbd>
+                </div>
+                <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60">
+                    <span class="text-slate-700 dark:text-slate-300">Activar / detener micrófono</span>
+                    <kbd class="px-2 py-1 text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm">Ctrl + M</kbd>
+                </div>
+                <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60">
+                    <span class="text-slate-700 dark:text-slate-300">Modo Walkie-Talkie (Mantener)</span>
+                    <kbd class="px-2 py-1 text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm">Alt + Espacio</kbd>
+                </div>
+                <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60">
+                    <span class="text-slate-700 dark:text-slate-300">Escuchar traducción</span>
+                    <kbd class="px-2 py-1 text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm">Alt + L / Ctrl + P</kbd>
+                </div>
+                <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60">
+                    <span class="text-slate-700 dark:text-slate-300">Pegar imagen para OCR</span>
+                    <kbd class="px-2 py-1 text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm">Ctrl + V</kbd>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cabecera Principal y Navegación de Modos -->
+    <header class="max-w-6xl w-full mx-auto mb-5">
+        <div class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md border border-slate-200/80 dark:border-slate-700/80 shadow-sm rounded-2xl p-3.5 sm:px-6 flex flex-wrap items-center justify-between gap-4">
+            <!-- Marca -->
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-600 via-violet-600 to-rose-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 font-bold text-xl select-none">
+                    訳
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white">Kakehashi Pro</h1>
+                        <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">8 Idiomas • PWA</span>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">Traductor local con Furigana, Entrenador de Pronunciación, OCR e Intérprete</p>
+                </div>
+            </div>
+
+            <!-- Selector de Modo Principal: Traductor vs Modo Intérprete -->
+            <div class="flex items-center bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200/70 dark:border-slate-700">
+                <button id="tab-translator-btn" class="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm">
+                    <i data-lucide="languages" class="w-4 h-4"></i>
+                    <span>Modo Traductor</span>
+                </button>
+                <button id="tab-interpreter-btn" class="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                    <i data-lucide="messages-square" class="w-4 h-4"></i>
+                    <span>Modo Intérprete Cara a Cara</span>
+                </button>
+            </div>
+
+            <!-- Acciones de Cabecera -->
+            <div class="flex items-center gap-2">
+                <!-- Botón Instalar PWA (aparece cuando el navegador lo soporta o explica cómo instalar) -->
+                <button id="install-pwa-btn" title="Instalar como Aplicación de Escritorio/Móvil" class="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 transition">
+                    <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                    <span class="hidden md:inline">Instalar App</span>
+                </button>
+
+                <span id="engine-badge" class="hidden xl:flex text-xs font-medium px-3 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span id="engine-badge-text">Motor Híbrido Activo</span>
+                </span>
+
+                <button id="open-shortcuts-btn" title="Atajos de teclado" class="p-2 text-slate-600 dark:text-slate-300 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition">
+                    <i data-lucide="keyboard" class="w-5 h-5"></i>
+                </button>
+
+                <button id="theme-toggle-btn" title="Cambiar tema Claro / Oscuro" class="p-2 text-slate-600 dark:text-slate-300 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition">
+                    <i data-lucide="moon" id="theme-icon" class="w-5 h-5"></i>
+                </button>
+
+                <button id="open-settings-btn" title="Configurar API / Motor Local" class="p-2 text-slate-600 dark:text-slate-300 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition">
+                    <i data-lucide="sliders" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Contenedor Principal -->
+    <main class="max-w-6xl w-full mx-auto flex-grow flex flex-col gap-5">
+        
+        <!-- BARRA SUPERIOR COMÚN: Selección de Idiomas + Nivel de Formalidad + Autotraducción -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200/80 dark:border-slate-700/80 p-3.5 flex flex-col gap-3">
+            <!-- Fila 1: Selectores de Idioma e Intercambio -->
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+                <!-- Selector de Idioma de Origen -->
+                <div class="w-full sm:flex-1 flex items-center gap-3 bg-slate-50/80 dark:bg-slate-900/70 hover:bg-slate-100/80 dark:hover:bg-slate-900 transition px-3.5 py-2 rounded-xl border border-slate-200/70 dark:border-slate-700 focus-within:ring-2 focus-within:ring-indigo-500/40">
+                    <span id="source-flag" class="text-2xl select-none shrink-0">🇪🇸</span>
+                    <div class="flex-1 min-w-0">
+                        <label for="source-lang-select" class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">Idioma de origen (A)</label>
+                        <select id="source-lang-select" class="w-full bg-transparent font-bold text-slate-800 dark:text-white text-sm sm:text-base focus:outline-none cursor-pointer truncate"></select>
+                    </div>
+                </div>
+
+                <!-- Botón de Intercambio (Swap) -->
+                <button id="swap-languages-btn" title="Invertir idiomas y textos (Ctrl + Shift + S)" class="group p-3 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-indigo-600 dark:hover:bg-indigo-600 text-slate-700 dark:text-slate-200 hover:text-white transition-all duration-200 shadow-sm active:scale-95 flex items-center justify-center gap-2 font-medium text-sm shrink-0">
+                    <i data-lucide="arrow-left-right" class="w-5 h-5 transition-transform duration-300 group-hover:rotate-180"></i>
+                    <span class="sm:hidden md:inline text-xs font-semibold">Invertir</span>
+                </button>
+
+                <!-- Selector de Idioma de Destino -->
+                <div class="w-full sm:flex-1 flex items-center gap-3 bg-slate-50/80 dark:bg-slate-900/70 hover:bg-slate-100/80 dark:hover:bg-slate-900 transition px-3.5 py-2 rounded-xl border border-slate-200/70 dark:border-slate-700 focus-within:ring-2 focus-within:ring-indigo-500/40">
+                    <span id="target-flag" class="text-2xl select-none shrink-0">🇯🇵</span>
+                    <div class="flex-1 min-w-0">
+                        <label for="target-lang-select" class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">Idioma de destino (B)</label>
+                        <select id="target-lang-select" class="w-full bg-transparent font-bold text-slate-800 dark:text-white text-sm sm:text-base focus:outline-none cursor-pointer truncate"></select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fila 2: Herramientas Lingüísticas (Nivel de Formalidad) + Autotraducir 800ms + Selector de Voz Nativa -->
+            <div class="pt-2.5 border-t border-slate-100 dark:border-slate-700/70 flex flex-wrap items-center justify-between gap-3 text-xs">
+                <!-- Selector de Nivel de Formalidad / Registro -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                        <i data-lucide="award" class="w-3.5 h-3.5 text-indigo-500"></i>
+                        Registro / Formalidad:
+                    </span>
+                    <div class="inline-flex rounded-xl bg-slate-100 dark:bg-slate-900 p-0.5 border border-slate-200/70 dark:border-slate-700" role="group">
+                        <button type="button" data-formality="casual" class="formality-btn px-2.5 py-1 rounded-lg font-medium transition text-slate-600 dark:text-slate-400">
+                            Casual / Tú (タメ口)
+                        </button>
+                        <button type="button" data-formality="polite" class="formality-btn px-2.5 py-1 rounded-lg font-semibold transition bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm">
+                            Estándar / Educado (丁寧語)
+                        </button>
+                        <button type="button" data-formality="formal" class="formality-btn px-2.5 py-1 rounded-lg font-medium transition text-slate-600 dark:text-slate-400">
+                            Formal / Keigo (敬語)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Controles Derecha: Voz Nativa del Sistema + Autotraducción Debounce 800ms -->
+                <div class="flex flex-wrap items-center gap-4">
+                    <!-- Selector de Voces Nativas del Sistema -->
+                    <div class="flex items-center gap-1.5">
+                        <label for="voice-select" class="font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                            <i data-lucide="mic-vocal" class="w-3.5 h-3.5 text-rose-500"></i>
+                            Voz destino:
+                        </label>
+                        <select id="voice-select" class="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-lg px-2.5 py-1 font-medium max-w-[200px] truncate focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="">Voz predeterminada del sistema</option>
+                        </select>
+                    </div>
+
+                    <!-- Switch Autotraducción 800ms -->
+                    <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" id="auto-translate-toggle" class="sr-only peer" checked>
+                        <div class="relative w-9 h-5 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                        <span class="font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1">
+                            Autotraducir (800ms)
+                            <span id="debounce-indicator" class="hidden w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================================= -->
+        <!-- VISTA 1: MODO TRADUCTOR Y HERRAMIENTAS LINGÜÍSTICAS       -->
+        <!-- ========================================================= -->
+        <div id="translator-view" class="flex flex-col gap-5">
+            
+            <!-- Paneles de Texto (Entrada y Salida) -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                
+                <!-- TARJETA IZQUIERDA: Texto a Traducir (Input + OCR + Micrófono) -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-md border border-slate-200/90 dark:border-slate-700 flex flex-col justify-between overflow-hidden transition-all focus-within:ring-2 focus-within:ring-indigo-500/50">
+                    <div>
+                        <!-- Cabecera de Tarjeta Input -->
+                        <div class="px-5 py-3 bg-slate-50/80 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700/80 flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+                                <label for="source-textarea" id="input-panel-title" class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 cursor-pointer">
+                                    Texto a traducir (Español)
+                                </label>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <!-- Indicador visual de micrófono escuchando -->
+                                <span id="mic-status-badge" class="hidden text-xs font-semibold text-red-600 bg-red-50 dark:bg-red-950/80 px-2.5 py-0.5 rounded-full border border-red-200 dark:border-red-800 flex items-center gap-1.5 animate-pulse">
+                                    <span class="w-2 h-2 rounded-full bg-red-600"></span>
+                                    <span id="mic-status-text">Escuchando...</span>
+                                </span>
+
+                                <!-- Botón OCR de Imagen / Cámara -->
+                                <input type="file" id="ocr-file-input" accept="image/*" capture="environment" class="hidden">
+                                <button id="ocr-btn" type="button" title="Extraer texto de imagen o cámara (también puedes pulsar Ctrl+V para pegar capturas)" class="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 rounded-lg border border-indigo-200/60 dark:border-indigo-800/70 transition">
+                                    <i data-lucide="scan-text" class="w-3.5 h-3.5"></i>
+                                    <span>OCR Imagen / Ctrl+V</span>
+                                </button>
+
+                                <button id="clear-input-btn" title="Borrar texto" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-slate-200/60 dark:hover:bg-slate-700 rounded-lg transition">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Banner de Previsualización OCR cuando se pega o sube una imagen -->
+                        <div id="ocr-preview-banner" class="hidden mx-5 mt-3 p-2.5 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <img id="ocr-preview-img" src="" alt="Vista previa OCR" class="w-12 h-12 object-cover rounded-lg border border-indigo-300 shrink-0">
+                                <div class="min-w-0">
+                                    <div id="ocr-status-title" class="text-xs font-bold text-indigo-700 dark:text-indigo-300">Analizando imagen con OCR...</div>
+                                    <div id="ocr-status-desc" class="text-[11px] text-slate-500 dark:text-slate-400 truncate">Extrayendo caracteres del recorte</div>
+                                </div>
+                            </div>
+                            <button id="close-ocr-preview-btn" class="p-1 text-slate-400 hover:text-slate-600">
+                                <i data-lucide="x" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+
+                        <!-- Cuadro de Texto (Input Textarea) -->
+                        <div class="p-5 relative">
+                            <textarea 
+                                id="source-textarea" 
+                                rows="5" 
+                                placeholder="Escribe aquí, habla por el micrófono o pega una captura de pantalla con Ctrl+V..."
+                                class="w-full resize-none border-0 bg-transparent text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-lg leading-relaxed focus:outline-none focus:ring-0"
+                            ></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Barra de Herramientas Inferior del Input -->
+                    <div class="px-5 py-3.5 bg-slate-50/60 dark:bg-slate-900/40 border-t border-slate-100 dark:border-slate-700/80 flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex items-center gap-2">
+                            <!-- Botón para activar el Micrófono (Soporta clic o mantener pulsado Walkie-Talkie) -->
+                            <button id="mic-btn" type="button" title="Haz clic para dictar o mantén pulsado como Walkie-Talkie (Ctrl+M o Alt+Espacio)" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/50 text-slate-700 dark:text-slate-200 hover:text-rose-600 border border-slate-200 dark:border-slate-600 shadow-sm transition-all font-medium text-sm active:scale-95 select-none">
+                                <i data-lucide="mic" id="mic-icon" class="w-4 h-4 text-rose-500"></i>
+                                <span id="mic-btn-text">Hablar</span>
+                            </button>
+
+                            <!-- Botón para escuchar también el texto origen -->
+                            <button id="speak-source-btn" type="button" title="Escuchar texto de origen" class="p-2.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 shadow-sm transition active:scale-95">
+                                <i data-lucide="volume-1" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+
+                        <div class="flex items-center gap-3">
+                            <span id="char-counter" class="text-xs text-slate-400 font-medium">0 caracteres</span>
+                            
+                            <!-- Botón Principal para Traducir -->
+                            <button id="translate-btn" type="button" class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold text-sm shadow-md shadow-indigo-500/20 transition-all active:scale-95">
+                                <i data-lucide="sparkles" class="w-4 h-4"></i>
+                                <span>Traducir</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TARJETA DERECHA: Texto Traducido + Furigana <ruby> + Entrenador de Pronunciación -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-md border border-slate-200/90 dark:border-slate-700 flex flex-col justify-between overflow-hidden relative">
+                    
+                    <!-- Overlay de Carga durante la Traducción -->
+                    <div id="loading-overlay" class="hidden absolute inset-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-[2px] z-20 flex flex-col items-center justify-center gap-3">
+                        <div class="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                        <span class="text-sm font-semibold text-indigo-700 dark:text-indigo-300 animate-pulse">Traduciendo y tokenizando...</span>
+                    </div>
+
+                    <div>
+                        <!-- Cabecera de Tarjeta Output -->
+                        <div class="px-5 py-3 bg-slate-50/80 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700/80 flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                                <label for="target-textarea" id="output-panel-title" class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 cursor-pointer">
+                                    Texto traducido (Japonés)
+                                </label>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span id="speaker-status-badge" class="hidden text-xs font-semibold text-indigo-600 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950 px-2.5 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-800 flex items-center gap-1.5">
+                                    <i data-lucide="volume-2" class="w-3.5 h-3.5 animate-bounce"></i>
+                                    Reproduciendo...
+                                </span>
+                                <!-- Botón abrir Entrenador de Pronunciación (Shadowing) -->
+                                <button id="toggle-shadowing-btn" type="button" title="Practicar pronunciación leyendo en voz alta" class="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/70 hover:bg-emerald-100 rounded-lg border border-emerald-200 dark:border-emerald-800 transition">
+                                    <i data-lucide="graduation-cap" class="w-3.5 h-3.5"></i>
+                                    <span>Practicar pronunciación</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Cuadro de Texto (Output Textarea) -->
+                        <div class="p-5 pb-3">
+                            <textarea 
+                                id="target-textarea" 
+                                rows="3" 
+                                placeholder="La traducción aparecerá aquí..."
+                                class="w-full resize-none border-0 bg-transparent text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-lg leading-relaxed focus:outline-none focus:ring-0 font-medium"
+                            ></textarea>
+
+                            <!-- Caja de Pronunciación Lineal / Romaji / Pinyin / Transliteración -->
+                            <div id="romaji-container" class="hidden mt-1 pt-2.5 border-t border-dashed border-slate-200 dark:border-slate-700">
+                                <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
+                                    <span class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                                        <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+                                        <span id="phonetic-label">Lectura Romaji / Furigana</span>
+                                    </span>
+                                    <div class="flex items-center gap-1.5">
+                                        <!-- Selector de modo de lectura fonética para Japonés (Romaji vs Hiragana) -->
+                                        <div id="ja-phonetic-mode-group" class="hidden inline-flex rounded-lg bg-slate-100 dark:bg-slate-900 p-0.5 border border-slate-200 dark:border-slate-700 text-[10px]">
+                                            <button type="button" data-phonetic-mode="romaji" class="ja-phonetic-btn px-2 py-0.5 rounded-md font-bold bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm">Romaji</button>
+                                            <button type="button" data-phonetic-mode="hiragana" class="ja-phonetic-btn px-2 py-0.5 rounded-md font-medium text-slate-500 dark:text-slate-400">Hiragana</button>
+                                        </div>
+                                        <button id="copy-phonetic-btn" type="button" title="Copiar lectura fonética" class="text-[11px] font-semibold text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-center gap-1 transition">
+                                            <i data-lucide="copy" class="w-3 h-3"></i>
+                                            <span>Copiar lectura</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <p id="romaji-text" class="text-sm text-slate-700 dark:text-slate-200 font-medium italic select-all leading-relaxed"></p>
+                            </div>
+
+                            <!-- Vista Interactiva Furigana (<ruby>) y Desglose Palabra por Palabra -->
+                            <div id="interactive-tokens-panel" class="hidden mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/80">
+                                <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-indigo-500"></i>
+                                        <span>Furigana Interactivo y Desglose (Clic en cualquier palabra)</span>
+                                    </span>
+                                    <!-- Selector de visualización de Ruby (<rt>): Hiragana | Romaji | Ambos -->
+                                    <div class="inline-flex items-center rounded-lg bg-slate-100 dark:bg-slate-900 p-0.5 border border-slate-200 dark:border-slate-700 text-[10px]">
+                                        <span class="px-1.5 text-slate-400 font-semibold">Furigana:</span>
+                                        <button type="button" data-ruby-mode="reading" class="ruby-mode-btn px-2 py-0.5 rounded-md font-bold bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm">Kana / Nativo</button>
+                                        <button type="button" data-ruby-mode="romaji" class="ruby-mode-btn px-2 py-0.5 rounded-md font-medium text-slate-500 dark:text-slate-400">Romaji / Latín</button>
+                                        <button type="button" data-ruby-mode="both" class="ruby-mode-btn px-2 py-0.5 rounded-md font-medium text-slate-500 dark:text-slate-400">Ambos</button>
+                                    </div>
+                                </div>
+                                <div id="ruby-tokens-container" class="p-3.5 rounded-xl bg-slate-50/90 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-700/60 text-lg leading-loose select-none"></div>
+                            </div>
+
+                            <!-- Panel del Entrenador de Pronunciación (Shadowing / Evaluación Fonética) -->
+                            <div id="shadowing-panel" class="hidden mt-3 p-3.5 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/80">
+                                <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                                            <i data-lucide="mic-vocal" class="w-4 h-4"></i>
+                                            Entrenador Shadowing
+                                        </span>
+                                        <span id="shadowing-score-badge" class="hidden text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-600 text-white">0% Precisión</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <button id="start-shadowing-mic-btn" type="button" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition active:scale-95">
+                                            <i data-lucide="mic" class="w-3.5 h-3.5"></i>
+                                            <span id="shadowing-btn-label">Leer en voz alta</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <p id="shadowing-feedback" class="text-xs text-slate-600 dark:text-slate-300 mb-2">
+                                    Pulsa <strong>"Leer en voz alta"</strong> y pronuncia la traducción. Evaluaremos tu precisión sílaba por sílaba.
+                                </p>
+                                <div id="shadowing-diff-output" class="hidden p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-emerald-200/70 dark:border-slate-700 text-base leading-relaxed font-medium"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Barra de Herramientas Inferior del Output -->
+                    <div class="px-5 py-3.5 bg-slate-50/60 dark:bg-slate-900/40 border-t border-slate-100 dark:border-slate-700/80 flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex items-center gap-2">
+                            <!-- Botón para activar el Altavoz y reproducir el texto traducido -->
+                            <button id="speaker-btn" type="button" title="Escuchar traducción (Alt+L o Ctrl+P)" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 text-slate-700 dark:text-slate-200 hover:text-indigo-600 border border-slate-200 dark:border-slate-600 shadow-sm transition-all font-medium text-sm active:scale-95">
+                                <i data-lucide="volume-2" class="w-4 h-4 text-indigo-600 dark:text-indigo-400"></i>
+                                <span>Escuchar traducción</span>
+                            </button>
+
+                            <!-- Selector de velocidad de voz -->
+                            <select id="speech-rate" title="Velocidad de reproducción de voz" class="text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-xl px-2.5 py-2.5 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="1">1.0x Normal</option>
+                                <option value="0.8">0.8x Lento (Estudio)</option>
+                                <option value="0.65">0.65x Muy lento</option>
+                            </select>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <!-- Botón Copiar Traducción -->
+                            <button id="copy-btn" type="button" title="Copiar texto traducido" class="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 shadow-sm transition text-xs font-medium active:scale-95">
+                                <i data-lucide="copy" class="w-4 h-4"></i>
+                                <span>Copiar</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Frases Rápidas de Ejemplo (Chips Interactivos) -->
+            <div class="bg-white/90 dark:bg-slate-800/90 rounded-2xl shadow-sm border border-slate-200/80 dark:border-slate-700 p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                        <i data-lucide="zap" class="w-4 h-4 text-amber-500"></i>
+                        Frases útiles para probar con un clic
+                    </h2>
+                    <span class="text-xs text-slate-400">Pulsa cualquiera para cargarla, traducirla y ver su desglose</span>
+                </div>
+                <div id="quick-phrases-list" class="flex flex-wrap gap-2"></div>
+            </div>
+        </div>
+
+        <!-- ========================================================= -->
+        <!-- VISTA 2: MODO INTÉRPRETE CARA A CARA (MANOS LIBRES)       -->
+        <!-- ========================================================= -->
+        <div id="interpreter-view" class="hidden flex-col gap-5">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-md border border-slate-200 dark:border-slate-700 p-5">
+                <div class="flex flex-wrap items-center justify-between gap-4 pb-4 mb-5 border-b border-slate-100 dark:border-slate-700">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <i data-lucide="messages-square" class="w-5 h-5 text-indigo-600 dark:text-indigo-400"></i>
+                            Modo Intérprete Cara a Cara (Bilingüe en Tiempo Real)
+                        </h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            Habla en un idioma: la app traduce al instante, reproduce la voz en el otro idioma y cede el turno automáticamente.
+                        </p>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <label class="inline-flex items-center gap-2 cursor-pointer select-none bg-indigo-50 dark:bg-indigo-950/60 px-3.5 py-2 rounded-xl border border-indigo-200 dark:border-indigo-800">
+                            <input type="checkbox" id="handsfree-auto-turn" class="sr-only peer" checked>
+                            <div class="relative w-9 h-5 bg-slate-300 dark:bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                            <span class="text-xs font-bold text-indigo-800 dark:text-indigo-300">Alternar turno manos libres</span>
+                        </label>
+                        <button id="clear-conversation-btn" class="px-3 py-2 text-xs font-semibold text-slate-500 hover:text-rose-600 bg-slate-100 dark:bg-slate-700 rounded-xl transition">
+                            Limpiar charla
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Doble Botón Gigante de Micrófono (Interlocutor A vs Interlocutor B) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+                    <!-- Botón Interlocutor A -->
+                    <button id="interp-btn-a" type="button" class="group p-6 rounded-2xl border-2 border-indigo-200 dark:border-indigo-800/80 bg-indigo-50/40 dark:bg-indigo-950/20 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 transition-all flex flex-col items-center justify-center gap-3 text-center shadow-sm active:scale-[0.99]">
+                        <div class="flex items-center gap-2">
+                            <span id="interp-flag-a" class="text-3xl">🇪🇸</span>
+                            <span id="interp-name-a" class="text-lg font-bold text-slate-800 dark:text-white">Español</span>
+                        </div>
+                        <div id="interp-circle-a" class="w-16 h-16 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30 group-hover:scale-105 transition">
+                            <i data-lucide="mic" class="w-8 h-8"></i>
+                        </div>
+                        <span id="interp-status-a" class="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                            Pulsa para hablar en Español
+                        </span>
+                    </button>
+
+                    <!-- Botón Interlocutor B -->
+                    <button id="interp-btn-b" type="button" class="group p-6 rounded-2xl border-2 border-rose-200 dark:border-rose-800/80 bg-rose-50/40 dark:bg-rose-950/20 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-all flex flex-col items-center justify-center gap-3 text-center shadow-sm active:scale-[0.99]">
+                        <div class="flex items-center gap-2">
+                            <span id="interp-flag-b" class="text-3xl">🇯🇵</span>
+                            <span id="interp-name-b" class="text-lg font-bold text-slate-800 dark:text-white">Japonés</span>
+                        </div>
+                        <div id="interp-circle-b" class="w-16 h-16 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-lg shadow-rose-500/30 group-hover:scale-105 transition">
+                            <i data-lucide="mic" class="w-8 h-8"></i>
+                        </div>
+                        <span id="interp-status-b" class="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                            Pulsa para hablar en Japonés
+                        </span>
+                    </button>
+                </div>
+
+                <!-- Transcripción Bilingüe en Vivo -->
+                <div id="conversation-log" class="custom-scroll max-h-80 overflow-y-auto space-y-3 p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200/70 dark:border-slate-700/70">
+                    <p class="text-xs text-slate-400 italic text-center py-6">
+                        Pulsa cualquiera de los dos micrófonos superiores para iniciar la conversación cara a cara.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Historial Reciente de la Sesión -->
+        <div class="bg-white/90 dark:bg-slate-800/90 rounded-2xl shadow-sm border border-slate-200/80 dark:border-slate-700 p-4">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                    <i data-lucide="history" class="w-4 h-4 text-indigo-500"></i>
+                    Historial de la sesión
+                </h2>
+                <button id="clear-history-btn" class="text-xs text-slate-400 hover:text-rose-600 transition">Borrar historial</button>
+            </div>
+            <div id="history-list" class="grid grid-cols-1 md:grid-cols-2 gap-2.5 max-h-48 overflow-y-auto custom-scroll pr-1">
+                <p class="text-xs text-slate-400 italic col-span-2 py-2 text-center">Tus traducciones recientes aparecerán aquí.</p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Pie de página con barra rápida de atajos -->
+    <footer class="max-w-6xl w-full mx-auto mt-6 text-center text-xs text-slate-500 dark:text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-slate-200/80 dark:border-slate-800 pt-4">
+        <div class="flex items-center gap-2">
+            <i data-lucide="shield-check" class="w-4 h-4 text-emerald-600"></i>
+            <span>Ejecutable 100% en local (<code class="bg-slate-200/70 dark:bg-slate-800 px-1.5 py-0.5 rounded">index.html</code>) • Soporta PWA y pegado directo de recortes OCR.</span>
+        </div>
+        <div class="flex flex-wrap items-center justify-center gap-2">
+            <span><kbd class="px-1.5 py-0.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded">Ctrl+Enter</kbd> Traducir</span>
+            <span>•</span>
+            <span><kbd class="px-1.5 py-0.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded">Ctrl+Shift+S</kbd> Swap</span>
+            <span>•</span>
+            <span><kbd class="px-1.5 py-0.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded">Ctrl+M</kbd> / <kbd class="px-1.5 py-0.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded">Alt+Espacio</kbd> Hablar</span>
+            <span>•</span>
+            <span><kbd class="px-1.5 py-0.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded">Alt+L</kbd> Escuchar</span>
+        </div>
+    </footer>
+
+    <!-- Lógica Completa de la Aplicación -->
+    <script>
+        lucide.createIcons();
+
+        // =========================================================================
+        // 1. ESTADO, CONTROL DE CARRERA (REQUEST ID + ABORT) Y 8 IDIOMAS
+        // =========================================================================
+        const state = {
+            sourceLang: 'es',
+            targetLang: 'ja',
+            formality: 'polite', // 'casual' | 'polite' | 'formal'
+            autoTranslate: true,
+            activeMode: 'translator', // 'translator' | 'interpreter'
+            rubyDisplayMode: 'reading', // 'reading' | 'romaji' | 'both'
+            jaPhoneticDisplay: 'romaji', // 'romaji' | 'hiragana'
+            isListening: false,
+            isShadowingListening: false,
+            isInterpreterListening: false,
+            interpreterTurn: null, // 'A' | 'B'
+            isTranslating: false,
+            isSpeaking: false,
+            activeRequestId: 0,
+            activeAbortController: null,
+            lastPhoneticRomaji: '',
+            lastPhoneticHiragana: '',
+            lastTokens: [],
+            wordMeaningCache: {},
+            history: [],
+            conversationLog: [],
+            preferredVoices: JSON.parse(localStorage.getItem('kakehashi_voices') || '{}'),
+            deferredPwaPrompt: null
+        };
+
+        const LANG_CONFIG = {
+            es: {
+                name: 'Español',
+                englishName: 'Spanish',
+                apiCode: 'es',
+                speechCode: 'es-ES',
+                tesseractCode: 'spa',
+                flag: '🇪🇸',
+                needsPhonetic: true,
+                phoneticName: 'Guía Fonética / Pronunciación (Español)',
+                placeholder: 'Escribe en español, dicta con el micrófono o pega una imagen (Ctrl+V)...',
+                samples: [
+                    'Hola, mucho gusto en conocerte.',
+                    '¿Dónde está la estación de tren más cercana?',
+                    'La cuenta, por favor. Estaba todo delicioso.',
+                    'Disculpe, ¿me puede ayudar con esta dirección?',
+                    'Me gustaría reservar una mesa para dos personas.'
+                ]
+            },
+            ja: {
+                name: 'Japonés (日本語)',
+                englishName: 'Japanese',
+                apiCode: 'ja',
+                speechCode: 'ja-JP',
+                tesseractCode: 'jpn',
+                flag: '🇯🇵',
+                needsPhonetic: true,
+                phoneticName: 'Lectura Romaji / Furigana (Japonés)',
+                placeholder: '日本語を入力するか、マイクで話すか、画像を貼り付けてください (Ctrl+V)...',
+                samples: [
+                    'こんにちは、お元気ですか？',
+                    'すみません、一番近い駅はどこですか？',
+                    'お会計をお願いします。とても美味しかったです。',
+                    'おすすめの料理は何ですか？',
+                    '日本へ旅行するのが大好きです。'
+                ]
+            },
+            'zh-CN': {
+                name: 'Chino (中文)',
+                englishName: 'Simplified Chinese',
+                apiCode: 'zh-CN',
+                speechCode: 'zh-CN',
+                tesseractCode: 'chi_sim',
+                flag: '🇨🇳',
+                needsPhonetic: true,
+                phoneticName: 'Lectura Pinyin / Tonos (Chino)',
+                placeholder: '在此输入中文，点击麦克风说话，或按 Ctrl+V 粘贴图片...',
+                samples: [
+                    '你好，很高兴认识你。',
+                    '请问最近的地铁站在哪里？',
+                    '服务员，请买单。菜非常好吃。',
+                    '你会说西班牙语或英语吗？',
+                    '我想预订一张两个人的桌子。'
+                ]
+            },
+            ko: {
+                name: 'Coreano (한국어)',
+                englishName: 'Korean',
+                apiCode: 'ko',
+                speechCode: 'ko-KR',
+                tesseractCode: 'kor',
+                flag: '🇰🇷',
+                needsPhonetic: true,
+                phoneticName: 'Romanización Revisada (Coreano)',
+                placeholder: '한국어를 입력하거나 마이크로 말하거나 이미지를 붙여넣으세요 (Ctrl+V)...',
+                samples: [
+                    '안녕하세요, 만나서 반갑습니다.',
+                    '실례합니다, 가장 가까운 역이 어디에 있나요?',
+                    '계산해 주세요. 정말 맛있었습니다.',
+                    '추천 메뉴가 무엇인가요?',
+                    '두 명 자리 예약하고 싶습니다.'
+                ]
+            },
+            en: {
+                name: 'Inglés (English)',
+                englishName: 'English',
+                apiCode: 'en',
+                speechCode: 'en-US',
+                tesseractCode: 'eng',
+                flag: '🇬🇧',
+                needsPhonetic: true,
+                phoneticName: 'Guía Fonética / Pronunciación (Inglés)',
+                placeholder: 'Type in English, press the mic to speak, or paste an image (Ctrl+V)...',
+                samples: [
+                    'Hello, it is very nice to meet you.',
+                    'Excuse me, where is the nearest train station?',
+                    'Could we have the bill, please? Everything was delicious.',
+                    'Do you speak Spanish or Japanese?',
+                    'I would like to book a table for two people.'
+                ]
+            },
+            de: {
+                name: 'Alemán (Deutsch)',
+                englishName: 'German',
+                apiCode: 'de',
+                speechCode: 'de-DE',
+                tesseractCode: 'deu',
+                flag: '🇩🇪',
+                needsPhonetic: true,
+                phoneticName: 'Guía Fonética / Pronunciación (Alemán)',
+                placeholder: 'Schreiben Sie auf Deutsch, sprechen Sie oder fügen Sie ein Bild ein (Strg+V)...',
+                samples: [
+                    'Hallo, freut mich sehr, Sie kennenzulernen.',
+                    'Entschuldigung, wo ist der nächste Bahnhof?',
+                    'Die Rechnung, bitte. Es war alles sehr lecker.',
+                    'Sprechen Sie Spanisch oder Englisch?',
+                    'Ich möchte gerne einen Tisch für zwei Personen reservieren.'
+                ]
+            },
+            ru: {
+                name: 'Ruso (Русский)',
+                englishName: 'Russian',
+                apiCode: 'ru',
+                speechCode: 'ru-RU',
+                tesseractCode: 'rus',
+                flag: '🇷🇺',
+                needsPhonetic: true,
+                phoneticName: 'Transliteración Latina (Ruso)',
+                placeholder: 'Введите текст на русском, говорите в микрофон или вставьте картинку (Ctrl+V)...',
+                samples: [
+                    'Здравствуйте, очень приятно познакомиться.',
+                    'Извините, где находится ближайшая станция метро?',
+                    'Счёт, пожалуйста. Всё было очень вкусно.',
+                    'Вы говорите по-испански или по-английски?',
+                    'Я хотел бы забронировать столик на двоих.'
+                ]
+            },
+            uk: {
+                name: 'Ucraniano (Українська)',
+                englishName: 'Ukrainian',
+                apiCode: 'uk',
+                speechCode: 'uk-UA',
+                tesseractCode: 'ukr',
+                flag: '🇺🇦',
+                needsPhonetic: true,
+                phoneticName: 'Transliteración Latina (Ucraniano)',
+                placeholder: 'Введіть текст українською, натисніть мікрофон або вставте зображення (Ctrl+V)...',
+                samples: [
+                    'Привіт, дуже приємно познайомитися.',
+                    'Вибачте, де знаходиться найближча станція вокзалу?',
+                    'Рахунок, будь ласка. Все було дуже смачно.',
+                    'Ви розмовляєте іспанською чи англійською?',
+                    'Я хотів би забронювати столик на двох осіб.'
+                ]
+            }
+        };
+
+        // Referencias DOM
+        const sourceFlag = document.getElementById('source-flag');
+        const targetFlag = document.getElementById('target-flag');
+        const sourceLangSelect = document.getElementById('source-lang-select');
+        const targetLangSelect = document.getElementById('target-lang-select');
+        const inputPanelTitle = document.getElementById('input-panel-title');
+        const outputPanelTitle = document.getElementById('output-panel-title');
+        const swapBtn = document.getElementById('swap-languages-btn');
+
+        const sourceTextarea = document.getElementById('source-textarea');
+        const targetTextarea = document.getElementById('target-textarea');
+        const romajiContainer = document.getElementById('romaji-container');
+        const phoneticLabel = document.getElementById('phonetic-label');
+        const romajiText = document.getElementById('romaji-text');
+        const jaPhoneticModeGroup = document.getElementById('ja-phonetic-mode-group');
+        const copyPhoneticBtn = document.getElementById('copy-phonetic-btn');
+        const charCounter = document.getElementById('char-counter');
+
+        const interactiveTokensPanel = document.getElementById('interactive-tokens-panel');
+        const rubyTokensContainer = document.getElementById('ruby-tokens-container');
+        const tokenPopover = document.getElementById('token-popover');
+
+        const translateBtn = document.getElementById('translate-btn');
+        const micBtn = document.getElementById('mic-btn');
+        const micBtnText = document.getElementById('mic-btn-text');
+        const micStatusBadge = document.getElementById('mic-status-badge');
+        const micStatusText = document.getElementById('mic-status-text');
+
+        const speakerBtn = document.getElementById('speaker-btn');
+        const speakSourceBtn = document.getElementById('speak-source-btn');
+        const speakerStatusBadge = document.getElementById('speaker-status-badge');
+        const speechRateSelect = document.getElementById('speech-rate');
+        const voiceSelect = document.getElementById('voice-select');
+
+        const clearInputBtn = document.getElementById('clear-input-btn');
+        const copyBtn = document.getElementById('copy-btn');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const quickPhrasesList = document.getElementById('quick-phrases-list');
+        const historyList = document.getElementById('history-list');
+        const clearHistoryBtn = document.getElementById('clear-history-btn');
+
+        // =========================================================================
+        // 2. SISTEMA DE NOTIFICACIONES (TOAST) Y TEMA OSCURO/CLARO
+        // =========================================================================
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const styles = {
+                info: 'bg-slate-800 text-white border-slate-700',
+                success: 'bg-emerald-600 text-white border-emerald-500',
+                error: 'bg-rose-600 text-white border-rose-500',
+                warning: 'bg-amber-500 text-white border-amber-400'
+            };
+            toast.className = `pointer-events-auto flex items-center justify-between gap-3 px-4 py-3 rounded-xl shadow-lg border text-xs sm:text-sm font-medium transition-all duration-300 transform translate-y-2 opacity-0 ${styles[type] || styles.info}`;
+            toast.innerHTML = `<span>${message}</span><button class="opacity-70 hover:opacity-100 text-xs font-bold px-1">✕</button>`;
+            container.appendChild(toast);
+            requestAnimationFrame(() => toast.classList.remove('translate-y-2', 'opacity-0'));
+            const removeToast = () => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            };
+            toast.querySelector('button').addEventListener('click', removeToast);
+            setTimeout(removeToast, 4000);
+        }
+
+        const themeToggleBtn = document.getElementById('theme-toggle-btn');
+        if (localStorage.getItem('kakehashi_theme') === 'dark') {
+            document.documentElement.classList.add('dark');
+        }
+        themeToggleBtn.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+            const isDark = document.documentElement.classList.contains('dark');
+            localStorage.setItem('kakehashi_theme', isDark ? 'dark' : 'light');
+        });
+
+        // =========================================================================
+        // 3. SELECTORES DE IDIOMA, FORMALIDAD Y VOCES NATIVAS DEL SISTEMA
+        // =========================================================================
+        function cancelPendingOperations() {
+            clearTimeout(debounceTimer);
+            debounceIndicator.classList.add('hidden');
+            state.activeRequestId++;
+            if (state.activeAbortController) {
+                try { state.activeAbortController.abort(); } catch (e) {}
+                state.activeAbortController = null;
+            }
+            state.isTranslating = false;
+            loadingOverlay.classList.add('hidden');
+            translateBtn.disabled = false;
+            stopAllMicrophones();
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                resetSpeakerUI();
+            }
+            tokenPopover.classList.add('hidden');
+        }
+
+        function populateLanguageSelects() {
+            sourceLangSelect.innerHTML = '';
+            targetLangSelect.innerHTML = '';
+            Object.entries(LANG_CONFIG).forEach(([code, config]) => {
+                sourceLangSelect.add(new Option(config.name, code));
+                targetLangSelect.add(new Option(config.name, code));
+            });
+            sourceLangSelect.value = state.sourceLang;
+            targetLangSelect.value = state.targetLang;
+        }
+
+        function populateVoices() {
+            if (!('speechSynthesis' in window)) return;
+            const voices = window.speechSynthesis.getVoices();
+            const targetSpeechCode = LANG_CONFIG[state.targetLang].speechCode;
+            const langPrefix = targetSpeechCode.split('-')[0].toLowerCase();
+
+            const matchingVoices = voices.filter(v =>
+                v.lang.replace('_', '-').toLowerCase().startsWith(langPrefix)
+            );
+
+            voiceSelect.innerHTML = '';
+            if (matchingVoices.length === 0) {
+                voiceSelect.add(new Option(`Voz automática (${targetSpeechCode})`, ''));
+                return;
+            }
+
+            matchingVoices.forEach(v => {
+                const badge = v.localService ? 'Local' : 'Neural/Red';
+                const label = `${v.name} (${badge})`;
+                voiceSelect.add(new Option(label, v.name));
+            });
+
+            const savedVoice = state.preferredVoices[state.targetLang];
+            if (savedVoice && matchingVoices.some(v => v.name === savedVoice)) {
+                voiceSelect.value = savedVoice;
+            }
+        }
+
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.onvoiceschanged = populateVoices;
+        }
+
+        voiceSelect.addEventListener('change', () => {
+            state.preferredVoices[state.targetLang] = voiceSelect.value;
+            localStorage.setItem('kakehashi_voices', JSON.stringify(state.preferredVoices));
+            showToast(`Voz seleccionada: ${voiceSelect.value || 'Predeterminada'}`, 'info');
+        });
+
+        function updateLanguageUI() {
+            const src = LANG_CONFIG[state.sourceLang];
+            const tgt = LANG_CONFIG[state.targetLang];
+
+            sourceLangSelect.value = state.sourceLang;
+            targetLangSelect.value = state.targetLang;
+
+            sourceFlag.textContent = src.flag;
+            targetFlag.textContent = tgt.flag;
+
+            inputPanelTitle.textContent = `Texto a traducir (${src.name})`;
+            outputPanelTitle.textContent = `Texto traducido (${tgt.name})`;
+            sourceTextarea.placeholder = src.placeholder;
+            phoneticLabel.textContent = tgt.phoneticName;
+
+            if (state.targetLang === 'ja') {
+                jaPhoneticModeGroup.classList.remove('hidden');
+            } else {
+                jaPhoneticModeGroup.classList.add('hidden');
+            }
+
+            // Actualizar Modo Intérprete Cara a Cara
+            document.getElementById('interp-flag-a').textContent = src.flag;
+            document.getElementById('interp-name-a').textContent = src.name;
+            document.getElementById('interp-status-a').textContent = `Pulsa para hablar en ${src.name.split(' ')[0]}`;
+
+            document.getElementById('interp-flag-b').textContent = tgt.flag;
+            document.getElementById('interp-name-b').textContent = tgt.name;
+            document.getElementById('interp-status-b').textContent = `Pulsa para hablar en ${tgt.name.split(' ')[0]}`;
+
+            populateVoices();
+            renderQuickPhrases();
+        }
+
+        function renderQuickPhrases() {
+            const samples = LANG_CONFIG[state.sourceLang].samples;
+            quickPhrasesList.innerHTML = '';
+            samples.forEach(phrase => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'text-xs bg-slate-100 dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-indigo-950/70 text-slate-700 dark:text-slate-300 hover:text-indigo-700 dark:hover:text-indigo-300 border border-slate-200/80 dark:border-slate-700 px-3 py-1.5 rounded-xl transition active:scale-95 text-left';
+                btn.textContent = phrase;
+                btn.addEventListener('click', () => {
+                    sourceTextarea.value = phrase;
+                    updateCharCount();
+                    translateText();
+                });
+                quickPhrasesList.appendChild(btn);
+            });
+        }
+
+        // Eventos de cambio de idioma blindados contra condiciones de carrera
+        sourceLangSelect.addEventListener('change', (e) => {
+            const newSource = e.target.value;
+            cancelPendingOperations();
+            if (newSource === state.targetLang) state.targetLang = state.sourceLang;
+            state.sourceLang = newSource;
+            updateLanguageUI();
+            if (sourceTextarea.value.trim()) {
+                translateText();
+            } else {
+                clearOutputPanels();
+            }
+        });
+
+        targetLangSelect.addEventListener('change', (e) => {
+            const newTarget = e.target.value;
+            cancelPendingOperations();
+            if (newTarget === state.sourceLang) state.sourceLang = state.targetLang;
+            state.targetLang = newTarget;
+            updateLanguageUI();
+            if (sourceTextarea.value.trim()) {
+                translateText();
+            } else {
+                clearOutputPanels();
+            }
+        });
+
+        function clearOutputPanels() {
+            targetTextarea.value = '';
+            romajiText.textContent = '';
+            romajiContainer.classList.add('hidden');
+            interactiveTokensPanel.classList.add('hidden');
+            rubyTokensContainer.innerHTML = '';
+            document.getElementById('shadowing-panel').classList.add('hidden');
+            tokenPopover.classList.add('hidden');
+        }
+
+        function swapLanguages() {
+            cancelPendingOperations();
+
+            const temp = state.sourceLang;
+            state.sourceLang = state.targetLang;
+            state.targetLang = temp;
+
+            const currentInput = sourceTextarea.value.trim();
+            const currentOutput = targetTextarea.value.trim();
+
+            updateLanguageUI();
+
+            if (currentOutput) {
+                sourceTextarea.value = currentOutput;
+                targetTextarea.value = currentInput;
+                updateCharCount();
+                translateText();
+            } else if (currentInput) {
+                translateText();
+            } else {
+                clearOutputPanels();
+            }
+            showToast(`Idiomas invertidos: ${LANG_CONFIG[state.sourceLang].name} ⇄ ${LANG_CONFIG[state.targetLang].name}`, 'info');
+        }
+
+        swapBtn.addEventListener('click', swapLanguages);
+
+        // Selector de Nivel de Formalidad / Registro
+        document.querySelectorAll('.formality-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                state.formality = btn.dataset.formality;
+                document.querySelectorAll('.formality-btn').forEach(b => {
+                    b.className = 'formality-btn px-2.5 py-1 rounded-lg font-medium transition text-slate-600 dark:text-slate-400';
+                });
+                btn.className = 'formality-btn px-2.5 py-1 rounded-lg font-semibold transition bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm';
+                if (sourceTextarea.value.trim()) translateText();
+            });
+        });
+
+        // Selector de modo de visualización de Furigana (<rt>): Hiragana/Kana | Romaji | Ambos
+        document.querySelectorAll('.ruby-mode-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                state.rubyDisplayMode = btn.dataset.rubyMode;
+                document.querySelectorAll('.ruby-mode-btn').forEach(b => {
+                    b.className = 'ruby-mode-btn px-2 py-0.5 rounded-md font-medium text-slate-500 dark:text-slate-400';
+                });
+                btn.className = 'ruby-mode-btn px-2 py-0.5 rounded-md font-bold bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm';
+                renderInteractiveTokens(state.lastTokens, state.targetLang);
+            });
+        });
+
+        // Selector Romaji vs Hiragana en la caja de lectura fonética japonesa
+        document.querySelectorAll('.ja-phonetic-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                state.jaPhoneticDisplay = btn.dataset.phoneticMode;
+                document.querySelectorAll('.ja-phonetic-btn').forEach(b => {
+                    b.className = 'ja-phonetic-btn px-2 py-0.5 rounded-md font-medium text-slate-500 dark:text-slate-400';
+                });
+                btn.className = 'ja-phonetic-btn px-2 py-0.5 rounded-md font-bold bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm';
+                updatePhoneticDisplayBox();
+            });
+        });
+
+        function updatePhoneticDisplayBox() {
+            if (state.targetLang === 'ja' && state.jaPhoneticDisplay === 'hiragana' && state.lastPhoneticHiragana) {
+                romajiText.textContent = state.lastPhoneticHiragana;
+            } else {
+                romajiText.textContent = state.lastPhoneticRomaji;
+            }
+        }
+
+        copyPhoneticBtn.addEventListener('click', () => {
+            const txt = romajiText.textContent.trim();
+            if (!txt) return;
+            const tempInput = document.createElement('textarea');
+            tempInput.value = txt;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            tempInput.remove();
+            showToast('Lectura fonética copiada al portapapeles.', 'success');
+        });
+
+        // Sincronizar edición manual en el cuadro de texto traducido (#target-textarea) con el Furigana y Romaji
+        let targetEditTimer = null;
+        targetTextarea.addEventListener('input', () => {
+            clearTimeout(targetEditTimer);
+            targetEditTimer = setTimeout(async () => {
+                const customTranslated = targetTextarea.value.trim();
+                if (!customTranslated) {
+                    clearOutputPanels();
+                    return;
+                }
+                const localBuilt = await buildLocalPhoneticsAndTokens(customTranslated, state.targetLang, state.sourceLang, '');
+                state.lastPhoneticRomaji = localBuilt.romaji;
+                state.lastPhoneticHiragana = localBuilt.hiragana;
+                phoneticLabel.textContent = LANG_CONFIG[state.targetLang].phoneticName;
+                updatePhoneticDisplayBox();
+                romajiContainer.classList.remove('hidden');
+                renderInteractiveTokens(localBuilt.tokens, state.targetLang);
+            }, 450);
+        });
+
+        // =========================================================================
+        // 4. AUTOTRADUCCIÓN CON DEBOUNCE INTELIGENTE (800ms)
+        // =========================================================================
+        let debounceTimer = null;
+        const autoTranslateToggle = document.getElementById('auto-translate-toggle');
+        const debounceIndicator = document.getElementById('debounce-indicator');
+
+        autoTranslateToggle.addEventListener('change', (e) => {
+            state.autoTranslate = e.target.checked;
+            showToast(state.autoTranslate ? 'Autotraducción (800ms) activada' : 'Autotraducción desactivada', 'info');
+        });
+
+        function updateCharCount() {
+            const len = sourceTextarea.value.length;
+            charCounter.textContent = `${len} ${len === 1 ? 'carácter' : 'caracteres'}`;
+        }
+
+        sourceTextarea.addEventListener('input', () => {
+            updateCharCount();
+            if (!state.autoTranslate) return;
+
+            clearTimeout(debounceTimer);
+            const text = sourceTextarea.value.trim();
+            if (!text) {
+                debounceIndicator.classList.add('hidden');
+                clearOutputPanels();
+                return;
+            }
+            debounceIndicator.classList.remove('hidden');
+            debounceTimer = setTimeout(() => {
+                debounceIndicator.classList.add('hidden');
+                translateText();
+            }, 800);
+        });
+
+        clearInputBtn.addEventListener('click', () => {
+            cancelPendingOperations();
+            sourceTextarea.value = '';
+            clearOutputPanels();
+            updateCharCount();
+            sourceTextarea.focus();
+        });
+
+        // =========================================================================
+        // 5. MOTOR LOCAL DE FONÉTICA, DICCIONARIO EMBEBIDO Y TRANSLITERACIÓN
+        // =========================================================================
+        // Diccionario local embebido de Kanji/palabras frecuentes (Japonés, Chino, Coreano, Ruso, Ucraniano)
+        const LOCAL_LEXICON = {
+            // Japonés (Kanji -> Hiragana, Romaji, POS, Significado ES)
+            'こんにちは': { reading: 'こんにちは', romaji: 'konnichiwa', pos: 'Saludo', meaning: 'Hola / Buenas tardes' },
+            'こんばんは': { reading: 'こんばんは', romaji: 'konbanwa', pos: 'Saludo', meaning: 'Buenas noches' },
+            'おはよう': { reading: 'おはよう', romaji: 'ohayou', pos: 'Saludo', meaning: 'Buenos días' },
+            'ございます': { reading: 'ございます', romaji: 'gozaimasu', pos: 'Auxiliar cortés', meaning: 'Expresión de cortesía (ser/estar)' },
+            'ありがとう': { reading: 'ありがとう', romaji: 'arigatou', pos: 'Expresión', meaning: 'Gracias' },
+            'すみません': { reading: 'すみません', romaji: 'sumimasen', pos: 'Expresión', meaning: 'Disculpe / Perdón' },
+            'お願いします': { reading: 'おねがいします', romaji: 'onegaishimasu', pos: 'Expresión', meaning: 'Por favor (solicitud)' },
+            'お願い': { reading: 'おねがい', romaji: 'onegai', pos: 'Sustantivo', meaning: 'Por favor / Deseo' },
+            '私': { reading: 'わたし', romaji: 'watashi', pos: 'Pronombre', meaning: 'Yo' },
+            '僕': { reading: 'ぼく', romaji: 'boku', pos: 'Pronombre', meaning: 'Yo (masculino)' },
+            'あなた': { reading: 'あなた', romaji: 'anata', pos: 'Pronombre', meaning: 'Tú / Usted' },
+            '日本': { reading: 'にほん', romaji: 'nihon', pos: 'Sustantivo', meaning: 'Japón' },
+            '日本語': { reading: 'にほんご', romaji: 'nihongo', pos: 'Sustantivo', meaning: 'Idioma japonés' },
+            'スペイン語': { reading: 'すぺいんご', romaji: 'supeingo', pos: 'Sustantivo', meaning: 'Idioma español' },
+            '英語': { reading: 'えいご', romaji: 'eigo', pos: 'Sustantivo', meaning: 'Idioma inglés' },
+            '元気': { reading: 'げんき', romaji: 'genki', pos: 'Adjetivo/Sust.', meaning: 'Saludable / Con energía / Bien' },
+            '一番': { reading: 'いちばん', romaji: 'ichiban', pos: 'Adverbio', meaning: 'El más / Número uno' },
+            '近い': { reading: 'ちかい', romaji: 'chikai', pos: 'Adjetivo', meaning: 'Cercano / Próximo' },
+            '駅': { reading: 'えき', romaji: 'eki', pos: 'Sustantivo', meaning: 'Estación de tren' },
+            '電車': { reading: 'でんしゃ', romaji: 'densha', pos: 'Sustantivo', meaning: 'Tren eléctrico' },
+            '地下鉄': { reading: 'ちかてつ', romaji: 'chikatetsu', pos: 'Sustantivo', meaning: 'Metro / Subterráneo' },
+            '空港': { reading: 'くうこう', romaji: 'kuukou', pos: 'Sustantivo', meaning: 'Aeropuerto' },
+            '会計': { reading: 'かいけい', romaji: 'kaikei', pos: 'Sustantivo', meaning: 'Cuenta / Factura' },
+            'お会計': { reading: 'おかいけい', romaji: 'okaikei', pos: 'Sustantivo', meaning: 'La cuenta (cortés)' },
+            '美味しい': { reading: 'おいしい', romaji: 'oishii', pos: 'Adjetivo', meaning: 'Delicioso / Rico' },
+            '美味しかっ': { reading: 'おいしかっ', romaji: 'oishika', pos: 'Adjetivo (pasado)', meaning: 'Estuvo delicioso' },
+            '料理': { reading: 'りょうり', romaji: 'ryouri', pos: 'Sustantivo', meaning: 'Cocina / Plato / Comida' },
+            '旅行': { reading: 'りょこう', romaji: 'ryokou', pos: 'Sustantivo', meaning: 'Viaje' },
+            '大好き': { reading: 'だいすき', romaji: 'daisuki', pos: 'Adjetivo', meaning: 'Encantar / Gustar mucho' },
+            '好き': { reading: 'すき', romaji: 'suki', pos: 'Adjetivo', meaning: 'Gustar' },
+            '人': { reading: 'ひと', romaji: 'hito', pos: 'Sustantivo', meaning: 'Persona' },
+            '二人': { reading: 'ふたり', romaji: 'futari', pos: 'Sustantivo', meaning: 'Dos personas' },
+            '一人': { reading: 'ひとり', romaji: 'hitori', pos: 'Sustantivo', meaning: 'Una persona' },
+            '予約': { reading: 'よやく', romaji: 'yoyaku', pos: 'Sustantivo/Verbo', meaning: 'Reserva / Reservar' },
+            '水': { reading: 'みず', romaji: 'mizu', pos: 'Sustantivo', meaning: 'Agua' },
+            '今日': { reading: 'きょう', romaji: 'kyou', pos: 'Sustantivo', meaning: 'Hoy' },
+            '明日': { reading: 'あした', romaji: 'ashita', pos: 'Sustantivo', meaning: 'Mañana' },
+            '昨日': { reading: 'きのう', romaji: 'kinou', pos: 'Sustantivo', meaning: 'Ayer' },
+            '時間': { reading: 'じかん', romaji: 'jikan', pos: 'Sustantivo', meaning: 'Tiempo / Hora' },
+            '場所': { reading: 'ばしょ', romaji: 'basho', pos: 'Sustantivo', meaning: 'Lugar / Dirección' },
+            '住所': { reading: 'じゅうしょ', romaji: 'juusho', pos: 'Sustantivo', meaning: 'Dirección postal' },
+            '手伝い': { reading: 'てつだい', romaji: 'tetsudai', pos: 'Sustantivo', meaning: 'Ayuda' },
+            '助け': { reading: 'たすけ', romaji: 'tasuke', pos: 'Sustantivo', meaning: 'Ayuda / Socorro' },
+            '会い': { reading: 'あい', romaji: 'ai', pos: 'Verbo', meaning: 'Encontrar / Conocer' },
+            'お会い': { reading: 'おあい', romaji: 'oai', pos: 'Verbo honorífico', meaning: 'Conocerle (cortés)' },
+            '嬉しい': { reading: 'うれしい', romaji: 'ureshii', pos: 'Adjetivo', meaning: 'Feliz / Encantado' },
+            '初めまして': { reading: 'はじめまして', romaji: 'hajimemashite', pos: 'Expresión', meaning: 'Mucho gusto en conocerle' },
+            'はじめまして': { reading: 'はじめまして', romaji: 'hajimemashite', pos: 'Expresión', meaning: 'Mucho gusto' },
+            'どこ': { reading: 'どこ', romaji: 'doko', pos: 'Pronombre', meaning: 'Dónde' },
+            '何': { reading: 'なに', romaji: 'nani', pos: 'Pronombre', meaning: 'Qué' },
+            'です': { reading: 'です', romaji: 'desu', pos: 'Cópula', meaning: 'Es / Está (cortés)' },
+            'ます': { reading: 'ます', romaji: 'masu', pos: 'Auxiliar', meaning: 'Sufijo verbal cortés' },
+            'か': { reading: 'か', romaji: 'ka', pos: 'Partícula', meaning: 'Partícula interrogativa (?)' },
+            'は': { reading: 'は', romaji: 'wa', pos: 'Partícula', meaning: 'Partícula de tema' },
+            'が': { reading: 'が', romaji: 'ga', pos: 'Partícula', meaning: 'Partícula de sujeto' },
+            'を': { reading: 'を', romaji: 'o', pos: 'Partícula', meaning: 'Partícula de objeto directo' },
+            'に': { reading: 'に', romaji: 'ni', pos: 'Partícula', meaning: 'En / A / Hacia (dirección/tiempo)' },
+            'へ': { reading: 'へ', romaji: 'e', pos: 'Partícula', meaning: 'Hacia (dirección)' },
+            'で': { reading: 'で', romaji: 'de', pos: 'Partícula', meaning: 'En / Por medio de' },
+            'の': { reading: 'の', romaji: 'no', pos: 'Partícula', meaning: 'De (posesivo / conector)' },
+            // Chino Simplificado (Hanzi -> Pinyin, significado)
+            '你好': { reading: 'nǐ hǎo', romaji: 'ni hao', pos: 'Saludo', meaning: 'Hola' },
+            '您好': { reading: 'nín hǎo', romaji: 'nin hao', pos: 'Saludo cortés', meaning: 'Hola (usted)' },
+            '谢谢': { reading: 'xiè xie', romaji: 'xie xie', pos: 'Expresión', meaning: 'Gracias' },
+            '很高兴': { reading: 'hěn gāo xìng', romaji: 'hen gao xing', pos: 'Expresión', meaning: 'Muy encantado / Feliz' },
+            '认识': { reading: 'rèn shi', romaji: 'ren shi', pos: 'Verbo', meaning: 'Conocer' },
+            '你': { reading: 'nǐ', romaji: 'ni', pos: 'Pronombre', meaning: 'Tú' },
+            '我': { reading: 'wǒ', romaji: 'wo', pos: 'Pronombre', meaning: 'Yo' },
+            '请问': { reading: 'qǐng wèn', romaji: 'qing wen', pos: 'Expresión', meaning: 'Disculpe, ¿podría preguntar...?' },
+            '最近': { reading: 'zuì jìn', romaji: 'zui jin', pos: 'Adjetivo/Adv.', meaning: 'Más cercano / Reciente' },
+            '地铁站': { reading: 'dì tiě zhàn', romaji: 'di tie zhan', pos: 'Sustantivo', meaning: 'Estación de metro' },
+            '火车站': { reading: 'huǒ chē zhàn', romaji: 'huo che zhan', pos: 'Sustantivo', meaning: 'Estación de tren' },
+            '在哪里': { reading: 'zài nǎ lǐ', romaji: 'zai na li', pos: 'Expresión', meaning: '¿Dónde está?' },
+            '服务员': { reading: 'fú wù yuán', romaji: 'fu wu yuan', pos: 'Sustantivo', meaning: 'Camarero / Mesero' },
+            '买单': { reading: 'mǎi dān', romaji: 'mai dan', pos: 'Verbo', meaning: 'Pagar la cuenta' },
+            '好吃': { reading: 'hǎo chī', romaji: 'hao chi', pos: 'Adjetivo', meaning: 'Delicioso' },
+            '预订': { reading: 'yù dìng', romaji: 'yu ding', pos: 'Verbo', meaning: 'Reservar' },
+            '桌子': { reading: 'zhuō zi', romaji: 'zhuo zi', pos: 'Sustantivo', meaning: 'Mesa' }
+        };
+
+        function katakanaToHiragana(str) {
+            if (!str) return '';
+            return str.replace(/[\u30a1-\u30f6]/g, m => String.fromCharCode(m.charCodeAt(0) - 0x60));
+        }
+
+        function containsKanji(str) {
+            return /[\u4e00-\u9faf\u3400-\u4dbf]/.test(str);
+        }
+
+        function containsKana(str) {
+            return /[\u3040-\u309f\u30a0-\u30ff]/.test(str);
+        }
+
+        function kanaToRomaji(str) {
+            if (!str) return '';
+            const hiragana = katakanaToHiragana(str);
+            const digraphs = {
+                'きゃ': 'kya', 'きゅ': 'kyu', 'きょ': 'kyo', 'しゃ': 'sha', 'しゅ': 'shu', 'しょ': 'sho',
+                'ちゃ': 'cha', 'ちゅ': 'chu', 'ちょ': 'cho', 'にゃ': 'nya', 'にゅ': 'nyu', 'にょ': 'nyo',
+                'ひゃ': 'hya', 'ひゅ': 'hyu', 'ひょ': 'hyo', 'みゃ': 'mya', 'みゅ': 'myu', 'みょ': 'myo',
+                'りゃ': 'rya', 'りゅ': 'ryu', 'りょ': 'ryo', 'ぎゃ': 'gya', 'ぎゅ': 'gyu', 'ぎょ': 'gyo',
+                'じゃ': 'ja', 'じゅ': 'ju', 'じょ': 'jo', 'びゃ': 'bya', 'びゅ': 'byu', 'びょ': 'byo',
+                'ぴゃ': 'pya', 'ぴゅ': 'pyu', 'ぴょ': 'pyo',
+                'ふぁ': 'fa', 'ふぃ': 'fi', 'ふぇ': 'fe', 'ふぉ': 'fo',
+                'てぃ': 'ti', 'でぃ': 'di', 'うぃ': 'wi', 'うぇ': 'we', 'うぉ': 'wo', 'ゔぁ': 'va', 'ゔぃ': 'vi', 'ゔ': 'vu'
+            };
+            const monographs = {
+                'あ': 'a', 'い': 'i', 'う': 'u', 'え': 'e', 'お': 'o', 'か': 'ka', 'き': 'ki', 'く': 'ku', 'け': 'ke', 'こ': 'ko',
+                'さ': 'sa', 'し': 'shi', 'す': 'su', 'せ': 'se', 'そ': 'so', 'た': 'ta', 'ち': 'chi', 'つ': 'tsu', 'て': 'te', 'と': 'to',
+                'な': 'na', 'に': 'ni', 'ぬ': 'nu', 'ね': 'ne', 'の': 'no', 'は': 'ha', 'ひ': 'hi', 'ふ': 'fu', 'へ': 'he', 'ほ': 'ho',
+                'ま': 'ma', 'み': 'mi', 'む': 'mu', 'め': 'me', 'も': 'mo', 'や': 'ya', 'ゆ': 'yu', 'よ': 'yo',
+                'ら': 'ra', 'り': 'ri', 'る': 'ru', 'れ': 're', 'ろ': 'ro', 'わ': 'wa', 'ゐ': 'i', 'ゑ': 'e', 'を': 'o', 'ん': 'n',
+                'が': 'ga', 'ぎ': 'gi', 'ぐ': 'gu', 'げ': 'ge', 'ご': 'go', 'ざ': 'za', 'じ': 'ji', 'ず': 'zu', 'ぜ': 'ze', 'ぞ': 'zo',
+                'だ': 'da', 'ぢ': 'ji', 'づ': 'zu', 'で': 'de', 'ど': 'do', 'ば': 'ba', 'び': 'び', 'ぶ': 'bu', 'べ': 'be', 'ぼ': 'bo',
+                'ぱ': 'pa', 'ぴ': 'pi', 'ぷ': 'pu', 'ぺ': 'pe', 'ぽ': 'po',
+                'ぁ': 'a', 'ぃ': 'i', 'ぅ': 'u', 'ぇ': 'e', 'ぉ': 'o',
+                'ー': '-', '。': '. ', '、': ', ', '？': '?', '！': '!'
+            };
+            monographs['び'] = 'bi';
+
+            let res = '';
+            for (let i = 0; i < hiragana.length; i++) {
+                const two = hiragana.slice(i, i + 2);
+                if (digraphs[two]) {
+                    res += digraphs[two];
+                    i++;
+                    continue;
+                }
+                const c = hiragana[i];
+                if (c === 'っ') {
+                    const nextTwo = hiragana.slice(i + 1, i + 3);
+                    const nextRom = digraphs[nextTwo] || monographs[hiragana[i + 1]] || '';
+                    if (nextRom) res += nextRom[0];
+                    continue;
+                }
+                res += monographs[c] !== undefined ? monographs[c] : c;
+            }
+            return res;
+        }
+
+        // Conversor Hangul (Coreano) a Romanización Revisada sílaba por sílaba
+        function hangulToRomanization(str) {
+            if (!str) return '';
+            const L = ['g', 'kk', 'n', 'd', 'tt', 'r', 'm', 'b', 'pp', 's', 'ss', '', 'j', 'jj', 'ch', 'k', 't', 'p', 'h'];
+            const V = ['a', 'ae', 'ya', 'yae', 'eo', 'e', 'yeo', 'ye', 'o', 'wa', 'wae', 'oe', 'yo', 'u', 'wo', 'we', 'wi', 'yu', 'eu', 'ui', 'i'];
+            const T = ['', 'k', 'k', 'ks', 'n', 'nj', 'nh', 't', 'l', 'lk', 'lm', 'lb', 'ls', 'lt', 'lp', 'lh', 'm', 'p', 'ps', 't', 't', 'ng', 't', 't', 'k', 't', 'p', 't'];
+            let out = '';
+            for (let i = 0; i < str.length; i++) {
+                const code = str.charCodeAt(i) - 0xAC00;
+                if (code >= 0 && code < 11172) {
+                    const lIdx = Math.floor(code / 588);
+                    const vIdx = Math.floor((code % 588) / 28);
+                    const tIdx = code % 28;
+                    out += L[lIdx] + V[vIdx] + T[tIdx];
+                } else {
+                    out += str[i];
+                }
+            }
+            return out;
+        }
+
+        function cyrillicToLatin(str) {
+            if (!str) return '';
+            const map = {
+                'а':'a','б':'b','в':'v','г':'g','ґ':'g','д':'d','е':'e','ё':'yo','є':'ye','ж':'zh','з':'z',
+                'и':'i','і':'i','ї':'yi','й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r',
+                'с':'s','т':'t','у':'u','ф':'f','х':'kh','ц':'ts','ч':'ch','ш':'sh','щ':'shch','ъ':'',
+                'ы':'y','ь':'','э':'e','ю':'yu','я':'ya',
+                'А':'A','Б':'B','В':'V','Г':'G','Ґ':'G','Д':'D','Е':'E','Ё':'Yo','Є':'Ye','Ж':'Zh','З':'Z',
+                'И':'I','І':'I','Ї':'Yi','Й':'Y','К':'K','Л':'L','М':'M','Н':'N','О':'O','П':'P','Р':'R',
+                'С':'S','Т':'T','У':'U','Ф':'F','Х':'Kh','Ц':'Ts','Ч':'Ch','Ш':'Sh','Щ':'Shch','Ъ':'',
+                'Ы':'Y','Ь':'','Э':'E','Ю':'Yu','Я':'Ya'
+            };
+            return str.split('').map(c => map[c] !== undefined ? map[c] : c).join('');
+        }
+
+        // Consulta ligera a endpoint público GTX para obtener transliteración oficial (`dt=rm`) y diccionario (`dt=bd`) sin API Key
+        async function fetchPublicTranslitAndTranslation(text, srcCode, tgtCode, signal) {
+            const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${encodeURIComponent(srcCode)}&tl=${encodeURIComponent(tgtCode)}&dt=t&dt=rm&dt=bd&q=${encodeURIComponent(text)}`;
+            const res = await fetch(url, { signal });
+            if (!res.ok) throw new Error('GTX unavailable');
+            const data = await res.json();
+
+            let translated = '';
+            let translit = '';
+
+            if (Array.isArray(data[0])) {
+                data[0].forEach(seg => {
+                    if (seg[0]) translated += seg[0];
+                    if (seg[2]) translit += (translit ? ' ' : '') + seg[2];
+                });
+            }
+
+            let dictPos = '';
+            let dictMeanings = [];
+            if (Array.isArray(data[1]) && data[1][0]) {
+                dictPos = data[1][0][0] || '';
+                if (Array.isArray(data[1][0][1])) {
+                    dictMeanings = data[1][0][1].slice(0, 3);
+                }
+            }
+
+            return { translated: translated.trim(), translit: translit.trim(), dictPos, dictMeanings };
+        }
+
+        // Construye lectura fonética y tokens interactivos con Furigana garantizado para cualquier idioma
+        async function buildLocalPhoneticsAndTokens(translatedText, targetLang, sourceLang, externalRomaji = '', signal = null) {
+            let rawSegments = [];
+            if ('Intl' in window && Intl.Segmenter) {
+                const segmenter = new Intl.Segmenter(targetLang, { granularity: 'word' });
+                for (const seg of segmenter.segment(translatedText)) {
+                    if (seg.segment.trim().length > 0) {
+                        rawSegments.push(seg.segment);
+                    }
+                }
+            } else {
+                rawSegments = translatedText.split(/(\s+)/).filter(s => s.trim().length > 0);
+            }
+
+            // Si no tenemos transliteración externa, intentamos obtenerla de GTX o generarla localmente
+            let fullRomaji = externalRomaji;
+            if (!fullRomaji) {
+                try {
+                    const gtx = await fetchPublicTranslitAndTranslation(translatedText, LANG_CONFIG[targetLang].apiCode, LANG_CONFIG[sourceLang].apiCode, signal);
+                    if (gtx.translit) fullRomaji = gtx.translit;
+                } catch (e) {}
+            }
+
+            const tokens = [];
+            let builtRomajiParts = [];
+            let builtHiraganaParts = [];
+
+            for (const surface of rawSegments) {
+                const lex = LOCAL_LEXICON[surface];
+                let reading = '';
+                let romaji = '';
+                let pos = 'Vocabulario';
+                let meaning = '';
+
+                if (lex) {
+                    reading = lex.reading;
+                    romaji = lex.romaji;
+                    pos = lex.pos;
+                    meaning = lex.meaning;
+                } else if (targetLang === 'ja') {
+                    if (!containsKanji(surface) && containsKana(surface)) {
+                        reading = katakanaToHiragana(surface);
+                        romaji = kanaToRomaji(surface);
+                    } else {
+                        // Convertir parte Kana si es mixto o consultar lectura
+                        const hira = katakanaToHiragana(surface);
+                        const rom = kanaToRomaji(hira);
+                        if (rom !== surface) romaji = rom;
+                        reading = hira !== surface ? hira : '';
+                    }
+                } else if (targetLang === 'ru' || targetLang === 'uk') {
+                    romaji = cyrillicToLatin(surface);
+                    reading = romaji;
+                } else if (targetLang === 'ko') {
+                    romaji = hangulToRomanization(surface);
+                    reading = romaji;
+                } else {
+                    romaji = surface;
+                }
+
+                builtRomajiParts.push(romaji || surface);
+                builtHiraganaParts.push(reading || surface);
+
+                tokens.push({
+                    surface,
+                    reading: reading || '',
+                    romaji: romaji || '',
+                    pos,
+                    meaning
+                });
+            }
+
+            // Enriquecer lecturas de Kanjis/Hanzi desconocidos mediante una consulta agrupada rápida si procede
+            if ((targetLang === 'ja' || targetLang === 'zh-CN') && tokens.some(t => !t.reading || containsKanji(t.reading))) {
+                await Promise.all(tokens.map(async (tok) => {
+                    if (/^[.,\/#!$%\^&\*;:{}=\-_`~()¿?¡!。"「」、！？\s]+$/.test(tok.surface)) return;
+                    const cacheKey = `${targetLang}_${ state.sourceLang }_${tok.surface}`;
+                    if (state.wordMeaningCache[cacheKey]) {
+                        const cached = state.wordMeaningCache[cacheKey];
+                        tok.reading = tok.reading || cached.reading;
+                        tok.romaji = tok.romaji || cached.romaji;
+                        tok.meaning = tok.meaning || cached.meaning;
+                        tok.pos = cached.pos || tok.pos;
+                        return;
+                    }
+                    if (!tok.reading || !tok.romaji || containsKanji(tok.reading)) {
+                        try {
+                            const gtxTok = await fetchPublicTranslitAndTranslation(tok.surface, LANG_CONFIG[targetLang].apiCode, LANG_CONFIG[sourceLang].apiCode, signal);
+                            if (gtxTok.translit) {
+                                tok.romaji = gtxTok.translit;
+                                if (!tok.reading || containsKanji(tok.reading)) {
+                                    tok.reading = gtxTok.translit;
+                                }
+                            }
+                            if (gtxTok.translated) {
+                                tok.meaning = gtxTok.dictMeanings.length > 0 ? gtxTok.dictMeanings.join(', ') : gtxTok.translated;
+                            }
+                            if (gtxTok.dictPos) tok.pos = gtxTok.dictPos;
+                            state.wordMeaningCache[cacheKey] = {
+                                reading: tok.reading,
+                                romaji: tok.romaji,
+                                meaning: tok.meaning,
+                                pos: tok.pos
+                            };
+                        } catch (e) {}
+                    }
+                }));
+            }
+
+            if (!fullRomaji) {
+                fullRomaji = tokens.map(t => t.romaji || t.reading || t.surface).join(' ');
+            }
+            const fullHiragana = tokens.map(t => t.reading || t.surface).join(' ');
+
+            return {
+                romaji: fullRomaji,
+                hiragana: fullHiragana,
+                tokens
+            };
+        }
+
+        // =========================================================================
+        // 6. FURIGANA INTERACTIVO (<ruby>) Y TOOLTIP PALABRA POR PALABRA CON MICRO-CONSULTA
+        // =========================================================================
+        function renderInteractiveTokens(tokens, targetLang) {
+            state.lastTokens = tokens || [];
+            if (!tokens || tokens.length === 0) {
+                interactiveTokensPanel.classList.add('hidden');
+                return;
+            }
+
+            interactiveTokensPanel.classList.remove('hidden');
+            rubyTokensContainer.innerHTML = '';
+
+            tokens.forEach((tok, idx) => {
+                const span = document.createElement('span');
+                span.className = 'token-chip';
+                span.dataset.index = idx;
+
+                const cleanReading = (tok.reading || '').trim();
+                const cleanRomaji = (tok.romaji || '').trim();
+
+                let rtText = '';
+                if (state.rubyDisplayMode === 'reading') {
+                    rtText = cleanReading || cleanRomaji;
+                } else if (state.rubyDisplayMode === 'romaji') {
+                    rtText = cleanRomaji || kanaToRomaji(cleanReading) || cleanReading;
+                } else if (state.rubyDisplayMode === 'both') {
+                    if (cleanReading && cleanRomaji && cleanReading.toLowerCase() !== cleanRomaji.toLowerCase()) {
+                        rtText = `${cleanReading} (${cleanRomaji})`;
+                    } else {
+                        rtText = cleanReading || cleanRomaji;
+                    }
+                }
+
+                const showRuby = rtText && rtText.toLowerCase() !== tok.surface.toLowerCase();
+                if (showRuby) {
+                    span.innerHTML = `<ruby>${escapeHtml(tok.surface)}<rt>${escapeHtml(rtText)}</rt></ruby>`;
+                } else {
+                    span.textContent = tok.surface;
+                }
+
+                span.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    openTokenPopover(tok, span, targetLang);
+                });
+
+                rubyTokensContainer.appendChild(span);
+            });
+        }
+
+        function escapeHtml(str) {
+            return String(str).replace(/[&<>"']/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
+        }
+
+        let currentPopoverToken = null;
+        let currentPopoverLang = 'ja';
+
+        async function openTokenPopover(tok, anchorEl, langCode) {
+            currentPopoverToken = tok;
+            currentPopoverLang = langCode;
+
+            document.querySelectorAll('.token-chip').forEach(el => el.classList.remove('active-token'));
+            anchorEl.classList.add('active-token');
+
+            const surfaceEl = document.getElementById('popover-surface');
+            const readingEl = document.getElementById('popover-reading');
+            const romajiEl = document.getElementById('popover-romaji');
+            const posEl = document.getElementById('popover-pos');
+            const meaningEl = document.getElementById('popover-meaning');
+
+            surfaceEl.textContent = tok.surface;
+            readingEl.textContent = tok.reading || LANG_CONFIG[langCode].name;
+            romajiEl.textContent = (tok.romaji && tok.romaji !== tok.reading) ? tok.romaji : '';
+            posEl.textContent = tok.pos || 'Vocabulario';
+            meaningEl.textContent = tok.meaning || 'Consultando significado...';
+
+            tokenPopover.classList.remove('hidden');
+
+            const rect = anchorEl.getBoundingClientRect();
+            const popWidth = 320;
+            let left = rect.left + (rect.width / 2) - (popWidth / 2);
+            left = Math.max(12, Math.min(left, window.innerWidth - popWidth - 12));
+
+            let top = rect.top - tokenPopover.offsetHeight - 10;
+            if (top < 12) top = rect.bottom + 10;
+
+            tokenPopover.style.left = `${left}px`;
+            tokenPopover.style.top = `${top}px`;
+
+            // Si la palabra aún no tiene significado traducido al idioma de origen, lo consultamos al instante con caché
+            if (!tok.meaning) {
+                const cacheKey = `${langCode}_${state.sourceLang}_${tok.surface}`;
+                if (state.wordMeaningCache[cacheKey]?.meaning) {
+                    const cached = state.wordMeaningCache[cacheKey];
+                    tok.meaning = cached.meaning;
+                    tok.pos = cached.pos || tok.pos;
+                    tok.romaji = tok.romaji || cached.romaji;
+                    meaningEl.textContent = tok.meaning;
+                    posEl.textContent = tok.pos;
+                    if (tok.romaji && tok.romaji !== tok.reading) romajiEl.textContent = tok.romaji;
+                    return;
+                }
+
+                try {
+                    const gtx = await fetchPublicTranslitAndTranslation(
+                        tok.surface,
+                        LANG_CONFIG[langCode].apiCode,
+                        LANG_CONFIG[state.sourceLang].apiCode
+                    );
+                    const resolvedMeaning = gtx.dictMeanings.length > 0
+                        ? gtx.dictMeanings.join(', ')
+                        : (gtx.translated || tok.surface);
+                    tok.meaning = resolvedMeaning;
+                    if (gtx.dictPos) tok.pos = gtx.dictPos;
+                    if (gtx.translit && !tok.romaji) tok.romaji = gtx.translit;
+
+                    state.wordMeaningCache[cacheKey] = {
+                        reading: tok.reading,
+                        romaji: tok.romaji,
+                        meaning: tok.meaning,
+                        pos: tok.pos
+                    };
+
+                    if (currentPopoverToken === tok) {
+                        meaningEl.textContent = tok.meaning;
+                        posEl.textContent = tok.pos || 'Vocabulario';
+                        if (tok.romaji && tok.romaji !== tok.reading) romajiEl.textContent = tok.romaji;
+                    }
+                } catch (err) {
+                    if (currentPopoverToken === tok) {
+                        meaningEl.textContent = tok.surface;
+                    }
+                }
+            }
+        }
+
+        document.getElementById('popover-speak-btn').addEventListener('click', () => {
+            if (currentPopoverToken) {
+                speakText(currentPopoverToken.surface, LANG_CONFIG[currentPopoverLang].speechCode, false);
+            }
+        });
+
+        document.getElementById('popover-close-btn').addEventListener('click', () => {
+            tokenPopover.classList.add('hidden');
+            document.querySelectorAll('.token-chip').forEach(el => el.classList.remove('active-token'));
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!tokenPopover.contains(e.target)) {
+                tokenPopover.classList.add('hidden');
+                document.querySelectorAll('.token-chip').forEach(el => el.classList.remove('active-token'));
+            }
+        });
+
+        // =========================================================================
+        // 7. MOTOR DE TRADUCCIÓN TRIPLE CAPA (GEMINI IA -> GOOGLE GTX -> MYMEMORY)
+        // =========================================================================
+        function getActiveGeminiKey() {
+            const envKey = ""; // En entorno Canvas se inyecta automáticamente
+            const savedLocalKey = localStorage.getItem('kakehashi_gemini_key') || '';
+            return savedLocalKey || envKey;
+        }
+
+        async function translateWithGemini(text, sourceLang, targetLang, signal) {
+            const activeKey = getActiveGeminiKey();
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${activeKey}`;
+            
+            const srcCfg = LANG_CONFIG[sourceLang];
+            const tgtCfg = LANG_CONFIG[targetLang];
+
+            const formalityDescriptions = {
+                casual: 'CASUAL / INFORMAL register (e.g., Japanese Tameguchi/plain form, Korean Banmal, Spanish Tú, German Du, Russian Ty)',
+                polite: 'STANDARD POLITE register (e.g., Japanese Desu/Masu Teineigo, Korean Haeyo-che, Spanish Usted/Educado, German Sie, Russian Vy)',
+                formal: 'HIGHLY FORMAL / BUSINESS / HONORIFIC register (e.g., Japanese Keigo/Sonkeigo/Kenjougo, Korean Hasipsio-che, formal business tone)'
+            };
+
+            const systemPrompt = `You are an elite multilingual translator and linguist.
+Translate the user's text from ${srcCfg.englishName} to ${tgtCfg.englishName} using a ${formalityDescriptions[state.formality]}.
+Return a structured JSON object containing:
+1. "translation": The natural translated text in ${tgtCfg.englishName}.
+2. "phonetic": Full romanization/phonetic reading of the translated text (Romaji Hepburn for Japanese, Pinyin with tone marks for Chinese, Revised Romanization for Korean, Latin transliteration for Russian/Ukrainian, or pronunciation guide for Spanish/English/German).
+3. "hiragana": If the target language is Japanese, the full sentence written in Hiragana. Otherwise empty string.
+4. "tokens": An array breaking down the translated sentence word-by-word. For each token provide:
+   - "surface": The word/characters as they appear in the translation.
+   - "reading": Native phonetic reading (Hiragana for Japanese Kanji, Pinyin with tone marks for Chinese Hanzi, Revised Romanization for Korean, Latin transliteration for Russian/Ukrainian, or syllable pronunciation).
+   - "romaji": Latin alphabet reading (Hepburn Romaji for Japanese, Pinyin for Chinese, Romanization for Korean/Cyrillic).
+   - "pos": Grammatical part of speech in ${srcCfg.englishName} (or Spanish, e.g. Sustantivo, Verbo, Partícula, Adjetivo, Expresión).
+   - "meaning": Clear, concise meaning of this word explained in ${srcCfg.englishName} (and Spanish if different).`;
+
+            const payload = {
+                contents: [{ parts: [{ text }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            translation: { type: "STRING" },
+                            phonetic: { type: "STRING" },
+                            hiragana: { type: "STRING" },
+                            tokens: {
+                                type: "ARRAY",
+                                items: {
+                                    type: "OBJECT",
+                                    properties: {
+                                        surface: { type: "STRING" },
+                                        reading: { type: "STRING" },
+                                        romaji: { type: "STRING" },
+                                        pos: { type: "STRING" },
+                                        meaning: { type: "STRING" }
+                                    },
+                                    propertyOrdering: ["surface", "reading", "romaji", "pos", "meaning"]
+                                }
+                            }
+                        },
+                        propertyOrdering: ["translation", "phonetic", "hiragana", "tokens"]
+                    }
+                }
+            };
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+                signal
+            });
+
+            if (!response.ok) throw new Error('Fallback to Local/Public Engine');
+            const result = await response.json();
+            const rawJson = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (!rawJson) throw new Error('Empty Gemini response');
+
+            const parsed = JSON.parse(rawJson);
+            let tokens = parsed.tokens || [];
+            let romaji = parsed.phonetic || '';
+            let hiragana = parsed.hiragana || '';
+
+            // Si por algún motivo la IA no devolvió tokens o fonética, los completamos con el motor local
+            if (tokens.length === 0 || !romaji) {
+                const fallbackBuilt = await buildLocalPhoneticsAndTokens(parsed.translation, targetLang, sourceLang, romaji, signal);
+                if (tokens.length === 0) tokens = fallbackBuilt.tokens;
+                if (!romaji) romaji = fallbackBuilt.romaji;
+                if (!hiragana) hiragana = fallbackBuilt.hiragana;
+            } else if (targetLang === 'ja' && !hiragana) {
+                hiragana = tokens.map(t => t.reading || katakanaToHiragana(t.surface)).join(' ');
+            }
+
+            return {
+                translation: parsed.translation,
+                romaji,
+                hiragana,
+                tokens,
+                phoneticLabel: tgtCfg.phoneticName,
+                engine: 'Gemini AI + Furigana'
+            };
+        }
+
+        async function translateWithPublicFallback(text, sourceLang, targetLang, signal) {
+            const srcCode = LANG_CONFIG[sourceLang].apiCode;
+            const tgtCode = LANG_CONFIG[targetLang].apiCode;
+            let translated = '';
+            let externalRomaji = '';
+            let usedEngine = 'Motor Local + GTX Fonético';
+
+            // 1. Intentar Google GTX (devuelve traducción + Romaji/Pinyin/Transliteración oficial en dt=rm)
+            try {
+                const gtx = await fetchPublicTranslitAndTranslation(text, srcCode, tgtCode, signal);
+                translated = gtx.translated;
+                externalRomaji = gtx.translit;
+            } catch (gtxErr) {
+                // 2. Respaldo secundario: MyMemory API
+                const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${encodeURIComponent(srcCode + '|' + tgtCode)}`;
+                const response = await fetch(url, { signal });
+                const data = await response.json();
+                if (data?.responseData?.translatedText) {
+                    translated = data.responseData.translatedText;
+                    usedEngine = 'MyMemory + Tokenizador Local';
+                } else {
+                    throw new Error('Translation APIs failed');
+                }
+            }
+
+            const built = await buildLocalPhoneticsAndTokens(translated, targetLang, sourceLang, externalRomaji, signal);
+
+            return {
+                translation: translated,
+                romaji: built.romaji,
+                hiragana: built.hiragana,
+                tokens: built.tokens,
+                phoneticLabel: LANG_CONFIG[targetLang].phoneticName,
+                engine: usedEngine
+            };
+        }
+
+        async function performTranslationRequest(text, srcLang, tgtLang, signal) {
+            try {
+                return await translateWithGemini(text, srcLang, tgtLang, signal);
+            } catch (e) {
+                if (signal?.aborted) throw e;
+                return await translateWithPublicFallback(text, srcLang, tgtLang, signal);
+            }
+        }
+
+        async function translateText() {
+            const text = sourceTextarea.value.trim();
+            if (!text) {
+                clearOutputPanels();
+                return;
+            }
+
+            // Cancelar cualquier petición previa en vuelo para evitar condiciones de carrera al cambiar rápido de idioma
+            if (state.activeAbortController) {
+                try { state.activeAbortController.abort(); } catch (e) {}
+            }
+            const abortController = new AbortController();
+            state.activeAbortController = abortController;
+            const currentReqId = ++state.activeRequestId;
+
+            const reqSourceLang = state.sourceLang;
+            const reqTargetLang = state.targetLang;
+
+            state.isTranslating = true;
+            loadingOverlay.classList.remove('hidden');
+            translateBtn.disabled = true;
+
+            try {
+                const result = await performTranslationRequest(text, reqSourceLang, reqTargetLang, abortController.signal);
+                // Verificar que esta respuesta sigue siendo la más reciente
+                if (currentReqId !== state.activeRequestId) return;
+
+                targetTextarea.value = result.translation;
+                state.lastPhoneticRomaji = result.romaji || result.translation;
+                state.lastPhoneticHiragana = result.hiragana || result.romaji || result.translation;
+
+                phoneticLabel.textContent = LANG_CONFIG[reqTargetLang].phoneticName;
+                updatePhoneticDisplayBox();
+                romajiContainer.classList.remove('hidden');
+
+                renderInteractiveTokens(result.tokens, reqTargetLang);
+
+                const badgeText = document.getElementById('engine-badge-text');
+                if (badgeText) badgeText.textContent = `${result.engine} (${state.formality})`;
+
+                addToHistory(text, result.translation, state.lastPhoneticRomaji, LANG_CONFIG[reqTargetLang].phoneticName, reqSourceLang, reqTargetLang, result.tokens);
+            } catch (err) {
+                if (err?.name === 'AbortError' || currentReqId !== state.activeRequestId) return;
+                console.error(err);
+                showToast('Error al traducir. Comprueba tu conexión.', 'error');
+            } finally {
+                if (currentReqId === state.activeRequestId) {
+                    state.isTranslating = false;
+                    loadingOverlay.classList.add('hidden');
+                    translateBtn.disabled = false;
+                }
+            }
+        }
+
+        translateBtn.addEventListener('click', translateText);
+
+        // =========================================================================
+        // 8. RECONOCIMIENTO DE VOZ PRINCIPAL Y WALKIE-TALKIE (PUSH-TO-TALK)
+        // =========================================================================
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition = null;
+
+        function stopAllMicrophones() {
+            if (state.isListening && recognition) {
+                state.isListening = false;
+                try { recognition.stop(); } catch (e) {}
+            }
+            if (state.isShadowingListening && shadowingRecognition) {
+                state.isShadowingListening = false;
+                try { shadowingRecognition.stop(); } catch (e) {}
+            }
+            if (state.isInterpreterListening && interpreterRecognition) {
+                state.isInterpreterListening = false;
+                try { interpreterRecognition.stop(); } catch (e) {}
+            }
+            resetMainMicUI();
+            resetInterpreterMicUI();
+        }
+
+        function resetMainMicUI() {
+            state.isListening = false;
+            micBtn.classList.remove('mic-listening');
+            micBtnText.textContent = 'Hablar';
+            micStatusBadge.classList.add('hidden');
+        }
+
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = true;
+
+            recognition.onstart = () => {
+                state.isListening = true;
+                micBtn.classList.add('mic-listening');
+                micBtnText.textContent = 'Detener';
+                micStatusBadge.classList.remove('hidden');
+            };
+
+            recognition.onresult = (event) => {
+                let transcript = '';
+                for (let i = 0; i < event.results.length; i++) {
+                    transcript += event.results[i][0].transcript;
+                }
+                sourceTextarea.value = transcript;
+                updateCharCount();
+            };
+
+            recognition.onerror = (event) => {
+                resetMainMicUI();
+                if (event.error === 'not-allowed') {
+                    showToast('Permiso de micrófono denegado.', 'error');
+                }
+            };
+
+            recognition.onend = () => {
+                const hadSpeech = sourceTextarea.value.trim().length > 0;
+                resetMainMicUI();
+                if (hadSpeech) translateText();
+            };
+        }
+
+        function toggleMainMicrophone(walkieTalkieLabel = false) {
+            if (!recognition) {
+                showToast('Tu navegador no soporta reconocimiento de voz. Usa Chrome, Edge o Safari.', 'error');
+                return;
+            }
+            if (state.isListening) {
+                recognition.stop();
+            } else {
+                stopAllMicrophones();
+                micStatusText.textContent = walkieTalkieLabel ? 'Walkie-Talkie activo...' : 'Escuchando...';
+                try {
+                    recognition.lang = LANG_CONFIG[state.sourceLang].speechCode;
+                    recognition.start();
+                } catch (e) {}
+            }
+        }
+
+        micBtn.addEventListener('click', () => toggleMainMicrophone(false));
+
+        // =========================================================================
+        // 9. ENTRENADOR DE PRONUNCIACIÓN (SHADOWING / DISTANCIA DE LEVENSHTEIN)
+        // =========================================================================
+        const toggleShadowingBtn = document.getElementById('toggle-shadowing-btn');
+        const shadowingPanel = document.getElementById('shadowing-panel');
+        const startShadowingMicBtn = document.getElementById('start-shadowing-mic-btn');
+        const shadowingBtnLabel = document.getElementById('shadowing-btn-label');
+        const shadowingScoreBadge = document.getElementById('shadowing-score-badge');
+        const shadowingFeedback = document.getElementById('shadowing-feedback');
+        const shadowingDiffOutput = document.getElementById('shadowing-diff-output');
+
+        let shadowingRecognition = SpeechRecognition ? new SpeechRecognition() : null;
+
+        toggleShadowingBtn.addEventListener('click', () => {
+            shadowingPanel.classList.toggle('hidden');
+            if (!targetTextarea.value.trim()) {
+                showToast('Primero traduce una frase para poder practicar su pronunciación.', 'info');
+            }
+        });
+
+        function normalizeForComparison(str) {
+            return (str || '')
+                .toLowerCase()
+                .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()¿?¡!。"「」、！？\s]/g, '');
+        }
+
+        function levenshteinDistance(a, b) {
+            const matrix = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
+            for (let i = 0; i <= a.length; i++) matrix[i][0] = i;
+            for (let j = 0; j <= b.length; j++) matrix[0][j] = j;
+
+            for (let i = 1; i <= a.length; i++) {
+                for (let j = 1; j <= b.length; j++) {
+                    const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+                    matrix[i][j] = Math.min(
+                        matrix[i - 1][j] + 1,
+                        matrix[i][j - 1] + 1,
+                        matrix[i - 1][j - 1] + cost
+                    );
+                }
+            }
+            return matrix[a.length][b.length];
+        }
+
+        function evaluatePronunciation(targetStr, spokenStr) {
+            const normTarget = normalizeForComparison(targetStr);
+            const normSpoken = normalizeForComparison(spokenStr);
+
+            if (!normTarget) return;
+            const dist = levenshteinDistance(normTarget, normSpoken);
+            const maxLen = Math.max(normTarget.length, normSpoken.length, 1);
+            const accuracy = Math.max(0, Math.round((1 - dist / maxLen) * 100));
+
+            shadowingScoreBadge.classList.remove('hidden');
+            shadowingScoreBadge.textContent = `${accuracy}% Precisión`;
+            shadowingScoreBadge.className = `text-xs font-extrabold px-2.5 py-0.5 rounded-full text-white ${
+                accuracy >= 85 ? 'bg-emerald-600' : accuracy >= 60 ? 'bg-amber-500' : 'bg-rose-600'
+            }`;
+
+            if (accuracy >= 85) {
+                shadowingFeedback.innerHTML = `¡Excelente pronunciación! Dijiste: <em>"${escapeHtml(spokenStr)}"</em>`;
+            } else if (accuracy >= 60) {
+                shadowingFeedback.innerHTML = `¡Buen intento! Detectamos: <em>"${escapeHtml(spokenStr)}"</em>. Repasa los fragmentos en rojo:`;
+            } else {
+                shadowingFeedback.innerHTML = `Detectamos: <em>"${escapeHtml(spokenStr)}"</em>. Escucha el altavoz a velocidad 0.8x y vuelve a intentarlo:`;
+            }
+
+            // Resaltado visual unidad por unidad (palabras en lenguas occidentales, caracteres en CJK)
+            const isCJK = ['ja', 'zh-CN', 'ko'].includes(state.targetLang);
+            const units = isCJK ? targetStr.split('') : targetStr.split(/\s+/);
+            shadowingDiffOutput.innerHTML = '';
+            shadowingDiffOutput.classList.remove('hidden');
+
+            units.forEach(unit => {
+                const cleanUnit = normalizeForComparison(unit);
+                const span = document.createElement('span');
+                const matched = !cleanUnit || normSpoken.includes(cleanUnit);
+                span.className = matched
+                    ? 'inline-block px-1 py-0.5 mx-0.5 rounded bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 cursor-pointer'
+                    : 'inline-block px-1 py-0.5 mx-0.5 rounded bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 underline decoration-wavy cursor-pointer';
+                span.textContent = unit;
+                span.title = 'Haz clic para escuchar cómo suena este fragmento';
+                span.addEventListener('click', () => speakText(unit, LANG_CONFIG[state.targetLang].speechCode, false));
+                shadowingDiffOutput.appendChild(span);
+            });
+        }
+
+        if (shadowingRecognition) {
+            shadowingRecognition.continuous = false;
+            shadowingRecognition.interimResults = false;
+
+            shadowingRecognition.onstart = () => {
+                state.isShadowingListening = true;
+                startShadowingMicBtn.classList.add('mic-listening');
+                shadowingBtnLabel.textContent = 'Escuchando tu voz...';
+            };
+
+            shadowingRecognition.onresult = (event) => {
+                const spoken = event.results[0][0].transcript;
+                evaluatePronunciation(targetTextarea.value.trim(), spoken);
+            };
+
+            shadowingRecognition.onend = () => {
+                state.isShadowingListening = false;
+                startShadowingMicBtn.classList.remove('mic-listening');
+                shadowingBtnLabel.textContent = 'Leer en voz alta';
+            };
+
+            shadowingRecognition.onerror = () => {
+                state.isShadowingListening = false;
+                startShadowingMicBtn.classList.remove('mic-listening');
+                shadowingBtnLabel.textContent = 'Leer en voz alta';
+            };
+        }
+
+        startShadowingMicBtn.addEventListener('click', () => {
+            const targetText = targetTextarea.value.trim();
+            if (!targetText) {
+                showToast('No hay texto traducido para practicar.', 'warning');
+                return;
+            }
+            if (!shadowingRecognition) {
+                showToast('Reconocimiento de voz no disponible en este navegador.', 'error');
+                return;
+            }
+            if (state.isShadowingListening) {
+                shadowingRecognition.stop();
+            } else {
+                stopAllMicrophones();
+                shadowingRecognition.lang = LANG_CONFIG[state.targetLang].speechCode;
+                shadowingRecognition.start();
+            }
+        });
+
+        // =========================================================================
+        // 10. MODO INTÉRPRETE CARA A CARA (CONVERSACIÓN BILINGÜE MANOS LIBRES)
+        // =========================================================================
+        const tabTranslatorBtn = document.getElementById('tab-translator-btn');
+        const tabInterpreterBtn = document.getElementById('tab-interpreter-btn');
+        const translatorView = document.getElementById('translator-view');
+        const interpreterView = document.getElementById('interpreter-view');
+
+        const interpBtnA = document.getElementById('interp-btn-a');
+        const interpBtnB = document.getElementById('interp-btn-b');
+        const interpCircleA = document.getElementById('interp-circle-a');
+        const interpCircleB = document.getElementById('interp-circle-b');
+        const interpStatusA = document.getElementById('interp-status-a');
+        const interpStatusB = document.getElementById('interp-status-b');
+        const conversationLogEl = document.getElementById('conversation-log');
+        const handsfreeAutoTurn = document.getElementById('handsfree-auto-turn');
+
+        let interpreterRecognition = SpeechRecognition ? new SpeechRecognition() : null;
+
+        function switchMainTab(mode) {
+            stopAllMicrophones();
+            state.activeMode = mode;
+            if (mode === 'translator') {
+                translatorView.classList.remove('hidden');
+                interpreterView.classList.add('hidden');
+                interpreterView.classList.remove('flex');
+                tabTranslatorBtn.className = 'flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm';
+                tabInterpreterBtn.className = 'flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
+            } else {
+                translatorView.classList.add('hidden');
+                interpreterView.classList.remove('hidden');
+                interpreterView.classList.add('flex');
+                tabInterpreterBtn.className = 'flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm';
+                tabTranslatorBtn.className = 'flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
+            }
+        }
+
+        tabTranslatorBtn.addEventListener('click', () => switchMainTab('translator'));
+        tabInterpreterBtn.addEventListener('click', () => switchMainTab('interpreter'));
+
+        function resetInterpreterMicUI() {
+            state.isInterpreterListening = false;
+            interpCircleA.classList.remove('mic-listening');
+            interpCircleB.classList.remove('mic-listening');
+            updateLanguageUI();
+        }
+
+        function startInterpreterTurn(turn) {
+            if (!interpreterRecognition) {
+                showToast('Tu navegador no soporta reconocimiento de voz.', 'error');
+                return;
+            }
+            if (state.isInterpreterListening && state.interpreterTurn === turn) {
+                interpreterRecognition.stop();
+                return;
+            }
+
+            stopAllMicrophones();
+            state.interpreterTurn = turn;
+            const speakLangKey = turn === 'A' ? state.sourceLang : state.targetLang;
+            const cfg = LANG_CONFIG[speakLangKey];
+
+            interpreterRecognition.lang = cfg.speechCode;
+            interpreterRecognition.continuous = false;
+            interpreterRecognition.interimResults = false;
+
+            interpreterRecognition.onstart = () => {
+                state.isInterpreterListening = true;
+                if (turn === 'A') {
+                    interpCircleA.classList.add('mic-listening');
+                    interpStatusA.textContent = `Escuchando ${cfg.name}... (Habla ahora)`;
+                } else {
+                    interpCircleB.classList.add('mic-listening');
+                    interpStatusB.textContent = `Escuchando ${cfg.name}... (Habla ahora)`;
+                }
+            };
+
+            interpreterRecognition.onresult = async (event) => {
+                const transcript = event.results[0][0].transcript.trim();
+                if (!transcript) return;
+
+                const fromLang = turn === 'A' ? state.sourceLang : state.targetLang;
+                const toLang = turn === 'A' ? state.targetLang : state.sourceLang;
+
+                if (turn === 'A') interpStatusA.textContent = 'Traduciendo...';
+                else interpStatusB.textContent = 'Traduciendo...';
+
+                try {
+                    const res = await performTranslationRequest(transcript, fromLang, toLang);
+                    appendConversationBubble(turn, fromLang, toLang, transcript, res.translation, res.romaji);
+
+                    // También sincronizamos con los cuadros principales
+                    if (turn === 'A') {
+                        sourceTextarea.value = transcript;
+                        targetTextarea.value = res.translation;
+                    }
+
+                    // Reproducir voz automáticamente en el idioma del interlocutor
+                    speakText(res.translation, LANG_CONFIG[toLang].speechCode, false, () => {
+                        // Cuando termina de hablar el altavoz, si "manos libres" está activo, abre el micro del otro idioma
+                        if (handsfreeAutoTurn.checked && state.activeMode === 'interpreter') {
+                            const nextTurn = turn === 'A' ? 'B' : 'A';
+                            setTimeout(() => startInterpreterTurn(nextTurn), 350);
+                        }
+                    });
+                } catch (err) {
+                    showToast('Error al traducir turno de conversación.', 'error');
+                }
+            };
+
+            interpreterRecognition.onend = () => {
+                resetInterpreterMicUI();
+            };
+
+            interpreterRecognition.onerror = () => {
+                resetInterpreterMicUI();
+            };
+
+            try {
+                interpreterRecognition.start();
+            } catch (e) {}
+        }
+
+        function appendConversationBubble(turn, fromLang, toLang, original, translated, phonetic) {
+            const fromCfg = LANG_CONFIG[fromLang];
+            const toCfg = LANG_CONFIG[toLang];
+
+            if (state.conversationLog.length === 0) {
+                conversationLogEl.innerHTML = '';
+            }
+            state.conversationLog.push({ turn, fromLang, toLang, original, translated, phonetic });
+
+            const bubble = document.createElement('div');
+            const isA = turn === 'A';
+            bubble.className = `p-3.5 rounded-2xl border max-w-xl ${
+                isA
+                    ? 'mr-auto bg-white dark:bg-slate-800 border-indigo-200 dark:border-indigo-900'
+                    : 'ml-auto bg-rose-50/70 dark:bg-rose-950/30 border-rose-200 dark:border-rose-900'
+            }`;
+
+            bubble.innerHTML = `
+                <div class="flex items-center justify-between gap-3 text-[11px] font-bold uppercase text-slate-400 mb-1">
+                    <span>${fromCfg.flag} ${fromCfg.name.split(' ')[0]} → ${toCfg.flag} ${toCfg.name.split(' ')[0]}</span>
+                    <button type="button" class="play-bubble-btn text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
+                        🔊 Repetir
+                    </button>
+                </div>
+                <p class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(original)}</p>
+                <p class="text-base font-bold text-slate-900 dark:text-white mt-0.5">${escapeHtml(translated)}</p>
+                ${phonetic ? `<p class="text-xs italic text-indigo-600 dark:text-indigo-400 mt-0.5">${escapeHtml(phonetic)}</p>` : ''}
+            `;
+
+            bubble.querySelector('.play-bubble-btn').addEventListener('click', () => {
+                speakText(translated, toCfg.speechCode, false);
+            });
+
+            conversationLogEl.appendChild(bubble);
+            conversationLogEl.scrollTop = conversationLogEl.scrollHeight;
+        }
+
+        interpBtnA.addEventListener('click', () => startInterpreterTurn('A'));
+        interpBtnB.addEventListener('click', () => startInterpreterTurn('B'));
+
+        document.getElementById('clear-conversation-btn').addEventListener('click', () => {
+            stopAllMicrophones();
+            state.conversationLog = [];
+            conversationLogEl.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-6">Pulsa cualquiera de los dos micrófonos superiores para iniciar la conversación cara a cara.</p>`;
+        });
+
+        // =========================================================================
+        // 11. SÍNTESIS DE VOZ (ALTAVOZ CON SELECCIÓN DE VOZ NATIVA)
+        // =========================================================================
+        function speakText(text, langCode, isTargetPanel = true, onFinishCallback = null) {
+            if (!('speechSynthesis' in window)) {
+                showToast('Tu navegador no soporta síntesis de voz.', 'error');
+                return;
+            }
+            if (!text || !text.trim()) {
+                showToast('No hay texto para reproducir.', 'warning');
+                return;
+            }
+
+            window.speechSynthesis.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = langCode;
+            utterance.rate = parseFloat(speechRateSelect.value) || 1.0;
+
+            const voices = window.speechSynthesis.getVoices();
+            const preferredVoiceName = voiceSelect.value;
+            let chosenVoice = null;
+
+            if (isTargetPanel && preferredVoiceName) {
+                chosenVoice = voices.find(v => v.name === preferredVoiceName);
+            }
+            if (!chosenVoice) {
+                const langPrefix = langCode.split('-')[0].toLowerCase();
+                chosenVoice = voices.find(v => v.lang.replace('_', '-').toLowerCase() === langCode.toLowerCase()) ||
+                              voices.find(v => v.lang.toLowerCase().startsWith(langPrefix));
+            }
+            if (chosenVoice) utterance.voice = chosenVoice;
+
+            utterance.onstart = () => {
+                state.isSpeaking = true;
+                if (isTargetPanel) {
+                    speakerBtn.classList.add('speaker-playing');
+                    speakerStatusBadge.classList.remove('hidden');
+                }
+            };
+
+            utterance.onend = () => {
+                resetSpeakerUI();
+                if (typeof onFinishCallback === 'function') onFinishCallback();
+            };
+
+            utterance.onerror = () => {
+                resetSpeakerUI();
+            };
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function resetSpeakerUI() {
+            state.isSpeaking = false;
+            speakerBtn.classList.remove('speaker-playing');
+            speakerStatusBadge.classList.add('hidden');
+        }
+
+        speakerBtn.addEventListener('click', () => {
+            speakText(targetTextarea.value.trim(), LANG_CONFIG[state.targetLang].speechCode, true);
+        });
+
+        speakSourceBtn.addEventListener('click', () => {
+            speakText(sourceTextarea.value.trim(), LANG_CONFIG[state.sourceLang].speechCode, false);
+        });
+
+        // =========================================================================
+        // 12. OCR DE IMÁGENES DESDE PORTAPAPELES (Ctrl+V) O CÁMARA/ARCHIVO
+        // =========================================================================
+        const ocrBtn = document.getElementById('ocr-btn');
+        const ocrFileInput = document.getElementById('ocr-file-input');
+        const ocrPreviewBanner = document.getElementById('ocr-preview-banner');
+        const ocrPreviewImg = document.getElementById('ocr-preview-img');
+        const ocrStatusTitle = document.getElementById('ocr-status-title');
+        const ocrStatusDesc = document.getElementById('ocr-status-desc');
+
+        ocrBtn.addEventListener('click', () => ocrFileInput.click());
+
+        ocrFileInput.addEventListener('change', (e) => {
+            const file = e.target.files?.[0];
+            if (file) processOcrImageFile(file);
+            ocrFileInput.value = '';
+        });
+
+        document.getElementById('close-ocr-preview-btn').addEventListener('click', () => {
+            ocrPreviewBanner.classList.add('hidden');
+        });
+
+        // Soporte global para pegar recortes de pantalla (Ctrl + V)
+        window.addEventListener('paste', (e) => {
+            const items = e.clipboardData?.items;
+            if (!items) return;
+            for (const item of items) {
+                if (item.type.startsWith('image/')) {
+                    e.preventDefault();
+                    const file = item.getAsFile();
+                    if (file) processOcrImageFile(file);
+                    break;
+                }
+            }
+        });
+
+        async function processOcrImageFile(file) {
+            const reader = new FileReader();
+            reader.onload = async () => {
+                const dataUrl = reader.result;
+                const base64Data = dataUrl.split(',')[1];
+                ocrPreviewImg.src = dataUrl;
+                ocrPreviewBanner.classList.remove('hidden');
+                ocrStatusTitle.textContent = 'Extrayendo texto de la imagen (OCR)...';
+                ocrStatusDesc.textContent = `Idioma esperado: ${LANG_CONFIG[state.sourceLang].name}`;
+
+                try {
+                    let extractedText = '';
+                    try {
+                        // 1. Intentar OCR Multimodal con Gemini Vision
+                        const activeKey = getActiveGeminiKey();
+                        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${activeKey}`;
+                        const payload = {
+                            contents: [{
+                                role: 'user',
+                                parts: [
+                                    { text: 'Extract and transcribe all visible text from this image accurately. Return ONLY the extracted text without explanations.' },
+                                    { inlineData: { mimeType: file.type || 'image/png', data: base64Data } }
+                                ]
+                            }]
+                        };
+                        const res = await fetch(apiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        if (!res.ok) throw new Error('Fallback to local Tesseract OCR');
+                        const json = await res.json();
+                        extractedText = json?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+                    } catch (visionErr) {
+                        // 2. Fallback automático a Tesseract.js en local si no hay API key
+                        ocrStatusDesc.textContent = 'Usando motor OCR local Tesseract.js...';
+                        if (!window.Tesseract) {
+                            await new Promise((resolve, reject) => {
+                                const script = document.createElement('script');
+                                script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+                                script.onload = resolve;
+                                script.onerror = reject;
+                                document.head.appendChild(script);
+                            });
+                        }
+                        const tessLang = LANG_CONFIG[state.sourceLang].tesseractCode || 'eng';
+                        const result = await window.Tesseract.recognize(dataUrl, tessLang);
+                        extractedText = result?.data?.text?.trim() || '';
+                    }
+
+                    if (extractedText) {
+                        ocrStatusTitle.textContent = '¡Texto extraído con éxito!';
+                        ocrStatusDesc.textContent = `${extractedText.length} caracteres detectados`;
+                        sourceTextarea.value = extractedText;
+                        updateCharCount();
+                        translateText();
+                        showToast('Texto extraído de la imagen y traducido.', 'success');
+                    } else {
+                        ocrStatusTitle.textContent = 'No se detectó texto legible';
+                        ocrStatusDesc.textContent = 'Intenta con una captura más nítida.';
+                    }
+                } catch (err) {
+                    ocrStatusTitle.textContent = 'Error durante el OCR';
+                    ocrStatusDesc.textContent = 'No se pudo procesar la imagen.';
+                    showToast('No se pudo extraer texto de la imagen.', 'error');
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // =========================================================================
+        // 13. ATAJOS DE TECLADO GLOBALES (POWER-USER) + WALKIE-TALKIE
+        // =========================================================================
+        let walkieTalkieActive = false;
+
+        window.addEventListener('keydown', (e) => {
+            // Ctrl + Enter -> Traducir
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                translateText();
+                return;
+            }
+            // Ctrl + Shift + S -> Intercambiar idiomas (Swap)
+            if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 's') {
+                e.preventDefault();
+                swapLanguages();
+                return;
+            }
+            // Ctrl + M -> Activar / detener micrófono
+            if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'm') {
+                e.preventDefault();
+                toggleMainMicrophone(false);
+                return;
+            }
+            // Alt + L o Ctrl + P -> Escuchar traducción
+            if ((e.altKey && e.key.toLowerCase() === 'l') || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p')) {
+                e.preventDefault();
+                speakText(targetTextarea.value.trim(), LANG_CONFIG[state.targetLang].speechCode, true);
+                return;
+            }
+            // Alt + Espacio (Mantener pulsado Walkie-Talkie)
+            if (e.altKey && e.code === 'Space' && !walkieTalkieActive) {
+                e.preventDefault();
+                walkieTalkieActive = true;
+                if (!state.isListening) toggleMainMicrophone(true);
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (walkieTalkieActive && (e.code === 'Space' || e.key === 'Alt')) {
+                walkieTalkieActive = false;
+                if (state.isListening && recognition) {
+                    recognition.stop();
+                }
+            }
+        });
+
+        // =========================================================================
+        // 14. HISTORIAL Y COPIAR AL PORTAPAPELES
+        // =========================================================================
+        copyBtn.addEventListener('click', () => {
+            const text = targetTextarea.value.trim();
+            if (!text) {
+                showToast('No hay traducción para copiar.', 'warning');
+                return;
+            }
+            targetTextarea.select();
+            document.execCommand('copy');
+            window.getSelection().removeAllRanges();
+            showToast('Traducción copiada al portapapeles.', 'success');
+        });
+
+        function addToHistory(sourceText, translatedText, romaji, phoneticLabelText, srcLang, tgtLang, tokens) {
+            state.history.unshift({
+                sourceText,
+                translatedText,
+                romaji,
+                phoneticLabel: phoneticLabelText,
+                srcLang,
+                tgtLang,
+                tokens: tokens || [],
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            });
+            if (state.history.length > 10) state.history.pop();
+            renderHistory();
+        }
+
+        function renderHistory() {
+            if (state.history.length === 0) {
+                historyList.innerHTML = `<p class="text-xs text-slate-400 italic col-span-2 py-2 text-center">Tus traducciones recientes aparecerán aquí.</p>`;
+                return;
+            }
+
+            historyList.innerHTML = '';
+            state.history.forEach((item) => {
+                const srcCfg = LANG_CONFIG[item.srcLang] || LANG_CONFIG.es;
+                const tgtCfg = LANG_CONFIG[item.tgtLang] || LANG_CONFIG.ja;
+
+                const card = document.createElement('div');
+                card.className = 'p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/40 border border-slate-200/70 dark:border-slate-700 transition cursor-pointer flex items-start justify-between gap-2';
+                card.innerHTML = `
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-1.5 text-[10px] font-bold uppercase text-slate-400 mb-1">
+                            <span>${srcCfg.flag} ${srcCfg.name.split(' ')[0]} → ${tgtCfg.flag} ${tgtCfg.name.split(' ')[0]}</span>
+                            <span>•</span>
+                            <span>${item.timestamp}</span>
+                        </div>
+                        <p class="text-xs text-slate-600 dark:text-slate-400 truncate">${escapeHtml(item.sourceText)}</p>
+                        <p class="text-sm font-semibold text-slate-900 dark:text-white truncate mt-0.5">${escapeHtml(item.translatedText)}</p>
+                    </div>
+                    <button title="Reproducir" class="p-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 rounded-lg shrink-0">
+                        <i data-lucide="volume-2" class="w-4 h-4"></i>
+                    </button>
+                `;
+
+                card.addEventListener('click', (e) => {
+                    if (e.target.closest('button')) {
+                        e.stopPropagation();
+                        speakText(item.translatedText, tgtCfg.speechCode, false);
+                        return;
+                    }
+                    state.sourceLang = item.srcLang;
+                    state.targetLang = item.tgtLang;
+                    updateLanguageUI();
+                    sourceTextarea.value = item.sourceText;
+                    targetTextarea.value = item.translatedText;
+                    state.lastPhoneticRomaji = item.romaji || item.translatedText;
+                    state.lastPhoneticHiragana = item.romaji || item.translatedText;
+                    phoneticLabel.textContent = LANG_CONFIG[item.tgtLang].phoneticName;
+                    updatePhoneticDisplayBox();
+                    romajiContainer.classList.remove('hidden');
+                    renderInteractiveTokens(item.tokens, item.tgtLang);
+                    updateCharCount();
+                });
+
+                historyList.appendChild(card);
+            });
+            lucide.createIcons();
+        }
+
+        clearHistoryBtn.addEventListener('click', () => {
+            state.history = [];
+            renderHistory();
+            showToast('Historial borrado.', 'info');
+        });
+
+        // =========================================================================
+        // 15. MODALES DE CONFIGURACIÓN Y ATAJOS
+        // =========================================================================
+        const settingsModal = document.getElementById('settings-modal');
+        const shortcutsModal = document.getElementById('shortcuts-modal');
+        const customApiKeyInput = document.getElementById('custom-api-key');
+
+        document.getElementById('open-settings-btn').addEventListener('click', () => {
+            customApiKeyInput.value = localStorage.getItem('kakehashi_gemini_key') || '';
+            settingsModal.classList.remove('hidden');
+        });
+        document.getElementById('close-settings-btn').addEventListener('click', () => settingsModal.classList.add('hidden'));
+
+        document.getElementById('open-shortcuts-btn').addEventListener('click', () => shortcutsModal.classList.remove('hidden'));
+        document.getElementById('close-shortcuts-btn').addEventListener('click', () => shortcutsModal.classList.add('hidden'));
+
+        document.getElementById('save-key-btn').addEventListener('click', () => {
+            const key = customApiKeyInput.value.trim();
+            if (key) {
+                localStorage.setItem('kakehashi_gemini_key', key);
+                showToast('API Key guardada en localStorage.', 'success');
+            } else {
+                localStorage.removeItem('kakehashi_gemini_key');
+                showToast('Usando motor gratuito por defecto.', 'info');
+            }
+            settingsModal.classList.add('hidden');
+        });
+
+        document.getElementById('clear-key-btn').addEventListener('click', () => {
+            localStorage.removeItem('kakehashi_gemini_key');
+            customApiKeyInput.value = '';
+            showToast('Clave eliminada.', 'info');
+        });
+
+        // =========================================================================
+        // 16. PWA EN UN SOLO ARCHIVO (WEB APP MANIFEST + SERVICE WORKER DINÁMICO)
+        // =========================================================================
+        function setupSingleFilePWA() {
+            const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#4f46e5"/><stop offset="100%" stop-color="#f43f5e"/></linearGradient></defs><rect width="512" height="512" rx="115" fill="url(#g)"/><text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="#ffffff" font-family="sans-serif" font-weight="bold" font-size="280">訳</text></svg>`;
+            const iconDataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svgIcon)}`;
+
+            const manifest = {
+                name: 'Kakehashi Pro | Traductor Multilingüe Local',
+                short_name: 'Kakehashi',
+                description: 'Traductor de 8 idiomas con Voz, Furigana, Shadowing, Intérprete y OCR.',
+                start_url: window.location.href,
+                display: 'standalone',
+                background_color: '#0f172a',
+                theme_color: '#4f46e5',
+                icons: [
+                    { src: iconDataUrl, sizes: '192x192', type: 'image/svg+xml', purpose: 'any maskable' },
+                    { src: iconDataUrl, sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' }
+                ]
+            };
+
+            const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+            const manifestLink = document.createElement('link');
+            manifestLink.rel = 'manifest';
+            manifestLink.href = URL.createObjectURL(manifestBlob);
+            document.head.appendChild(manifestLink);
+
+            if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+                const swCode = `
+                    self.addEventListener('install', e => self.skipWaiting());
+                    self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
+                    self.addEventListener('fetch', e => {});
+                `;
+                const swBlob = new Blob([swCode], { type: 'application/javascript' });
+                navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(() => {});
+            }
+        }
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            state.deferredPwaPrompt = e;
+        });
+
+        document.getElementById('install-pwa-btn').addEventListener('click', async () => {
+            if (state.deferredPwaPrompt) {
+                state.deferredPwaPrompt.prompt();
+                await state.deferredPwaPrompt.userChoice;
+                state.deferredPwaPrompt = null;
+            } else {
+                showToast('Para instalar como App de escritorio: abre el menú de Chrome/Edge (⋮) → "Guardar y compartir" → "Instalar página como aplicación".', 'info');
+            }
+        });
+
+        // Inicialización al cargar
+        window.addEventListener('DOMContentLoaded', () => {
+            populateLanguageSelects();
+            updateLanguageUI();
+            setupSingleFilePWA();
+        });
+    </script>
+</body>
+</html>
