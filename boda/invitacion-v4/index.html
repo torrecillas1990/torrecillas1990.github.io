@@ -307,13 +307,13 @@
                 
                 <div class="cuenta-block">
                     <p class="cuenta-titular">Cuenta Manuel</p>
-                    <p id="iban-manuel" class="txt-iban">ES00 **** **** **** **** 1111</p>
+                    <p id="iban-manuel" class="txt-iban">ES76 **** **** **** **** 4810</p>
                     <button onclick="copiarIBAN(this, 'manuel')" class="btn-secundario" style="margin-top: 5px; padding: 8px 20px; font-size: 0.85rem;">COPIAR IBAN</button>
                 </div>
 
                 <div class="cuenta-block">
                     <p class="cuenta-titular">Cuenta Gemma</p>
-                    <p id="iban-gemma" class="txt-iban">ES00 **** **** **** **** 2222</p>
+                    <p id="iban-gemma" class="txt-iban">ES51 **** **** **** **** 8027</p>
                     <button onclick="copiarIBAN(this, 'gemma')" class="btn-secundario" style="margin-top: 5px; padding: 8px 20px; font-size: 0.85rem;">COPIAR IBAN</button>
                 </div>
             </div>
@@ -424,14 +424,14 @@
             }
         }
 
-        const encodedManuel = "RVMwMCAxMTExIDIyMjIgMzMzMyA0NDQ0IDExMTE="; 
-        const encodedGemma = "RVMwMCA5OTk5IDg4ODggNzc3NyA2NjY2IDIyMjI=";  
-        
+        const encodedManuel = "RVM3NiAzMDA1IDAwODAgMjYyMyA2OTExIDQ4MTA=";
+        const encodedGemma = "RVM1MSAwMDgxIDA2MjggODgwMCAwNjE1IDgwMjc=";
+		
         function copiarIBAN(btn, propietario) {
             const esManuel = propietario === 'manuel';
             const encodedText = esManuel ? encodedManuel : encodedGemma;
             const displayId = esManuel ? 'iban-manuel' : 'iban-gemma';
-            const mask = esManuel ? "ES00 **** **** **** **** 1111" : "ES00 **** **** **** **** 2222";
+            const mask = esManuel ? "ES76 **** **** **** **** 4810" : "ES51 **** **** **** **** 8027";
             
             const text = atob(encodedText);
             navigator.clipboard.writeText(text).then(() => {
