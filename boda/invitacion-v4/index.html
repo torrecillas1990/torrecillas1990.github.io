@@ -166,6 +166,19 @@
             backdrop-filter: blur(10px);
             will-change: transform;
         }
+		
+		/* Estados iniciales para la animación */
+        .dynamic-section, .foto-real {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+        }
+
+        /* Estado final cuando entran en pantalla */
+        .dynamic-section.visible, .foto-real.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
 
         .foto-real {
             width: 220px; height: 220px;
@@ -234,6 +247,18 @@
             text-align: center; width: 100%;
         }
         .loader-text { letter-spacing: 2px; font-size: 0.9rem; }
+		
+		/* Animación de respiración para el logo principal */
+        @keyframes latido {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        #loader .header-img {
+            animation: latido 8s ease-in-out infinite;
+            will-change: transform; /* Optimiza el rendimiento de la animación en móviles */
+        }
+		
         .progress-bar { width: 200px; height: 2px; background: #222; margin-top: 20px; }
         #progress-fill { width: 0%; height: 100%; background: var(--color-oro); transition: width 0.3s; }
 
@@ -498,7 +523,47 @@
         }
 
         calcularMaxScroll();
+		
+		// Observador para activar animaciones al llegar al elemento
+        const observadorScroll = new IntersectionObserver((entradas, observador) => {
+            entradas.forEach(entrada => {
+                if (entrada.isIntersecting) {
+                    // Anyade la clase que muestra el elemento
+                    entrada.target.classList.add('visible');
+                    // Deja de observarlo para que la animacion solo ocurra la primera vez
+                    observador.unobserve(entrada.target); 
+                }
+            });
+        }, {
+            rootMargin: '0px',
+            threshold: 0.15 // Se activa cuando el 15% de la tarjeta ya esta en pantalla
+        });
 
+        // Buscar todos los elementos a animar y ponerlos bajo observacion
+        document.querySelectorAll('.dynamic-section, .foto-real').forEach(elemento => {
+            observadorScroll.observe(elemento);
+        });
+		
+		// Controlar la musica si el usuario sale de la web o minimiza
+        document.addEventListener("visibilitychange", () => {
+            const btnMusica = document.getElementById('music-btn');
+            
+            if (document.hidden) {
+                // La pestanya ya no esta visible: pausamos la musica siempre
+                miMusica.pause();
+            } else {
+                // El usuario ha vuelto a la pestanya
+                // Solo reanudamos si el boton indica que estaba activada
+                if (btnMusica.classList.contains('playing')) {
+                    miMusica.play().catch(err => {
+                        // Medida de seguridad: si el movil bloquea el autoplay al volver
+                        btnMusica.classList.remove('playing');
+                        console.warn("Auto-play bloqueado al volver a la pestaña", err);
+                    });
+                }
+            }
+        });
+		
         function preload() {
             let loaded = 0;
             let criticalLoaded = 0;
