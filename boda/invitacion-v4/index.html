@@ -260,6 +260,23 @@
         .mapa-oscuro {
             filter: invert(100%) hue-rotate(180deg) brightness(90%) contrast(90%) sepia(20%);
         }
+		
+		/* Títulos H2 de las secciones */
+        h2 {
+            font-size: 2.2rem; /* Equivale a unos 35px. Puedes subirlo o bajarlo */
+            color: var(--color-oro); /* Le da tu color dorado a los títulos */
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        /* Párrafos generales */
+        p {
+            font-size: 1.1rem; 
+            line-height: 1.6; /* Añade un poco de espacio entre las líneas para que respire */
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
@@ -402,8 +419,8 @@
         <div class="section-container" id="sec-musica">
             <img src="../recursos/fotos/foto1.jpeg" class="foto-real" alt="Música">
             <div class="dynamic-section">
-                <h2 style="font-size: 1.8rem;">¡Tú pones la música! 🎶</h2>
-                <p style="font-size: 1rem;">Queremos que la pista de baile eche humo. Añade tus canciones favoritas a nuestra lista oficial de Spotify.</p>
+                <h2>¡Tú pones la música! 🎶</h2>
+                <p>Queremos que la pista de baile eche humo. <br>Añade tus canciones favoritas a nuestra lista oficial de Spotify.</p>
                 <div style="margin: 25px 0;">
                     <a href="https://open.spotify.com/playlist/5U9WvTg9igE8aw6sJ8EPIz?si=mhTBUL5YT5i0HZyMs7lHIA&utm_source=copy-link&pt=e23a675017b4d774db26c3f19038c26e" target="_blank" rel="noopener" 
                        style="background-color: #1DB954; color: white; padding: 15px 30px; border-radius: 50px; text-decoration: none; display: inline-flex; align-items: center; gap: 10px; font-weight: bold; font-size: 0.9rem;">
@@ -586,10 +603,21 @@
         }
 
         const target = new Date("April 24, 2027 00:00:00").getTime();
-        setInterval(() => {
+        
+        // Guardamos el temporizador en una variable para poder detenerlo luego
+        const countdownInterval = setInterval(() => {
             const now = new Date().getTime();
             const diff = target - now;
-            if (diff < 0) return;
+            
+            // Si la fecha ya ha pasado o es el mismo dia
+            if (diff <= 0) {
+                clearInterval(countdownInterval); // Detiene el calculo por segundo
+                // Reemplazamos los numeros por un mensaje con la tipografía destacada
+                const container = document.querySelector('.countdown-container');
+                container.innerHTML = '<div style="font-family: \'Great Vibes\', cursive; font-size: 2.8rem; color: var(--color-oro); margin-top: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">¡Llegó el gran día!</div>';
+                return;
+            }
+            
             document.getElementById('days').innerText = String(Math.floor(diff / (1000 * 60 * 60 * 24))).padStart(2, '0');
             document.getElementById('hours').innerText = String(Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))).padStart(2, '0');
             document.getElementById('min').innerText = String(Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0');
