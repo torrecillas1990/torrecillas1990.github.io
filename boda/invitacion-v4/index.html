@@ -336,6 +336,7 @@
         
         /* Utilidades tipográficas */
         .txt-destacado { color:var(--color-oro); font-family:'Great Vibes'; font-size:3rem; text-align: center; }
+        .txt-destacado-h3 { color:var(--txt-blanco); font-family:'Great Vibes'; font-size:3rem; text-align: center; }
         .txt-iban { color:var(--color-oro); letter-spacing:1px; font-weight: bold; margin: 10px 0; font-size: 1.1rem; }
         
         .cuenta-block { margin-top: 25px; border-top: 1px solid rgba(212, 175, 55, 0.1); padding-top: 15px; }
@@ -353,19 +354,21 @@
 		
 		/* Títulos H2 de las secciones */
         h2 {
-            font-size: 2.2rem; /* Equivale a unos 35px. Puedes subirlo o bajarlo */
+            font-family:'Great Vibes';
+			font-size: 2.2rem; /* Equivale a unos 35px. Puedes subirlo o bajarlo */
             color: var(--color-oro); /* Le da tu color dorado a los títulos */
             margin-top: 0;
             margin-bottom: 15px;
-            font-weight: 600;
+            font-weight: 400;
         }
 		
 		h3 {
+            font-family:'Great Vibes';
             font-size: 1.8rem;
             color: var(--txt-blanco); /* Le da tu color dorado a los títulos */
             margin-top: 0;
             margin-bottom: 15px;
-            font-weight: 600;
+            font-weight: 400;
         }
 
         /* Párrafos generales */
@@ -500,7 +503,7 @@
             <div class="dynamic-section">
                 <h2>Cuestionario de confirmación</h2>
                 <h3>¿Te gustaría acompañarnos?</h3>
-                <p>Rellena este formulario y ayúdanos a preparar todos los detalles.</p>
+                <p>Rellena este formulario y ayúdanos a preparar todos los detalles de este gran día.</p>
                 <a href="https://docs.google.com/forms/d/e/1FAIpQLSfpXBEfxR94WtQaBAf2_7j6LHs19c3V35J_R2LHIJHamQQOkA/viewform?usp=dialog" class="btn-action" target="_blank" rel="noopener">RELLENAR CUESTIONARIO</a>
             </div>
         </div>
@@ -510,7 +513,7 @@
             <div class="dynamic-section">
                 <h2>Regalo</h2>
 				<h3>Vuestra presencia es nuestro mejor regalo.</h3>
-                <p style="margin-bottom: 5px;">Pero si además os apetece tener un detalle, os lo agradecemos de corazón.</p>
+                <p style="margin-bottom: 5px;">Pero si además os apetece tener un detalle con nosotros, os lo agradecemos de corazón.</p>
                 
                 <div class="cuenta-block">
                     <p class="cuenta-titular">Cuenta Manuel</p>
@@ -529,7 +532,7 @@
         <div class="section-container" id="sec-musica">
             <img src="../recursos/fotos/foto1.jpeg" class="foto-real" alt="Música">
             <div class="dynamic-section">
-                <h2>¡Tú pones la música! 🎶</h2>
+                <h2>¡Tú pones la música!</h2>
                 <h3>Queremos que la pista de baile eche humo.</h3>
 				<p>¡Únete a nuestra playlist y añade esas canciones que no pueden faltar en este día!</p>
                 <a class="btn-spotify" href="https://open.spotify.com/playlist/5U9WvTg9igE8aw6sJ8EPIz?si=mhTBUL5YT5i0HZyMs7lHIA&utm_source=copy-link&pt=e23a675017b4d774db26c3f19038c26e" target="_blank" rel="noopener">
@@ -541,7 +544,8 @@
         
         <div class="section-container" id="sec-final">
             <div class="dynamic-section">
-                <h2 class="txt-destacado" style="margin-bottom: 0;">Faltan...</h2>
+                <h2 class="txt-destacado">Cuenta atrás.</h2>
+                <h3 class="txt-destacado-h3">Faltan...</h3>
                 <div class="countdown-container">
                     <div class="time-block"><span id="days">00</span><p>Días</p></div>
                     <div class="time-block"><span id="hours">00</span><p>Hrs</p></div>
