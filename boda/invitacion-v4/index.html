@@ -255,6 +255,11 @@
         .cuenta-block { margin-top: 25px; border-top: 1px solid rgba(212, 175, 55, 0.1); padding-top: 15px; }
         .cuenta-block:first-of-type { border-top: none; padding-top: 0; }
         .cuenta-titular { font-size: 1rem; letter-spacing: 2px; text-transform: uppercase; margin: 0; opacity: 0.9; }
+		
+		/* Filtro oscuro para mapas */
+        .mapa-oscuro {
+            filter: invert(100%) hue-rotate(180deg) brightness(90%) contrast(90%) sepia(20%);
+        }
     </style>
 </head>
 <body>
@@ -330,6 +335,7 @@
 				<!-- Mapa insertado -->
                 <div style="margin: 20px 0;">
                     <iframe 
+                        class="mapa-oscuro"
                         src="https://maps.google.com/maps?q=Parroquia+Arciprestal+de+la+Inmaculada+Concepcion,+Torrevieja&t=&z=16&ie=UTF8&iwloc=&output=embed" 
                         width="100%" 
                         height="200" 
@@ -351,6 +357,7 @@
 				<!-- Mapa insertado -->
                 <div style="margin: 20px 0;">
                     <iframe 
+                        class="mapa-oscuro"
                         src="https://maps.google.com/maps?q=Victoria+Garden+Torrevieja&t=&z=16&ie=UTF8&iwloc=&output=embed" 
                         width="100%" 
                         height="200" 
