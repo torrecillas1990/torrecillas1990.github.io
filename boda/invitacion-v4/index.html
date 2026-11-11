@@ -206,7 +206,20 @@
             font-size: 1rem; letter-spacing: 3px;
         }
         .btn-outline:hover { background: rgba(212, 175, 55, 0.1); }
-
+		
+		.btn-spotify {
+			background-color: #1DB954; 
+			color: white; 
+			padding: 15px 30px; 
+			border-radius: 50px; 
+			text-decoration: none; 
+			display: inline-flex; 
+			align-items: center; 
+			gap: 10px; 
+			font-weight: bold; 
+			font-size: 0.9rem;
+		}
+		
         /* LOADER (MODIFICADO) */
         #loader { 
             position: fixed; inset: 0; background: var(--bg-loader); z-index: 1000; 
@@ -425,13 +438,10 @@
             <div class="dynamic-section">
                 <h2>¡Tú pones la música! 🎶</h2>
                 <p>Queremos que la pista de baile eche humo. <br>Añade tus canciones favoritas a nuestra lista oficial de Spotify.</p>
-                <div style="margin: 25px 0;">
-                    <a href="https://open.spotify.com/playlist/5U9WvTg9igE8aw6sJ8EPIz?si=mhTBUL5YT5i0HZyMs7lHIA&utm_source=copy-link&pt=e23a675017b4d774db26c3f19038c26e" target="_blank" rel="noopener" 
-                       style="background-color: #1DB954; color: white; padding: 15px 30px; border-radius: 50px; text-decoration: none; display: inline-flex; align-items: center; gap: 10px; font-weight: bold; font-size: 0.9rem;">
+                <a class="btn-spotify" href="https://open.spotify.com/playlist/5U9WvTg9igE8aw6sJ8EPIz?si=mhTBUL5YT5i0HZyMs7lHIA&utm_source=copy-link&pt=e23a675017b4d774db26c3f19038c26e" target="_blank" rel="noopener">
                         ABRIR PLAYLIST
-                    </a>
-                </div>
-                <iframe style="border-radius:12px; border:0;" src="https://open.spotify.com/embed/playlist/5U9WvTg9igE8aw6sJ8EPIz?utm_source=generator&pt=e23a675017b4d774db26c3f19038c26e" width="100%" height="152" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+                </a>
+                <iframe style="border-radius:12px; border:0; margin-top: 5px" src="https://open.spotify.com/embed/playlist/5U9WvTg9igE8aw6sJ8EPIz?utm_source=generator&pt=e23a675017b4d774db26c3f19038c26e" width="100%" height="152" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
             </div>
         </div>
         
@@ -493,35 +503,83 @@
             let loaded = 0;
             let criticalLoaded = 0;
 
+            // 1. Recopilar todos los elementos pesados del DOM
+            const domImages = Array.from(document.querySelectorAll('.foto-real, #sec-intro .header-img'));
+            const iframes = Array.from(document.querySelectorAll('iframe'));
+            
+            // Total a cargar: 8 frames + las fotos + los iframes + 1 (el audio)
+            const TOTAL_CRITICAL = PRELOAD_COUNT + domImages.length + iframes.length + 1;
+
+            // Función centralizada para actualizar la barra
+            function updateProgress() {
+                criticalLoaded++;
+                let p = Math.floor((criticalLoaded / TOTAL_CRITICAL) * 100);
+                if (p > 100) p = 100; // Evitar que pase del 100%
+                
+                document.getElementById('loader-text').innerText = `CARGANDO NUESTRA HISTORIA... ${p}%`;
+                progressFill.style.width = `${p}%`;
+                
+                if (criticalLoaded === 1) renderFrame();
+                
+                if (criticalLoaded >= TOTAL_CRITICAL) {
+                    document.getElementById('loader-text').innerText = "¡LISTO!";
+                    document.getElementById('entrar-btn').style.display = 'block';
+                }
+            }
+
+            // 2. Precargar el Audio
+            if (miMusica.readyState >= 3) {
+                updateProgress();
+            } else {
+                miMusica.addEventListener('canplaythrough', updateProgress, { once: true });
+                miMusica.addEventListener('error', updateProgress, { once: true });
+            }
+
+            // 3. Precargar las Imágenes del HTML
+            domImages.forEach(img => {
+                if (img.complete) {
+                    updateProgress();
+                } else {
+                    img.addEventListener('load', updateProgress, { once: true });
+                    img.addEventListener('error', updateProgress, { once: true });
+                }
+            });
+
+            // 4. Precargar Mapas y Spotify
+            iframes.forEach(iframe => {
+                iframe.removeAttribute('loading'); // Quita el lazy load para obligarlo a cargar ya
+                iframe.addEventListener('load', updateProgress, { once: true });
+                iframe.addEventListener('error', updateProgress, { once: true });
+            });
+
+            // 5. Precargar los frames del fondo animado
             for (let i = 1; i <= totalFrames; i++) {
                 const img = new Image();
                 const idx = String(i).padStart(3, '0');
                 
                 img.onload = () => {
                     loaded++;
-                    
-                    if (i <= PRELOAD_COUNT) {
-                        criticalLoaded++;
-                        let p = Math.floor((criticalLoaded / PRELOAD_COUNT) * 100);
-                        document.getElementById('loader-text').innerText = `CARGANDO NUESTRA HISTORIA... ${p}%`;
-                        progressFill.style.width = `${p}%`;
-                        
-                        if(criticalLoaded === 1) renderFrame();
-                        
-                        if (criticalLoaded === PRELOAD_COUNT) {
-                            document.getElementById('loader-text').innerText = "¡LISTO!";
-                            document.getElementById('entrar-btn').style.display = 'block';
-                        }
-                    }
-                    
-                    if(loaded === totalFrames) {
-                        calcularMaxScroll();
-                    }
+                    if (i <= PRELOAD_COUNT) updateProgress();
+                    if (loaded === totalFrames) calcularMaxScroll();
+                };
+                
+                img.onerror = () => {
+                    loaded++;
+                    if (i <= PRELOAD_COUNT) updateProgress(); // Si un frame falla, que la barra siga
                 };
                 
                 img.src = `${folder}/scene00${idx}.jpg`;
                 frames.push(img);
             }
+
+            // FALLBACK DE SEGURIDAD
+            // Si tras 8 segundos algo se ha quedado colgado (ej. Spotify bloqueado), fuerza la entrada
+            setTimeout(() => {
+                if (criticalLoaded < TOTAL_CRITICAL) {
+                    criticalLoaded = TOTAL_CRITICAL - 1; 
+                    updateProgress(); // Fuerza el 100%
+                }
+            }, 8000);
         }
 
         function startExperience() {
