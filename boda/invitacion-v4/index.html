@@ -180,7 +180,7 @@
         .btn-action, .btn-secundario {
             display: inline-block;
             border-radius: 30px; text-decoration: none;
-            margin-top: 20px; font-weight: 600;
+            margin-top: 5px; font-weight: 600;
             transition: all 0.3s ease;
             cursor: pointer;
             font-family: inherit;
@@ -257,6 +257,10 @@
         .cuenta-titular { font-size: 1rem; letter-spacing: 2px; text-transform: uppercase; margin: 0; opacity: 0.9; }
 		
 		/* Filtro oscuro para mapas */
+		.mapa-insertado {
+            margin-top: 5px;
+        }
+		
         .mapa-oscuro {
             filter: invert(100%) hue-rotate(180deg) brightness(90%) contrast(90%) sepia(20%);
         }
@@ -350,7 +354,7 @@
                 <p>Parroquia Arciprestal de la Inmaculada Concepción</p>
                 <a href="https://www.google.com/maps/search/?api=1&query=Parroquia+Arciprestal+Inmaculada+Concepcion+Torrevieja" target="_blank" rel="noopener" class="btn-action">ABRIR EN MAPS</a>
 				<!-- Mapa insertado -->
-                <div style="margin: 20px 0;">
+                <div class="mapa-insertado">
                     <iframe 
                         class="mapa-oscuro"
                         src="https://maps.google.com/maps?q=Parroquia+Arciprestal+de+la+Inmaculada+Concepcion,+Torrevieja&t=&z=16&ie=UTF8&iwloc=&output=embed" 
@@ -372,7 +376,7 @@
                 <p>Finca Victoria Garden</p>
                 <a href="https://www.google.com/maps/search/?api=1&query=Victoria+Garden+Torrevieja" target="_blank" rel="noopener" class="btn-action">ABRIR EN MAPS</a>
 				<!-- Mapa insertado -->
-                <div style="margin: 20px 0;">
+                <div class="mapa-insertado">
                     <iframe 
                         class="mapa-oscuro"
                         src="https://maps.google.com/maps?q=Victoria+Garden+Torrevieja&t=&z=16&ie=UTF8&iwloc=&output=embed" 
@@ -439,6 +443,25 @@
                     <div class="time-block"><span id="hours">00</span><p>Hrs</p></div>
                     <div class="time-block"><span id="min">00</span><p>Min</p></div>
                     <div class="time-block"><span id="sec">00</span><p>Seg</p></div>
+                </div>
+                
+                <!-- Botón de añadir a Google Calendar -->
+                <div style="margin-top: 5px;">
+                    <a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=Boda+de+Gemma+y+Manuel&dates=20270424/20270425&details=%C2%A1Acomp%C3%A1%C3%B1anos+en+nuestro+gran+d%C3%ADa!&location=Parroquia+Arciprestal+de+la+Inmaculada+Concepcion,+Torrevieja" 
+                       target="_blank" 
+                       rel="noopener" 
+					   class="btn-action"
+                       style="display: inline-flex; align-items: center; gap: 10px; padding: 12px 25px; font-size: 0.9rem; text-decoration: none;">
+                        
+                        <!-- Icono SVG minimalista (Calendario) -->
+                        <svg viewBox="0 0 24 24" width="18" height="18" stroke="var(--color-oro)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        GUARDAR EN CALENDAR
+                    </a>
                 </div>
             </div>
         </div>
