@@ -359,6 +359,14 @@
             margin-bottom: 15px;
             font-weight: 600;
         }
+		
+		h3 {
+            font-size: 1.8rem;
+            color: var(--txt-blanco); /* Le da tu color dorado a los títulos */
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
 
         /* Párrafos generales */
         p {
@@ -367,6 +375,9 @@
             margin-top: 0;
             margin-bottom: 15px;
         }
+		
+		.p-intro{color: black; font-style:italic; font-weight: bold; margin-top:30px; letter-spacing: 2px;}
+		
     </style>
 </head>
 <body>
@@ -433,7 +444,7 @@
     <div id="content-scroll">
         <div class="section-container" id="sec-intro">
             <img src="../recursos/texto.png" class="header-img" alt="Gemma & Manuel">
-            <p style="color: black; font-style:italic; margin-top:30px; letter-spacing: 2px;">DESLIZA PARA DESCUBRIR</p>
+            <p class="p-intro">DESLIZA PARA DESCUBRIR</p>
 			
             <a href="#sec-ceremonia" class="scroll-down" aria-label="Bajar a la siguiente sección">
                 <span></span>
@@ -444,15 +455,15 @@
             <img src="../recursos/fotos/foto5.jpeg" class="foto-real" alt="Ceremonia">
             <div class="dynamic-section">
                 <h2>La Ceremonia</h2>
-                <p>Parroquia Arciprestal de la Inmaculada Concepción</p>
+				<h3>Parroquia Arciprestal de la Inmaculada Concepción</h3>
+                <p>Aquí empieza nuestro gran día, nos daremos el «sí quiero» rodeados de quienes más queremos.</p>
                 <a href="https://www.google.com/maps/search/?api=1&query=Parroquia+Arciprestal+Inmaculada+Concepcion+Torrevieja" target="_blank" rel="noopener" class="btn-action">ABRIR EN MAPS</a>
 				<!-- Mapa insertado -->
                 <div class="mapa-insertado">
                     <iframe 
                         class="mapa-oscuro"
                         src="https://maps.google.com/maps?q=Parroquia+Arciprestal+de+la+Inmaculada+Concepcion,+Torrevieja&t=&z=16&ie=UTF8&iwloc=&output=embed" 
-                        width="100%" 
-                        height="200" 
+                        width="100%" height="200" 
                         style="border:0; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);" 
                         allowfullscreen="" 
                         loading="lazy" 
@@ -466,15 +477,15 @@
             <img src="../recursos/fotos/foto2.jpeg" class="foto-real" alt="Celebración">
             <div class="dynamic-section">
                 <h2>La Celebración</h2>
-                <p>Finca Victoria Garden</p>
+				<h3>Finca Victoria Garden</h3>
+                <p>¡Toca celebrarlo! Seguiremos compartiendo, brindando y disfrutando juntos.</p>
                 <a href="https://www.google.com/maps/search/?api=1&query=Victoria+Garden+Torrevieja" target="_blank" rel="noopener" class="btn-action">ABRIR EN MAPS</a>
 				<!-- Mapa insertado -->
                 <div class="mapa-insertado">
                     <iframe 
                         class="mapa-oscuro"
                         src="https://maps.google.com/maps?q=Victoria+Garden+Torrevieja&t=&z=16&ie=UTF8&iwloc=&output=embed" 
-                        width="100%" 
-                        height="200" 
+                        width="100%" height="200" 
                         style="border:0; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);" 
                         allowfullscreen="" 
                         loading="lazy" 
@@ -487,8 +498,9 @@
         <div class="section-container" id="sec-cuestionario">
             <img src="../recursos/fotos/foto3.jpeg" class="foto-real" alt="Confirmación">
             <div class="dynamic-section">
-                <h2>¿Nos acompañas?</h2>
-                <p>Tu confirmación nos ayuda a organizar el día perfecto.</p>
+                <h2>Cuestionario de confirmación</h2>
+                <h3>¿Te gustaría acompañarnos?</h3>
+                <p>Rellena este formulario y ayúdanos a preparar todos los detalles.</p>
                 <a href="https://docs.google.com/forms/d/e/1FAIpQLSfpXBEfxR94WtQaBAf2_7j6LHs19c3V35J_R2LHIJHamQQOkA/viewform?usp=dialog" class="btn-action" target="_blank" rel="noopener">RELLENAR CUESTIONARIO</a>
             </div>
         </div>
@@ -496,8 +508,9 @@
         <div class="section-container" id="sec-regalo">
             <img src="../recursos/fotos/foto4.jpeg" class="foto-real" alt="Regalo">
             <div class="dynamic-section">
-                <h2>¿Te gustaria tener un detalle con nosotros?</h2>
-                <p style="margin-bottom: 20px;">Te lo agradecemos.</p>
+                <h2>Regalo</h2>
+				<h3>Vuestra presencia es nuestro mejor regalo.</h3>
+                <p style="margin-bottom: 5px;">Pero si además os apetece tener un detalle, os lo agradecemos de corazón.</p>
                 
                 <div class="cuenta-block">
                     <p class="cuenta-titular">Cuenta Manuel</p>
@@ -517,7 +530,8 @@
             <img src="../recursos/fotos/foto1.jpeg" class="foto-real" alt="Música">
             <div class="dynamic-section">
                 <h2>¡Tú pones la música! 🎶</h2>
-                <p>Queremos que la pista de baile eche humo. <br>Añade tus canciones favoritas a nuestra lista oficial de Spotify.</p>
+                <h3>Queremos que la pista de baile eche humo.</h3>
+				<p>¡Únete a nuestra playlist y añade esas canciones que no pueden faltar en este día!</p>
                 <a class="btn-spotify" href="https://open.spotify.com/playlist/5U9WvTg9igE8aw6sJ8EPIz?si=mhTBUL5YT5i0HZyMs7lHIA&utm_source=copy-link&pt=e23a675017b4d774db26c3f19038c26e" target="_blank" rel="noopener">
                         ABRIR PLAYLIST
                 </a>
