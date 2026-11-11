@@ -11,6 +11,10 @@
     <meta property="og:url" content="https://tudominio.com">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
+	
+	<!-- Color de la barra de estado del navegador en móviles -->
+    <meta name="theme-color" content="#990033">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -38,6 +42,16 @@
             font-family: 'Cormorant Garamond', serif;
             overflow-x: hidden;
             -webkit-font-smoothing: antialiased;
+        }
+		
+		/* Ocultar la barra de desplazamiento (Scrollbar) pero mantener el scroll */
+        html, body {
+            -ms-overflow-style: none;  /* IE y Edge clásico */
+            scrollbar-width: none;  /* Firefox */
+        }
+        
+        html::-webkit-scrollbar, body::-webkit-scrollbar {
+            display: none; /* Chrome, Safari, Opera y navegadores móviles */
         }
 
         #bg-sticky-container {
@@ -96,6 +110,25 @@
             backdrop-filter: blur(5px);
             border: 1px solid rgba(212, 175, 55, 0.3);
             transition: all 0.3s ease;
+        }
+		
+		/* Botón Volver Arriba */
+        #btn-up {
+            top: auto; 
+            bottom: 25px; 
+            right: 20px; 
+            align-items: center; 
+            justify-content: center;
+            opacity: 0; /* Oculto por defecto */
+            pointer-events: none; /* Evita clics fantasma cuando está invisible */
+            transform: translateY(20px); /* Un poco bajado para la animación */
+        }
+
+        /* Clase que lo hace aparecer */
+        #btn-up.show {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
         }
 
 		/* Diseño de píldora para el menú con flecha */
@@ -274,8 +307,23 @@
         #side-menu.open { left: 0; visibility: visible; }
         #menu-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 250; display: none; }
         
-        .menu-link { display:block; color:white; text-decoration:none; margin:25px 0; font-size: 1.3rem; }
+        /* Transición suave para todos los enlaces del menú */
+        .menu-link { 
+            display: block; 
+            color: white; 
+            text-decoration: none; 
+            margin: 25px 0; 
+            font-size: 1.3rem;
+            transition: all 0.3s ease;
+        }
 
+        /* Estilo para la sección activa */
+        .menu-link.active {
+            color: var(--color-oro);
+            font-weight: 600;
+            transform: translateX(10px); /* Lo empuja un poco a la derecha */
+        }
+		
         /* Animación música */
         .bars-container { display: flex; align-items: flex-end; gap: 3px; height: 18px; }
         .bar { width: 3px; background: var(--color-vino); height: 5px; }
@@ -369,6 +417,13 @@
             <circle cx="18" cy="16" r="3"></circle>
         </svg>
     </div>
+	
+	<!-- Boton Volver Arriba flotante -->
+    <div id="btn-up" class="btn-flotante" role="button" tabindex="0" aria-label="Volver arriba" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="var(--color-oro)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </div>
 
     <audio id="miMusica" loop src="../recursos/musica/0_la_esperanza_de_maria.mp3"></audio>
 
@@ -441,8 +496,8 @@
         <div class="section-container" id="sec-regalo">
             <img src="../recursos/fotos/foto4.jpeg" class="foto-real" alt="Regalo">
             <div class="dynamic-section">
-                <h2>¿Nos echas una mano?</h2>
-                <p style="margin-bottom: 20px;">Si quieres tener un detalle con nosotros, te dejamos nuestras cuentas bancarias:</p>
+                <h2>¿Te gustaria tener un detalle con nosotros?</h2>
+                <p style="margin-bottom: 20px;">Te lo agradecemos.</p>
                 
                 <div class="cuenta-block">
                     <p class="cuenta-titular">Cuenta Manuel</p>
@@ -564,6 +619,33 @@
             }
         });
 		
+		// Observador para resaltar el menu segun la seccion actual
+        const menuLinks = document.querySelectorAll('.menu-link');
+        const secciones = document.querySelectorAll('.section-container');
+
+        const observadorMenu = new IntersectionObserver((entradas) => {
+            entradas.forEach(entrada => {
+                if (entrada.isIntersecting) {
+                    // 1. Quitar la clase 'active' de todos los enlaces
+                    menuLinks.forEach(link => link.classList.remove('active'));
+                    
+                    // 2. Buscar el ID de la seccion visible y anyadir 'active' a su enlace
+                    const idVisible = entrada.target.getAttribute('id');
+                    const linkCorrespondiente = document.querySelector(`.menu-link[href="#${idVisible}"]`);
+                    
+                    if (linkCorrespondiente) {
+                        linkCorrespondiente.classList.add('active');
+                    }
+                }
+            });
+        }, {
+            // Se activa cuando al menos el 50% de la seccion esta en pantalla
+            threshold: 0.5 
+        });
+
+        // Poner todas las secciones bajo observacion
+        secciones.forEach(seccion => observadorMenu.observe(seccion));
+		
         function preload() {
             let loaded = 0;
             let criticalLoaded = 0;
@@ -665,6 +747,14 @@
             
             if(frames[frameIndex] && frames[frameIndex].complete) {
                 bgContainer.style.backgroundImage = `url('${frames[frameIndex].src}')`;
+            }
+
+            // Mostrar u ocultar el boton de "Volver Arriba"
+            const btnUp = document.getElementById('btn-up');
+            if (scrollFraction > 0.5) { // Aparece al pasar la mitad de la pagina
+                btnUp.classList.add('show');
+            } else {
+                btnUp.classList.remove('show');
             }
         }
 
