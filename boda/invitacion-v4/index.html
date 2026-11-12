@@ -866,7 +866,7 @@
             // Si la fecha ya ha pasado o es el mismo dia
             if (diff <= 0) {
                 clearInterval(countdownInterval); // Detiene el calculo por segundo
-                // Reemplazamos los numeros por un mensaje con la tipografía destacada
+                // Reemplazamos los numeros por un mensaje con la tipografia destacada
                 const container = document.querySelector('.countdown-container');
                 container.innerHTML = '<div style="font-family: \'Great Vibes\', cursive; font-size: 2.8rem; color: var(--color-oro); margin-top: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">¡Llegó el gran día!</div>';
                 return;
