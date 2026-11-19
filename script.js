@@ -108,16 +108,28 @@ const proyectos = [
         ruta: 'predictor/index.html'
     },
     {
+        categoria: 'utilidades',
+        titulo: 'Traductor universal',
+        descripcion: 'Traductor universal con conversacion en tiempo real.',
+        ruta: 'traductor/index.html'
+    },
+    {
+        categoria: 'utilidades',
+        titulo: 'Ruleta',
+        descripcion: 'Simulador de ruleta.',
+        ruta: 'casino/ruleta.html'
+    },
+    {
         categoria: 'juegos',
         titulo: 'Juego RPG',
         descripcion: 'Juego.',
         ruta: 'mon/index.html'
     },
     {
-        categoria: 'utilidades',
-        titulo: 'Traductor universal',
-        descripcion: 'Traductor universal con conversacion en tiempo real.',
-        ruta: 'traductor/index.html'
+        categoria: 'juegos',
+        titulo: 'Juego RPG 3D',
+        descripcion: 'Juego RPG 3D.',
+        ruta: 'aethelgard/aethelgard.html'
     }
 ];
 

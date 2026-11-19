@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Aethelgard: El Caldero Negro (3D Dark Fantasy)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="./css/estilos.css">
+</head>
+<body class="text-slate-100 relative">
+
+    <!-- 3D WEBGL VIEWPORT -->
+    <div id="webglContainer"></div>
+    <div id="cinematicOverlay"></div>
+    <div id="underwaterOverlay"></div>
+
+    <!-- CENTER RETICLE (Visible when Pointer Lock is active) -->
+    <div id="centerReticle" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none hidden">
+        <div class="w-2 h-2 rounded-full bg-emerald-300/80 shadow-[0_0_8px_#10b981] ring-2 ring-slate-950/60"></div>
+    </div>
+
+    <!-- TOP LEFT HUD: Hero Status, Health, Stamina, Mana, Oxygen, XP & Coordinates -->
+    <div class="fixed top-3 left-3 sm:top-4 sm:left-4 z-20 flex flex-col gap-2 pointer-events-none max-w-[275px] sm:max-w-[310px]">
+        <div class="gothic-panel rounded-2xl p-3 pointer-events-auto">
+            <div class="flex items-center gap-2.5 mb-2">
+                <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 via-teal-700 to-purple-900 flex items-center justify-center border border-emerald-300/60 shadow-[0_0_16px_rgba(16,185,129,0.45)] shrink-0">
+                    <i class="fa-solid fa-dungeon text-lg text-emerald-100"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <div class="flex items-center justify-between gap-1">
+                        <span class="text-[10px] uppercase tracking-widest text-emerald-400 font-bold truncate">Taron de Prydain</span>
+                        <span id="hudLevelBadge" class="text-[10px] bg-purple-950/90 text-purple-200 px-2 py-0.5 rounded-full border border-purple-500/50 font-semibold shrink-0">Nvl. 1</span>
+                    </div>
+                    <h1 id="hudBiomeName" class="font-gothic font-bold text-sm sm:text-base text-emerald-50 truncate spectral-text-glow">Valle de Caer Dallben</h1>
+                </div>
+            </div>
+
+            <!-- Vitalidad (HP) -->
+            <div class="mb-1.5">
+                <div class="flex justify-between text-[11px] text-slate-300 mb-0.5">
+                    <span class="flex items-center gap-1.5 font-medium"><i class="fa-solid fa-heart text-rose-400"></i> Vitalidad</span>
+                    <span id="hudHealthText" class="font-mono text-rose-300">100/100</span>
+                </div>
+                <div class="w-full h-2 bg-slate-950/90 rounded-full overflow-hidden border border-rose-900/70">
+                    <div id="hudHealthBar" class="h-full bg-gradient-to-r from-rose-700 via-rose-500 to-amber-300 transition-all duration-100 shadow-[0_0_8px_#f43f5e]" style="width: 100%;"></div>
+                </div>
+            </div>
+
+            <!-- Vigor (Stamina) -->
+            <div class="mb-1.5">
+                <div class="flex justify-between text-[11px] text-slate-300 mb-0.5">
+                    <span class="flex items-center gap-1.5 font-medium"><i class="fa-solid fa-fire-flame-simple text-emerald-400"></i> Vigor</span>
+                    <span id="hudStaminaText" class="font-mono text-emerald-300">100%</span>
+                </div>
+                <div class="w-full h-2 bg-slate-950/90 rounded-full overflow-hidden border border-emerald-900/70">
+                    <div id="hudStaminaBar" class="h-full bg-gradient-to-r from-teal-600 via-emerald-500 to-lime-300 transition-all duration-75 shadow-[0_0_8px_#10b981]" style="width: 100%;"></div>
+                </div>
+            </div>
+
+            <!-- Maná Arcano -->
+            <div class="mb-1.5">
+                <div class="flex justify-between text-[11px] text-slate-300 mb-0.5">
+                    <span class="flex items-center gap-1.5 font-medium"><i class="fa-solid fa-hat-wizard text-purple-400"></i> Maná Arcano</span>
+                    <span id="hudManaText" class="font-mono text-purple-300">100/100</span>
+                </div>
+                <div class="w-full h-2 bg-slate-950/90 rounded-full overflow-hidden border border-purple-800/80">
+                    <div id="hudManaBar" class="h-full bg-gradient-to-r from-indigo-600 via-purple-500 to-fuchsia-400 transition-all duration-75 shadow-[0_0_8px_#a855f7]" style="width: 100%;"></div>
+                </div>
+            </div>
+
+            <!-- Oxígeno Submarino (Visible al bucear o recuperar aire) -->
+            <div id="hudOxygenContainer" class="mb-1.5 hidden">
+                <div class="flex justify-between text-[11px] text-slate-300 mb-0.5">
+                    <span class="flex items-center gap-1.5 font-medium"><i id="hudOxygenIcon" class="fa-solid fa-lungs text-cyan-400"></i> Oxígeno</span>
+                    <span id="hudOxygenText" class="font-mono text-cyan-300">100%</span>
+                </div>
+                <div class="w-full h-2 bg-slate-950/90 rounded-full overflow-hidden border border-cyan-700/80">
+                    <div id="hudOxygenBar" class="h-full bg-gradient-to-r from-blue-600 via-cyan-400 to-teal-200 transition-all duration-75 shadow-[0_0_10px_#22d3ee]" style="width: 100%;"></div>
+                </div>
+            </div>
+
+            <!-- Experiencia (XP) -->
+            <div class="mb-2">
+                <div class="flex justify-between text-[10px] text-slate-300 mb-0.5">
+                    <span class="flex items-center gap-1 font-medium"><i class="fa-solid fa-star text-amber-400"></i> Experiencia</span>
+                    <span id="hudXpText" class="font-mono text-amber-300">0/100 XP</span>
+                </div>
+                <div class="w-full h-1.5 bg-slate-950/90 rounded-full overflow-hidden border border-amber-900/60">
+                    <div id="hudXpBar" class="h-full bg-gradient-to-r from-amber-600 via-yellow-400 to-emerald-300 transition-all duration-200" style="width: 0%;"></div>
+                </div>
+            </div>
+
+            <!-- Status Badges (Water State, Active Buffs, Held Item) -->
+            <div class="flex flex-wrap gap-1 mb-2">
+                <span id="hudWaterStateBadge" class="hidden text-[10px] px-2 py-0.5 rounded-full font-mono"></span>
+                <span id="hudBuffBadge" class="hidden text-[10px] bg-purple-600/30 text-purple-200 px-2 py-0.5 rounded-full border border-purple-400/50 font-mono"></span>
+                <span id="hudShieldBuffBadge" class="hidden text-[10px] bg-sky-600/30 text-sky-200 px-2 py-0.5 rounded-full border border-sky-400/50 font-mono"></span>
+                <span id="hudMagicBuffBadge" class="hidden text-[10px] bg-fuchsia-600/30 text-fuchsia-200 px-2 py-0.5 rounded-full border border-fuchsia-400/50 font-mono"></span>
+                <span id="hudHeldBadge" class="hidden text-[10px] bg-amber-500/25 text-amber-200 px-2 py-0.5 rounded-full border border-amber-400/50 font-mono"></span>
+            </div>
+
+            <!-- Coordinates & Counters -->
+            <div class="pt-2 border-t border-purple-900/50 flex items-center justify-between text-[11px] text-slate-300">
+                <span id="hudCoords" class="font-mono text-[10px] text-slate-400"><i class="fa-solid fa-compass text-emerald-400 mr-1"></i>X: 0, Z: 0</span>
+                <div class="flex items-center gap-2.5">
+                    <span class="flex items-center gap-1 text-amber-300 font-semibold" title="Oro Antiguo">
+                        <i class="fa-solid fa-coins"></i> <span id="hudGold">90</span>
+                    </span>
+                    <span class="flex items-center gap-1 text-rose-300 font-semibold" title="Enemigos Derrotados">
+                        <i class="fa-solid fa-skull"></i> <span id="hudKills">0</span>
+                    </span>
+                    <span class="flex items-center gap-1 text-emerald-300 font-semibold" title="Reliquias">
+                        <i class="fa-solid fa-wand-sparkles"></i> <span id="hudRelics">0/8</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Quest Tracker -->
+        <div id="questTrackerBox" class="gothic-panel rounded-2xl p-2.5 pointer-events-auto border-l-4 border-l-emerald-400 hidden sm:block">
+            <div class="flex items-center justify-between text-[10px] uppercase tracking-widest text-emerald-400 font-bold mb-0.5">
+                <span><i class="fa-solid fa-book-skull mr-1"></i> Profecía Activa</span>
+                <span id="questStepBadge" class="text-[10px] text-purple-300 bg-purple-950/80 px-2 py-0.5 rounded-full border border-purple-700/40">Prólogo</span>
+            </div>
+            <p id="questTitleText" class="text-xs font-semibold text-white">Habla con Dallben el Vidente en Caer Dallben</p>
+            <p id="questSubText" class="text-[11px] text-slate-400 mt-0.5">Junto al caldero cerca de (2, -2). Laguna profunda al SO (-13, 9).</p>
+        </div>
+    </div>
+
+    <!-- TOP CENTER: Toast Banner Container -->
+    <div id="toastContainer" class="fixed top-4 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-2 pointer-events-none w-full max-w-md px-4"></div>
+
+    <!-- TOP RIGHT HUD: Minimap, Clock, Weather & Quick Menu Buttons -->
+    <div class="fixed top-3 right-3 sm:top-4 sm:right-4 z-20 flex flex-col items-end gap-2">
+        <div class="gothic-panel rounded-2xl p-2 flex flex-col items-center">
+            <div class="relative w-28 h-28 sm:w-36 sm:h-36 rounded-xl overflow-hidden border-2 border-emerald-500/50 shadow-[0_0_18px_rgba(16,185,129,0.2)] bg-[#070510] cursor-pointer group" id="minimapTrigger" title="Abrir Mapa Cartográfico (M)">
+                <canvas id="minimapCanvas" width="160" height="160" class="w-full h-full block"></canvas>
+                <span class="absolute top-1 left-1/2 -translate-x-1/2 text-[9px] font-bold text-emerald-400 bg-slate-950/85 px-1 rounded border border-emerald-500/30">N</span>
+                <span class="absolute bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-bold text-slate-400 bg-slate-950/75 px-1 rounded">S</span>
+                <span class="absolute left-1 top-1/2 -translate-y-1/2 text-[8px] font-bold text-slate-400 bg-slate-950/75 px-1 rounded">O</span>
+                <span class="absolute right-1 top-1/2 -translate-y-1/2 text-[8px] font-bold text-slate-400 bg-slate-950/75 px-1 rounded">E</span>
+                <div class="absolute inset-0 bg-emerald-500/0 group-hover:bg-emerald-500/15 transition flex items-center justify-center">
+                    <span class="opacity-0 group-hover:opacity-100 transition bg-slate-950/95 text-emerald-300 text-[10px] font-semibold px-2 py-1 rounded-lg border border-emerald-400/50">
+                        <i class="fa-solid fa-map mr-1"></i>Mapa (M)
+                    </span>
+                </div>
+            </div>
+            <div class="w-full mt-1.5 px-1 flex items-center justify-between text-[11px]">
+                <div class="flex items-center gap-1" title="Hora del Reino">
+                    <i id="hudTimeIcon" class="fa-solid fa-moon text-purple-400"></i>
+                    <span id="hudTimeText" class="font-mono font-semibold text-slate-200">20:30</span>
+                </div>
+                <div class="flex items-center gap-1 text-emerald-300" title="Clima">
+                    <i id="hudWeatherIcon" class="fa-solid fa-smog"></i>
+                    <span id="hudWeatherText" class="text-[10px]">Niebla</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Action Buttons -->
+        <div class="flex flex-wrap justify-end gap-1.5 max-w-[230px] sm:max-w-[360px]">
+            <button id="btnOpenInventory" class="gothic-panel hover:border-amber-400 active:scale-95 transition rounded-xl px-2.5 py-1.5 text-[11px] font-medium flex items-center gap-1.5 text-amber-200 cursor-pointer" title="Inventario y Armería (I)">
+                <i class="fa-solid fa-sack-dollar text-amber-400"></i>
+                <span class="hidden sm:inline">Inventario</span>
+            </button>
+            <button id="btnOpenSpells" class="gothic-panel hover:border-purple-400 active:scale-95 transition rounded-xl px-2.5 py-1.5 text-[11px] font-medium flex items-center gap-1.5 text-purple-200 cursor-pointer" title="Grimorio de Hechizos (B)">
+                <i class="fa-solid fa-wand-sparkles text-purple-400"></i>
+                <span class="hidden sm:inline">Hechizos</span>
+            </button>
+            <button id="btnOpenMap" class="gothic-panel hover:border-emerald-400 active:scale-95 transition rounded-xl px-2.5 py-1.5 text-[11px] font-medium flex items-center gap-1.5 text-emerald-200 cursor-pointer" title="Mapa del Reino (M)">
+                <i class="fa-solid fa-map-location-dot text-emerald-400"></i>
+                <span class="hidden sm:inline">Mapa</span>
+            </button>
+            <button id="btnOpenJournal" class="gothic-panel hover:border-teal-400 active:scale-95 transition rounded-xl px-2.5 py-1.5 text-[11px] font-medium flex items-center gap-1.5 text-teal-200 cursor-pointer" title="Crónicas (J)">
+                <i class="fa-solid fa-book-journal-whills text-teal-400"></i>
+                <span class="hidden sm:inline">Crónicas</span>
+            </button>
+            <button id="btnCycleArtStyle" class="gothic-panel hover:border-fuchsia-400 active:scale-95 transition rounded-xl px-2.5 py-1.5 text-[11px] font-medium flex items-center gap-1.5 text-fuchsia-200 cursor-pointer" title="Cambiar Estilo Artístico (T)">
+                <i class="fa-solid fa-palette text-fuchsia-400"></i>
+                <span id="hudArtStyleLabel" class="hidden sm:inline">CGI 1985</span>
+            </button>
+            <button id="btnOpenPause" class="gothic-panel hover:border-rose-400 active:scale-95 transition rounded-xl px-2.5 py-1.5 text-[11px] font-semibold flex items-center gap-1.5 text-slate-100 cursor-pointer" title="Menú de Pausa y Guardado (P / Esc)">
+                <i class="fa-solid fa-pause text-emerald-400"></i>
+                <span class="hidden sm:inline">Pausa</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- DEDICATED DIVING CONTROLS PANEL (Visible in deep sea water on Desktop & Mobile) -->
+    <div id="divingControlsPanel" class="fixed right-4 bottom-48 md:bottom-auto md:top-1/2 md:-translate-y-1/2 z-30 hidden flex-col items-center gap-2 gothic-panel rounded-2xl p-2.5 border border-cyan-400/60 shadow-[0_0_24px_rgba(6,182,212,0.35)] select-none">
+        <div class="flex items-center gap-1.5 text-[10px] uppercase tracking-widest font-bold text-cyan-300">
+            <i class="fa-solid fa-water"></i>
+            <span>Buceo</span>
+        </div>
+        <button id="btnDiveUp" type="button" class="dive-ctrl-btn w-20 py-2 px-2 rounded-xl bg-cyan-950/80 hover:bg-cyan-900/80 border border-cyan-400/60 text-cyan-200 flex flex-col items-center justify-center gap-0.5 cursor-pointer" title="Ascender hacia la superficie (Mantener Espacio)">
+            <i class="fa-solid fa-arrow-up text-sm"></i>
+            <span class="text-[11px] font-bold uppercase tracking-wide">Subir</span>
+            <span class="hidden md:inline text-[9px] font-mono text-cyan-300/80">Espacio</span>
+        </button>
+        <div id="divePanelReadout" class="w-full text-center px-1.5 py-1 rounded-lg bg-slate-950/90 border border-cyan-800/60 text-[10px] font-mono text-cyan-200 leading-tight">
+            <div id="divePanelDepth">0.0m</div>
+            <div id="divePanelO2" class="text-cyan-400">O₂ 100%</div>
+        </div>
+        <button id="btnDiveDown" type="button" class="dive-ctrl-btn w-20 py-2 px-2 rounded-xl bg-blue-950/80 hover:bg-blue-900/80 border border-cyan-400/60 text-cyan-200 flex flex-col items-center justify-center gap-0.5 cursor-pointer" title="Sumergirse más profundo (Mantener Z o Ctrl)">
+            <i class="fa-solid fa-arrow-down text-sm"></i>
+            <span class="text-[11px] font-bold uppercase tracking-wide">Bajar</span>
+            <span class="hidden md:inline text-[9px] font-mono text-cyan-300/80">Z / Ctrl</span>
+        </button>
+        <button id="btnDiveBreathSpell" type="button" class="w-20 py-1.5 px-1.5 rounded-xl bg-teal-950/85 hover:bg-teal-800/85 border border-teal-400/60 text-teal-200 flex flex-col items-center justify-center gap-0.5 cursor-pointer" title="Lanzar Aliento de las Ondinas para aguantar la respiración bajo el agua">
+            <i class="fa-solid fa-lungs text-xs text-teal-300"></i>
+            <span class="text-[10px] font-bold">Aliento</span>
+        </button>
+    </div>
+
+    <!-- BOAT HELM NAVIGATION PANEL (Visible while piloting a small boat) -->
+    <div id="boatHelmPanel" class="fixed bottom-28 md:bottom-24 left-1/2 -translate-x-1/2 z-30 hidden items-center gap-3 gothic-panel rounded-2xl px-4 py-2 border border-amber-400/70 shadow-[0_0_24px_rgba(245,158,11,0.35)]">
+        <div class="w-8 h-8 rounded-xl bg-amber-950/90 border border-amber-400/50 flex items-center justify-center text-amber-300 shrink-0">
+            <i class="fa-solid fa-sailboat text-sm"></i>
+        </div>
+        <div class="text-xs leading-tight">
+            <div id="boatHelmName" class="font-bold text-amber-200">Timón del Esquife</div>
+            <div id="boatHelmSpeed" class="text-[10px] font-mono text-cyan-300">0 nudos • W/S Impulso • A/D Virar</div>
+        </div>
+        <button id="btnLeaveBoatHelm" type="button" class="ml-1 px-2.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/35 border border-amber-400/60 text-amber-200 text-[11px] font-bold cursor-pointer">
+            Soltar (E)
+        </button>
+    </div>
+
+    <!-- INTERACTION FLOATING PROMPT -->
+    <div id="interactPrompt" class="fixed bottom-36 sm:bottom-28 left-1/2 -translate-x-1/2 z-20 hidden">
+        <button id="btnInteractTrigger" class="interact-pulse gothic-panel-spectral px-5 py-2 rounded-full flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-emerald-200 hover:text-white cursor-pointer">
+            <span class="px-2 py-0.5 rounded-full bg-emerald-400 text-slate-950 font-extrabold text-[11px] shadow-[0_0_12px_#10b981]">Clic Der / E</span>
+            <span id="interactPromptText">Interactuar</span>
+        </button>
+    </div>
+
+    <!-- BOTTOM QUICK ACTION BAR (Potions 1-3, Weapon 4, Cast Spell G, Cycle Spell V) -->
+    <div class="fixed bottom-14 md:bottom-12 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 sm:gap-2 gothic-panel px-2.5 py-1.5 rounded-2xl">
+        <button id="qbHealth" class="relative w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-slate-950/90 hover:bg-rose-950/70 border border-rose-500/50 flex flex-col items-center justify-center text-rose-300 active:scale-95 transition cursor-pointer" title="Poción de Sangre de Roble (1)">
+            <span class="absolute top-0.5 left-1 text-[9px] font-mono text-slate-400">1</span>
+            <i class="fa-solid fa-flask text-sm sm:text-base"></i>
+            <span id="qbHealthQty" class="text-[10px] font-mono font-bold text-white">3</span>
+        </button>
+        <button id="qbStamina" class="relative w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-slate-950/90 hover:bg-emerald-950/70 border border-emerald-500/50 flex flex-col items-center justify-center text-emerald-300 active:scale-95 transition cursor-pointer" title="Elixir de Vigor de Gurgi (2)">
+            <span class="absolute top-0.5 left-1 text-[9px] font-mono text-slate-400">2</span>
+            <i class="fa-solid fa-bottle-droplet text-sm sm:text-base"></i>
+            <span id="qbStaminaQty" class="text-[10px] font-mono font-bold text-white">2</span>
+        </button>
+        <button id="qbMagic" class="relative w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-slate-950/90 hover:bg-purple-950/70 border border-purple-500/50 flex flex-col items-center justify-center text-purple-300 active:scale-95 transition cursor-pointer" title="Elixir de Magia de Eilonwy (3)">
+            <span class="absolute top-0.5 left-1 text-[9px] font-mono text-slate-400">3</span>
+            <i class="fa-solid fa-vial text-sm sm:text-base"></i>
+            <span id="qbMagicQty" class="text-[10px] font-mono font-bold text-white">2</span>
+        </button>
+        <div class="w-px h-8 bg-purple-800/50 mx-0.5"></div>
+        <button id="qbWeapon" class="relative px-2.5 h-11 sm:h-12 rounded-xl bg-slate-950/90 hover:bg-amber-950/60 border border-amber-500/50 flex items-center gap-2 text-amber-200 active:scale-95 transition cursor-pointer" title="Cambiar Arma Equipada (4)">
+            <span class="absolute top-0.5 left-1 text-[9px] font-mono text-slate-400">4</span>
+            <i id="qbWeaponIcon" class="fa-solid fa-khanda text-amber-300 text-base pl-1"></i>
+            <div class="text-left hidden sm:block">
+                <div id="qbWeaponName" class="text-[10px] font-bold text-white leading-tight max-w-[92px] truncate">Espada Aprendiz</div>
+                <div id="qbWeaponDmg" class="text-[9px] text-amber-300 font-mono">Daño 26</div>
+            </div>
+        </button>
+        <div class="w-px h-8 bg-purple-800/50 mx-0.5"></div>
+        <button id="qbSpellCast" class="relative px-2.5 h-11 sm:h-12 rounded-xl bg-purple-950/80 hover:bg-purple-900/80 border border-purple-400/70 flex items-center gap-2 text-purple-100 active:scale-95 transition cursor-pointer shadow-[0_0_12px_rgba(168,85,247,0.3)]" title="Lanzar Hechizo Activo (G)">
+            <span class="absolute top-0.5 left-1 text-[9px] font-mono text-purple-300">G</span>
+            <i id="qbSpellIcon" class="fa-solid fa-fire-flame-curved text-emerald-300 text-base pl-1"></i>
+            <div class="text-left hidden sm:block">
+                <div id="qbSpellName" class="text-[10px] font-bold text-white leading-tight max-w-[100px] truncate">Fuego Esmeralda</div>
+                <div id="qbSpellMeta" class="text-[9px] text-purple-300 font-mono">Nvl.1 • 18 MP</div>
+            </div>
+        </button>
+        <button id="qbSpellCycle" class="w-8 h-11 sm:h-12 rounded-xl bg-slate-950/90 hover:bg-slate-800 border border-purple-700/50 flex flex-col items-center justify-center text-purple-300 active:scale-95 transition cursor-pointer" title="Rotar Hechizo (V)">
+            <i class="fa-solid fa-rotate text-xs"></i>
+            <span class="text-[9px] font-mono text-slate-400">V</span>
+        </button>
+    </div>
+
+    <!-- BOTTOM DESKTOP CONTROLS HINT BAR -->
+    <div class="fixed bottom-2 left-1/2 -translate-x-1/2 z-10 hidden md:flex items-center gap-2.5 gothic-panel px-4 py-1.5 rounded-full text-[11px] text-slate-300 whitespace-nowrap">
+        <span><kbd class="bg-slate-900 text-emerald-300 px-1.5 py-0.5 rounded border border-purple-700/60 font-mono">WASD</kbd> Mover</span>
+        <span class="text-purple-700">•</span>
+        <span><kbd class="bg-slate-900 text-emerald-300 px-1.5 py-0.5 rounded border border-purple-700/60 font-mono">Espacio</kbd> Saltar / Subir</span>
+        <span class="text-purple-700">•</span>
+        <span><kbd class="bg-slate-900 text-cyan-300 px-1.5 py-0.5 rounded border border-cyan-700/60 font-mono">Z / Ctrl</kbd> Bucear</span>
+        <span class="text-purple-700">•</span>
+        <span><kbd class="bg-slate-900 text-emerald-300 px-1.5 py-0.5 rounded border border-purple-700/60 font-mono">Clic Izq / X</kbd> Atacar</span>
+        <span class="text-purple-700">•</span>
+        <span><kbd class="bg-slate-900 text-emerald-300 px-1.5 py-0.5 rounded border border-purple-700/60 font-mono">Clic Der / E</kbd> Agarrar / Hablar</span>
+        <span class="text-purple-700">•</span>
+        <span><kbd class="bg-slate-900 text-purple-300 px-1.5 py-0.5 rounded border border-purple-700/60 font-mono">G / V</kbd> Magia</span>
+        <span class="text-purple-700">•</span>
+        <span><kbd class="bg-slate-900 text-amber-300 px-1.5 py-0.5 rounded border border-amber-700/60 font-mono">P / Esc</kbd> Pausa</span>
+    </div>
+
+    <!-- MOBILE / TOUCH VIRTUAL JOYSTICK & ACTION BUTTONS -->
+    <div id="touchJoystickZone" class="fixed bottom-28 left-4 w-32 h-32 z-20 md:hidden flex items-center justify-center">
+        <div id="joystickBase" class="w-28 h-28 rounded-full bg-slate-950/70 border-2 border-purple-500/40 backdrop-blur-sm flex items-center justify-center relative">
+            <div id="joystickStick" class="w-12 h-12 rounded-full bg-emerald-500/80 border-2 border-emerald-200 shadow-[0_0_15px_#10b981] transition-transform duration-75"></div>
+        </div>
+    </div>
+
+    <div class="fixed bottom-28 right-4 z-20 grid grid-cols-2 gap-2 md:hidden">
+        <button id="btnTouchSprint" class="w-13 h-13 p-2.5 rounded-full gothic-panel flex flex-col items-center justify-center text-emerald-300 active:scale-90 border border-emerald-500/40">
+            <i class="fa-solid fa-person-running text-sm"></i>
+            <span class="text-[8px] font-bold uppercase mt-0.5">Correr</span>
+        </button>
+        <button id="btnTouchJump" class="w-13 h-13 p-2.5 rounded-full gothic-panel flex flex-col items-center justify-center text-cyan-300 active:scale-90 border border-cyan-500/40">
+            <i class="fa-solid fa-arrow-up text-sm"></i>
+            <span class="text-[8px] font-bold uppercase mt-0.5">Saltar</span>
+        </button>
+        <button id="btnTouchAttack" class="w-14 h-14 rounded-full bg-gradient-to-br from-emerald-400 to-teal-700 text-slate-950 font-bold shadow-[0_0_18px_rgba(16,185,129,0.55)] flex flex-col items-center justify-center active:scale-90 border-2 border-emerald-200">
+            <i class="fa-solid fa-khanda text-base"></i>
+            <span class="text-[9px] font-extrabold uppercase">Atacar</span>
+        </button>
+        <button id="btnTouchInteract" class="w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 to-indigo-800 text-white font-bold shadow-[0_0_18px_rgba(168,85,247,0.55)] flex flex-col items-center justify-center active:scale-90 border-2 border-purple-200">
+            <i class="fa-solid fa-hand-sparkles text-base"></i>
+            <span class="text-[9px] font-extrabold uppercase">Agarrar</span>
+        </button>
+    </div>
+
+    <!-- DIALOG MODAL (NPCs, Cauldrons, Chests) -->
+    <div id="dialogModal" class="fixed inset-0 z-40 bg-slate-950/75 backdrop-blur-sm hidden items-end sm:items-center justify-center p-4">
+        <div class="gothic-panel-spectral rounded-2xl max-w-lg w-full p-5 sm:p-6">
+            <div class="flex items-start gap-4">
+                <div id="dialogIconBox" class="w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-400/50 flex items-center justify-center text-2xl text-emerald-300 shrink-0 shadow-[0_0_18px_rgba(16,185,129,0.3)]">
+                    <i class="fa-solid fa-hat-wizard"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between">
+                        <span id="dialogRole" class="text-xs uppercase tracking-widest text-emerald-400 font-bold">Oráculo de Prydain</span>
+                        <button id="btnCloseDialog" class="text-slate-400 hover:text-white text-lg px-2 cursor-pointer">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                    <h3 id="dialogTitle" class="font-gothic text-xl font-bold text-white mt-0.5 spectral-text-glow">Dallben el Vidente</h3>
+                    <p id="dialogText" class="text-sm text-slate-200 mt-2.5 leading-relaxed"></p>
+                    <div id="dialogRewardBox" class="mt-3 hidden bg-slate-950/90 border border-emerald-500/40 rounded-xl p-2.5 text-xs text-emerald-300 flex items-center gap-2">
+                        <i class="fa-solid fa-wand-sparkles text-base"></i>
+                        <span id="dialogRewardText"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-5 flex justify-end gap-2.5">
+                <button id="btnDialogLocate" class="hidden px-4 py-2 rounded-xl bg-purple-600/25 hover:bg-purple-600/40 text-purple-200 border border-purple-400/40 text-xs font-semibold transition cursor-pointer">
+                    <i class="fa-solid fa-location-dot mr-1.5"></i>Marcar en Mapa
+                </button>
+                <button id="btnDialogAccept" class="px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-bold text-xs sm:text-sm transition shadow-[0_0_15px_rgba(16,185,129,0.5)] cursor-pointer">
+                    Continuar Aventura
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAUSE MENU MODAL (Save/Load, Settings & Direct Access to Inventory, Spells, Map, Journal) -->
+    <div id="pauseModal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md hidden items-center justify-center p-3 sm:p-6">
+        <div class="gothic-panel-spectral rounded-3xl max-w-4xl w-full overflow-hidden flex flex-col max-h-[92vh]">
+            <div class="px-5 py-4 border-b border-purple-900/60 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/50 flex items-center justify-center text-emerald-300">
+                        <i class="fa-solid fa-pause text-lg"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-gothic text-lg sm:text-xl font-bold text-white spectral-text-glow">Menú de Pausa — Aethelgard</h2>
+                        <p class="text-xs text-slate-400">El tiempo del reino está detenido. Gestiona tu partida, opciones y equipo.</p>
+                    </div>
+                </div>
+                <button id="btnResumeGame" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-bold text-xs sm:text-sm cursor-pointer shadow-[0_0_16px_rgba(16,185,129,0.5)]">
+                    <i class="fa-solid fa-play mr-1.5"></i>Reanudar
+                </button>
+            </div>
+
+            <div class="p-4 sm:p-6 overflow-y-auto grid grid-cols-1 lg:grid-cols-2 gap-5">
+                <!-- Left Column: Direct Menus & Save/Load -->
+                <div class="flex flex-col gap-4">
+                    <div class="bg-slate-950/80 border border-purple-900/60 rounded-2xl p-4">
+                        <h3 class="font-cinzel font-bold text-emerald-400 text-xs uppercase tracking-wider mb-3">
+                            <i class="fa-solid fa-compass mr-1.5"></i>Accesos del Aventurero
+                        </h3>
+                        <div class="grid grid-cols-2 gap-2.5">
+                            <button id="btnPauseOpenInventory" class="p-3 rounded-xl bg-amber-950/40 hover:bg-amber-900/50 border border-amber-500/50 text-left flex items-center justify-between transition cursor-pointer">
+                                <div class="flex items-center gap-2.5">
+                                    <i class="fa-solid fa-sack-dollar text-amber-400 text-lg"></i>
+                                    <div>
+                                        <div class="text-xs font-bold text-white">Inventario</div>
+                                        <div class="text-[10px] text-amber-200/80">Pociones y Armas</div>
+                                    </div>
+                                </div>
+                                <kbd class="text-[10px] bg-slate-950 px-1.5 py-0.5 rounded border border-amber-500/40 text-amber-300 font-mono">I</kbd>
+                            </button>
+                            <button id="btnPauseOpenSpells" class="p-3 rounded-xl bg-purple-950/40 hover:bg-purple-900/50 border border-purple-500/50 text-left flex items-center justify-between transition cursor-pointer">
+                                <div class="flex items-center gap-2.5">
+                                    <i class="fa-solid fa-wand-sparkles text-purple-400 text-lg"></i>
+                                    <div>
+                                        <div class="text-xs font-bold text-white">Grimorio</div>
+                                        <div class="text-[10px] text-purple-200/80">Hechizos y XP</div>
+                                    </div>
+                                </div>
+                                <kbd class="text-[10px] bg-slate-950 px-1.5 py-0.5 rounded border border-purple-500/40 text-purple-300 font-mono">B</kbd>
+                            </button>
+                            <button id="btnPauseOpenMap" class="p-3 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-500/50 text-left flex items-center justify-between transition cursor-pointer">
+                                <div class="flex items-center gap-2.5">
+                                    <i class="fa-solid fa-map-location-dot text-emerald-400 text-lg"></i>
+                                    <div>
+                                        <div class="text-xs font-bold text-white">Mapa del Reino</div>
+                                        <div class="text-[10px] text-emerald-200/80">Topografía y Faros</div>
+                                    </div>
+                                </div>
+                                <kbd class="text-[10px] bg-slate-950 px-1.5 py-0.5 rounded border border-emerald-500/40 text-emerald-300 font-mono">M</kbd>
+                            </button>
+                            <button id="btnPauseOpenJournal" class="p-3 rounded-xl bg-teal-950/40 hover:bg-teal-900/50 border border-teal-500/50 text-left flex items-center justify-between transition cursor-pointer">
+                                <div class="flex items-center gap-2.5">
+                                    <i class="fa-solid fa-book-skull text-teal-400 text-lg"></i>
+                                    <div>
+                                        <div class="text-xs font-bold text-white">Crónicas</div>
+                                        <div class="text-[10px] text-teal-200/80">Reliquias y Lore</div>
+                                    </div>
+                                </div>
+                                <kbd class="text-[10px] bg-slate-950 px-1.5 py-0.5 rounded border border-teal-500/40 text-teal-300 font-mono">J</kbd>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-950/80 border border-purple-900/60 rounded-2xl p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-cinzel font-bold text-emerald-400 text-xs uppercase tracking-wider">
+                                <i class="fa-solid fa-floppy-disk mr-1.5"></i>Guardar y Cargar Partida
+                            </h3>
+                            <span id="cloudStatusBadge" class="text-[10px] font-mono text-slate-400">Santuario Local</span>
+                        </div>
+                        <div id="saveSlotStateText" class="text-[11px] text-slate-300 mb-2">Ranura Principal Lista</div>
+                        <div class="flex items-center justify-between text-[10px] font-mono text-slate-400 mb-2.5">
+                            <span id="saveStatusText">Sin guardado local</span>
+                            <span id="lastSavedTimeBadge"></span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 mb-3">
+                            <button id="btnSaveGame" class="py-2.5 px-3 rounded-xl bg-emerald-600/25 hover:bg-emerald-600/40 text-emerald-200 border border-emerald-500/50 text-xs font-bold transition cursor-pointer">
+                                <i class="fa-solid fa-floppy-disk mr-1.5"></i>Guardar Partida
+                            </button>
+                            <button id="btnLoadGame" class="py-2.5 px-3 rounded-xl bg-purple-600/25 hover:bg-purple-600/40 text-purple-200 border border-purple-500/50 text-xs font-bold transition cursor-pointer">
+                                <i class="fa-solid fa-folder-open mr-1.5"></i>Cargar Partida
+                            </button>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="text-[11px] text-slate-400 block">Pergamino de Respaldo (Exportar / Importar Código):</label>
+                            <textarea id="saveCodeBox" rows="2" placeholder="Pulsa Exportar para generar un código o pega uno aquí para importar..." class="w-full bg-slate-900/90 border border-purple-800/60 rounded-xl p-2 text-[10px] font-mono text-emerald-200 focus:outline-none focus:border-emerald-400"></textarea>
+                            <div class="flex gap-2">
+                                <button id="btnExportSave" class="flex-1 py-1.5 px-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-[11px] text-slate-200 font-semibold cursor-pointer">
+                                    <i class="fa-solid fa-copy mr-1"></i>Exportar y Copiar
+                                </button>
+                                <button id="btnImportSave" class="flex-1 py-1.5 px-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-emerald-700/60 text-[11px] text-emerald-300 font-semibold cursor-pointer">
+                                    <i class="fa-solid fa-file-import mr-1"></i>Importar Código
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="mt-3 pt-3 border-t border-slate-800 flex gap-2">
+                            <button id="btnPauseTeleportHome" class="flex-1 py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-emerald-600/40 text-xs text-emerald-300 font-semibold cursor-pointer">
+                                <i class="fa-solid fa-house mr-1"></i>Ir a Caer Dallben
+                            </button>
+                            <button id="btnResetGame" class="flex-1 py-2 px-3 rounded-xl bg-rose-950/50 hover:bg-rose-900/60 border border-rose-500/40 text-xs text-rose-300 font-semibold cursor-pointer">
+                                <i class="fa-solid fa-rotate-left mr-1"></i>Reiniciar Mundo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Camera & Graphics Settings -->
+                <div class="bg-slate-950/80 border border-purple-900/60 rounded-2xl p-4 flex flex-col gap-3">
+                    <h3 class="font-cinzel font-bold text-purple-300 text-xs uppercase tracking-wider">
+                        <i class="fa-solid fa-sliders mr-1.5"></i>Estilo Artístico y Gráficos 3D
+                    </h3>
+
+                    <div class="bg-slate-900/80 border border-fuchsia-500/30 rounded-xl p-2.5">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-[11px] font-bold text-fuchsia-300 flex items-center gap-1.5">
+                                <i class="fa-solid fa-palette"></i> Dirección de Arte
+                            </span>
+                            <span class="text-[10px] font-mono text-slate-400">Tecla T</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-1.5 text-[11px]" id="artStyleSelectorGrid">
+                            <button type="button" data-art-style="cgi1985" class="art-style-btn py-1.5 px-2 rounded-lg border border-emerald-400 bg-emerald-500/20 text-emerald-200 font-bold text-left transition cursor-pointer">
+                                <i class="fa-solid fa-film mr-1"></i>CGI Oscuro 1985
+                            </button>
+                            <button type="button" data-art-style="toon" class="art-style-btn py-1.5 px-2 rounded-lg border border-slate-700 bg-slate-950/70 text-slate-300 hover:border-purple-400 font-semibold text-left transition cursor-pointer">
+                                <i class="fa-solid fa-paintbrush mr-1"></i>Cel-Shading Anime
+                            </button>
+                            <button type="button" data-art-style="oil" class="art-style-btn py-1.5 px-2 rounded-lg border border-slate-700 bg-slate-950/70 text-slate-300 hover:border-amber-400 font-semibold text-left transition cursor-pointer">
+                                <i class="fa-solid fa-palette mr-1"></i>Pintura al Óleo
+                            </button>
+                            <button type="button" data-art-style="ps1" class="art-style-btn py-1.5 px-2 rounded-lg border border-slate-700 bg-slate-950/70 text-slate-300 hover:border-cyan-400 font-semibold text-left transition cursor-pointer">
+                                <i class="fa-solid fa-gamepad mr-1"></i>Retro PS1 3D
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3 text-xs">
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-slate-300">Sensibilidad del Ratón</span>
+                                <span id="valSensitivity" class="font-mono text-emerald-300">1.0x</span>
+                            </div>
+                            <input id="optSensitivity" type="range" min="0.3" max="2.5" step="0.1" value="1.0" class="w-full accent-emerald-400">
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-slate-300">Campo de Visión (FOV)</span>
+                                <span id="valFov" class="font-mono text-emerald-300">50°</span>
+                            </div>
+                            <input id="optFov" type="range" min="38" max="75" step="1" value="50" class="w-full accent-emerald-400">
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-slate-300">Distancia de Cámara</span>
+                                <span id="valCamDist" class="font-mono text-emerald-300">21m</span>
+                            </div>
+                            <input id="optCamDist" type="range" min="11" max="38" step="1" value="21" class="w-full accent-emerald-400">
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-slate-300">Exposición Cinematográfica</span>
+                                <span id="valExposure" class="font-mono text-emerald-300">1.15</span>
+                            </div>
+                            <input id="optExposure" type="range" min="0.7" max="1.7" step="0.05" value="1.15" class="w-full accent-emerald-400">
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-slate-300">Densidad de Niebla Volumétrica</span>
+                                <span id="valFog" class="font-mono text-emerald-300">1.0x</span>
+                            </div>
+                            <input id="optFog" type="range" min="0.3" max="1.8" step="0.1" value="1.0" class="w-full accent-emerald-400">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800 text-xs">
+                        <label class="flex items-center gap-2 bg-slate-900/70 p-2 rounded-xl border border-slate-800 cursor-pointer">
+                            <input id="optPointerLock" type="checkbox" checked class="accent-emerald-400">
+                            <span>Bloqueo Puntero</span>
+                        </label>
+                        <label class="flex items-center gap-2 bg-slate-900/70 p-2 rounded-xl border border-slate-800 cursor-pointer">
+                            <input id="optInvertY" type="checkbox" class="accent-emerald-400">
+                            <span>Invertir Eje Y</span>
+                        </label>
+                        <label class="flex items-center gap-2 bg-slate-900/70 p-2 rounded-xl border border-slate-800 cursor-pointer">
+                            <input id="optShadows" type="checkbox" checked class="accent-emerald-400">
+                            <span>Sombras 3D</span>
+                        </label>
+                        <label class="flex items-center gap-2 bg-slate-900/70 p-2 rounded-xl border border-slate-800 cursor-pointer">
+                            <input id="optParticles" type="checkbox" checked class="accent-emerald-400">
+                            <span>Partículas Niebla</span>
+                        </label>
+                        <label class="flex items-center gap-2 bg-slate-900/70 p-2 rounded-xl border border-slate-800 cursor-pointer">
+                            <input id="optVignette" type="checkbox" checked class="accent-emerald-400">
+                            <span>Viñeta 1985</span>
+                        </label>
+                        <label class="flex items-center gap-2 bg-slate-900/70 p-2 rounded-xl border border-slate-800 cursor-pointer">
+                            <input id="optHighDpi" type="checkbox" checked class="accent-emerald-400">
+                            <span>Resolución HD</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- INVENTORY & ARMORY MODAL (I) -->
+    <div id="inventoryModal" class="fixed inset-0 z-40 bg-slate-950/85 backdrop-blur-md hidden items-center justify-center p-3 sm:p-6">
+        <div class="gothic-panel-spectral rounded-3xl max-w-4xl w-full overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="px-5 py-4 border-b border-purple-900/60 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-sack-dollar text-amber-400 text-xl"></i>
+                    <div>
+                        <h2 class="font-gothic text-lg sm:text-xl font-bold text-white spectral-text-glow">Inventario, Alquimia y Armería</h2>
+                        <p class="text-xs text-slate-400">Oro disponible: <span id="invGoldDisplay" class="text-amber-300 font-bold font-mono">90</span> monedas</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="btnInvBackPause" class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-emerald-300 border border-emerald-500/40 text-xs font-semibold cursor-pointer">
+                        <i class="fa-solid fa-pause mr-1"></i>Pausa
+                    </button>
+                    <button id="btnCloseInventory" class="w-9 h-9 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 flex items-center justify-center border border-purple-800/40 cursor-pointer">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-4 sm:p-5 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div class="bg-slate-950/80 border border-purple-900/50 rounded-2xl p-4">
+                    <h3 class="font-cinzel font-bold text-emerald-400 text-sm uppercase tracking-wider mb-3">
+                        <i class="fa-solid fa-flask-vial mr-1.5"></i>Pociones y Elixires
+                    </h3>
+                    <div id="invPotionsList" class="space-y-3"></div>
+                </div>
+
+                <div class="bg-slate-950/80 border border-purple-900/50 rounded-2xl p-4">
+                    <h3 class="font-cinzel font-bold text-amber-400 text-sm uppercase tracking-wider mb-3">
+                        <i class="fa-solid fa-khanda mr-1.5"></i>Armería de Prydain
+                    </h3>
+                    <div id="invWeaponsList" class="space-y-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SPELLS & GRIMOIRE MODAL (B) -->
+    <div id="spellsModal" class="fixed inset-0 z-40 bg-slate-950/85 backdrop-blur-md hidden items-center justify-center p-3 sm:p-6">
+        <div class="gothic-panel-spectral rounded-3xl max-w-4xl w-full overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="px-5 py-4 border-b border-purple-900/60 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-wand-sparkles text-purple-400 text-xl"></i>
+                    <div>
+                        <h2 class="font-gothic text-lg sm:text-xl font-bold text-white spectral-text-glow">Grimorio Arcano de Prydain</h2>
+                        <p class="text-xs text-slate-400">
+                            Nivel Héroe: <span id="spellHeroLevel" class="text-emerald-300 font-bold">1</span> •
+                            XP Disponible: <span id="spellXpDisplay" class="text-amber-300 font-bold font-mono">0 XP</span> •
+                            Oro: <span id="spellGoldDisplay" class="text-amber-300 font-bold font-mono">90</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="btnSpellsBackPause" class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-emerald-300 border border-emerald-500/40 text-xs font-semibold cursor-pointer">
+                        <i class="fa-solid fa-pause mr-1"></i>Pausa
+                    </button>
+                    <button id="btnCloseSpells" class="w-9 h-9 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 flex items-center justify-center border border-purple-800/40 cursor-pointer">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-4 sm:p-5 overflow-y-auto">
+                <div id="spellsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3.5"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- WORLD MAP MODAL (M) -->
+    <div id="mapModal" class="fixed inset-0 z-40 bg-slate-950/85 backdrop-blur-md hidden items-center justify-center p-3 sm:p-6">
+        <div class="gothic-panel-spectral rounded-3xl max-w-5xl w-full overflow-hidden flex flex-col max-h-[92vh]">
+            <div class="px-5 py-3.5 border-b border-purple-900/60 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-map text-emerald-400 text-xl"></i>
+                    <div>
+                        <h2 class="font-gothic text-lg sm:text-xl font-bold text-white spectral-text-glow">Mapa Topográfico de Prydain</h2>
+                        <p class="text-xs text-slate-400">Rueda del ratón para Zoom, arrastra para mover, clic para fijar Faro de Luz. Cono verde = dirección exacta de la cámara.</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="btnMapBackPause" class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-emerald-300 border border-emerald-500/40 text-xs font-semibold cursor-pointer">
+                        <i class="fa-solid fa-pause mr-1"></i>Pausa
+                    </button>
+                    <button id="btnCloseMap" class="w-9 h-9 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 flex items-center justify-center border border-purple-800/40 cursor-pointer">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-4 flex flex-col lg:flex-row gap-4 items-center justify-center overflow-y-auto">
+                <div class="flex flex-col gap-2 w-full max-w-[470px]">
+                    <div class="flex flex-wrap items-center justify-between gap-1.5 text-[11px]">
+                        <div class="flex items-center gap-1">
+                            <button id="btnMapZoomOut" class="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-purple-700/50 text-slate-200 cursor-pointer"><i class="fa-solid fa-minus"></i></button>
+                            <span id="mapZoomText" class="font-mono text-emerald-300 px-1.5">1.0x</span>
+                            <button id="btnMapZoomIn" class="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-purple-700/50 text-slate-200 cursor-pointer"><i class="fa-solid fa-plus"></i></button>
+                            <button id="btnMapCenterHero" class="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-emerald-600/50 text-emerald-300 cursor-pointer"><i class="fa-solid fa-crosshairs mr-1"></i>Centrar</button>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <button id="btnMapToggleOracle" class="px-2.5 py-1 rounded-lg bg-purple-900/40 hover:bg-purple-800/50 border border-purple-400/50 text-purple-200 cursor-pointer"><i class="fa-solid fa-eye mr-1"></i>Oráculo</button>
+                            <button id="btnMapToggleLabels" class="px-2.5 py-1 rounded-lg bg-emerald-900/40 hover:bg-emerald-800/50 border border-emerald-400/50 text-emerald-200 cursor-pointer"><i class="fa-solid fa-tags mr-1"></i>Nombres</button>
+                        </div>
+                    </div>
+
+                    <div class="relative rounded-2xl overflow-hidden border-2 border-emerald-500/50 shadow-[0_0_26px_rgba(16,185,129,0.25)] bg-[#06040c] aspect-square w-full">
+                        <canvas id="fullMapCanvas" width="470" height="470" class="w-full h-full block cursor-crosshair"></canvas>
+                        <div class="absolute top-2 left-1/2 -translate-x-1/2 bg-slate-950/85 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-500/30 pointer-events-none">NORTE</div>
+                    </div>
+
+                    <div id="mapInspectorBar" class="bg-slate-950/90 border border-purple-900/60 rounded-xl px-3 py-2 text-[11px] font-mono text-slate-300 flex items-center justify-between gap-2">
+                        <span id="mapHoverTitle" class="truncate">Pasa el cursor sobre el mapa para inspeccionar...</span>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <span id="mapHoverCoords" class="text-emerald-300">X: 0, Z: 0</span>
+                            <span class="text-slate-600">|</span>
+                            <span id="hudExploredText" class="text-purple-300">0.0%</span>
+                            <div class="w-12 h-1.5 bg-slate-900 rounded-full overflow-hidden hidden sm:block">
+                                <div id="hudExploredBar" class="h-full bg-emerald-400" style="width: 1%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="w-full lg:w-72 flex flex-col gap-3 text-xs">
+                    <div class="bg-slate-950/85 border border-purple-900/60 rounded-2xl p-3.5">
+                        <h4 class="font-cinzel font-bold text-emerald-400 text-xs mb-2 uppercase tracking-wider">Leyenda Cartográfica</h4>
+                        <div class="space-y-1.5 text-slate-300">
+                            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-white border-2 border-emerald-400 inline-block"></span><span>Taron (Flecha + Cono de Vista)</span></div>
+                            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-sky-400 inline-block"></span><span>Aliados y Oráculos</span></div>
+                            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-purple-400 inline-block"></span><span>Calderos y Monolitos</span></div>
+                            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-emerald-400 inline-block"></span><span>Reliquias y Cofres</span></div>
+                            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-sm bg-amber-400 inline-block"></span><span>Portales de Mazmorras</span></div>
+                            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-rose-500 inline-block"></span><span>Faro de Destino / Enemigos</span></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-950/85 border border-purple-900/60 rounded-2xl p-3.5">
+                        <h4 class="font-cinzel font-bold text-purple-300 text-xs mb-2 uppercase tracking-wider">Regiones y Aguas</h4>
+                        <div class="grid grid-cols-2 gap-1.5 text-[11px] text-slate-300">
+                            <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-[#274e37]"></span>Caer Dallben</div>
+                            <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-[#361e4e]"></span>Morva</div>
+                            <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-[#6b4226]"></span>Páramo Ocre</div>
+                            <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-[#7c98b3]"></span>Cumbres</div>
+                            <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-[#221c35]"></span>Rey del Mal</div>
+                            <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-[#0c4a6e]"></span>Mar Profundo</div>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button id="btnClearWaypoint" class="flex-1 py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 font-semibold transition cursor-pointer">
+                            <i class="fa-solid fa-trash-can mr-1"></i>Quitar Faro
+                        </button>
+                        <button id="btnTeleportOrigin" class="flex-1 py-2 px-3 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-semibold transition cursor-pointer">
+                            <i class="fa-solid fa-wand-sparkles mr-1"></i>Caer Dallben
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JOURNAL & CHRONICLES MODAL (J) -->
+    <div id="journalModal" class="fixed inset-0 z-40 bg-slate-950/85 backdrop-blur-md hidden items-center justify-center p-3 sm:p-6">
+        <div class="gothic-panel-spectral rounded-3xl max-w-4xl w-full overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="px-5 py-4 border-b border-purple-900/60 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-book-skull text-emerald-400 text-xl"></i>
+                    <div>
+                        <h2 class="font-gothic text-lg sm:text-xl font-bold text-white spectral-text-glow">Crónicas del Caldero Mágico</h2>
+                        <p class="text-xs text-slate-400">Reliquias encantadas, dominios descubiertos y registro de hazañas</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="btnJournalBackPause" class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-emerald-300 border border-emerald-500/40 text-xs font-semibold cursor-pointer">
+                        <i class="fa-solid fa-pause mr-1"></i>Pausa
+                    </button>
+                    <button id="btnCloseJournal" class="w-9 h-9 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 flex items-center justify-center border border-purple-800/40 cursor-pointer">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-5 overflow-y-auto grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-slate-950/80 border border-purple-900/50 rounded-2xl p-4 flex flex-col">
+                    <h3 class="font-cinzel font-bold text-emerald-400 text-xs uppercase tracking-wider mb-3 flex items-center justify-between">
+                        <span><i class="fa-solid fa-wand-sparkles mr-1.5"></i>Reliquias</span>
+                        <span id="journalRelicCount" class="text-[11px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full">0/8</span>
+                    </h3>
+                    <div id="inventoryList" class="space-y-2 flex-1 overflow-y-auto max-h-72 pr-1"></div>
+                </div>
+
+                <div class="bg-slate-950/80 border border-purple-900/50 rounded-2xl p-4 flex flex-col">
+                    <h3 class="font-cinzel font-bold text-purple-400 text-xs uppercase tracking-wider mb-3 flex items-center justify-between">
+                        <span><i class="fa-solid fa-mountain-sun mr-1.5"></i>Regiones</span>
+                        <span id="journalBiomeCount" class="text-[11px] bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full">1/6</span>
+                    </h3>
+                    <div id="biomeList" class="space-y-2 flex-1 overflow-y-auto max-h-72 pr-1"></div>
+                </div>
+
+                <div class="bg-slate-950/80 border border-purple-900/50 rounded-2xl p-4 flex flex-col">
+                    <h3 class="font-cinzel font-bold text-amber-400 text-xs uppercase tracking-wider mb-3">
+                        <i class="fa-solid fa-scroll mr-1.5"></i>Bitácora de Viaje
+                    </h3>
+                    <div id="discoveryLogList" class="space-y-2 flex-1 overflow-y-auto max-h-72 pr-1 text-xs"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="./js/main.js"></script>
+</body>
+</html>
