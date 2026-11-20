@@ -336,15 +336,6 @@ export function updateBoatsAndNavigation(dt, elapsed, currentWaterY, { keys, tou
         const maxBound3D = (HALF_WORLD - 5) * WORLD_SCALE_3D;
 		
 		const knots = Math.round(Math.abs(boat.speed) * 1.4);
-		if (typeof onBoatState === 'function') {
-			onBoatState({
-				piloting: true,
-				boatName: boat.name,
-				knots,
-				speed: boat.speed,
-				heading: boat.heading
-			});
-		}
 
         if (
             Math.abs(candWX) < maxBound3D &&
@@ -386,17 +377,12 @@ export function updateBoatsAndNavigation(dt, elapsed, currentWaterY, { keys, tou
 
         const speedEl = document.getElementById('boatHelmSpeed');
         if (speedEl) {
-            const knots = Math.round(Math.abs(boat.speed) * 1.4);
             speedEl.textContent = `${knots} nudos • W/S Impulso • A/D Virar`;
         }
         return;
     }
-	
-	if (typeof onBoatState === 'function') {
-		onBoatState({ piloting: false, boatName: player.nearbyBoat?.name || null, knots: 0 });
-	}
-    
-	const hero3DX = (player.x / TILE_SIZE) * WORLD_SCALE_3D;
+
+    const hero3DX = (player.x / TILE_SIZE) * WORLD_SCALE_3D;
     const hero3DZ = (player.y / TILE_SIZE) * WORLD_SCALE_3D;
     let closestBoat = null;
     let closestDist = 4.6;
@@ -555,21 +541,4 @@ export function stepVerticalAndWaterPhysics(dt, elapsed, currentWaterY, groundY,
 
     void isSprinting;
     void gameSettings;
-
-	const showDiveUI = !worldState.activeDungeon && !player.pilotingBoat && player.waterDepth >= DIVE_MIN_DEPTH && (player.isSwimming || player.isDiving);
-	const showOxygenBar = player.isDiving || player.oxygen < player.maxOxygen - 0.5;
-	const subDepth = Math.max(0, currentWaterY - (player.y3D + 1.4));
-
-	if (typeof onDiveState === 'function') {
-		onDiveState({
-			showDiveUI,
-			showOxygenBar,
-			subDepth,
-			waterDepth: player.waterDepth,
-			oxygen: player.oxygen,
-			isDiving: player.isDiving,
-			isSwimming: player.isSwimming,
-			isDrowning: player.isDiving && player.oxygen <= 0
-		});
-	}
 }

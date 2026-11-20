@@ -13,13 +13,27 @@ export const SAVE_STORAGE_KEY = 'aethelgard_black_cauldron_save_v4';
 
 export let activeTheme = AETHELGARD_THEME;
 
-export let BIOMES = activeTheme.biomes;
-export let pointsOfInterest = activeTheme.pointsOfInterest;
-export let DUNGEONS_DEF = activeTheme.dungeons;
-export let DUNGEONS = DUNGEONS_DEF;
-export let WEAPONS_CATALOG = activeTheme.weapons;
-export let POTIONS_CATALOG = activeTheme.potions;
-export let SPELLS_CATALOG = activeTheme.spells;
+export const BIOMES = new Proxy({}, {
+    get(_, prop) { return activeTheme.biomes[prop]; },
+    ownKeys() { return Reflect.ownKeys(activeTheme.biomes); },
+    getOwnPropertyDescriptor(_, prop) { return Reflect.getOwnPropertyDescriptor(activeTheme.biomes, prop); }
+});
+export const pointsOfInterest = new Proxy([], {
+    get(_, prop) { return Reflect.get(activeTheme.pointsOfInterest, prop); }
+});
+export const DUNGEONS_DEF = new Proxy([], {
+    get(_, prop) { return Reflect.get(activeTheme.dungeons, prop); }
+});
+export const DUNGEONS = DUNGEONS_DEF;
+export const WEAPONS_CATALOG = new Proxy({}, {
+    get(_, prop) { return activeTheme.weapons[prop]; }
+});
+export const POTIONS_CATALOG = new Proxy({}, {
+    get(_, prop) { return activeTheme.potions[prop]; }
+});
+export const SPELLS_CATALOG = new Proxy([], {
+    get(_, prop) { return Reflect.get(activeTheme.spells, prop); }
+});
 
 export const ART_STYLES_META = {
     cgi1985: {
@@ -103,13 +117,6 @@ export const player = {
 export function setGameTheme(theme) {
     if (!theme) return;
     activeTheme = theme;
-    BIOMES = theme.biomes;
-    pointsOfInterest = theme.pointsOfInterest;
-    DUNGEONS_DEF = theme.dungeons;
-    DUNGEONS = DUNGEONS_DEF;
-    WEAPONS_CATALOG = theme.weapons;
-    POTIONS_CATALOG = theme.potions;
-    SPELLS_CATALOG = theme.spells;
 
     if (theme.title) document.title = theme.title;
     player.relics = [theme.initialRelic];

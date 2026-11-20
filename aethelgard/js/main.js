@@ -40,6 +40,7 @@ import {
     buildOverworldEnemies3D,
     spawnJumpBurst3D,
     spawnWaterRipple3D,
+    spawnUnderwaterBubble3D,
     enterDungeon,
     exitDungeon,
     grantExperience,
@@ -886,9 +887,9 @@ export class GameEngine {
             diveUpBtnHeld: this.diveUpBtnHeld,
             touchAscend: this.touchAscend,
             isAnyModalOpen,
-            spawnJumpBurst3D: (x, y, z, c, s) => spawnJumpBurst3D(this.scene, x, y, z, c, s),
+			spawnJumpBurst3D: (x, y, z, c, s) => spawnJumpBurst3D(this.scene, x, y, z, c, s),
             spawnWaterRipple3D: (x, y, z, s, c) => spawnWaterRipple3D(this.scene, x, y, z, s, c),
-            spawnUnderwaterBubble3D: (x, y, z) => spawnJumpBurst3D(this.scene, x, y, z, 0xa5f3fc, 0.4),
+            spawnUnderwaterBubble3D: (x, y, z) => spawnUnderwaterBubble3D(this.scene, x, y, z),
             showToast,
             damagePlayer: (d, a) => this.damagePlayer(d, a)
         });
@@ -1185,6 +1186,9 @@ export class GameEngine {
                     renderFullMap();
                 }
             }, 60);
+			
+			if (!this.hudBridge) this.hudBridge = new DomHudBridge(this);
+			this.hudBridge.mount();
         }
 
         if (this.running) return;
@@ -1272,6 +1276,11 @@ export class GameEngine {
         this.scene = null;
         this.camera = null;
         this.initialized = false;
+
+		if (this.hudBridge) {
+			this.hudBridge.unmount();
+			this.hudBridge = null;
+		}
     }
 
 	emitHudState() {

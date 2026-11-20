@@ -518,7 +518,7 @@ export function buildSaveObject() {
     };
 }
 
-export function applySaveObject(data, scene, applyArtisticStyleFn) {
+export function applySaveObject(data, scene, applyArtisticStyleFn, gfxContext = null) {
     if (!data || !data.player) return false;
     worldState.activeDungeon = null;
     if (dungeonWorldGroup) {
@@ -564,10 +564,12 @@ export function applySaveObject(data, scene, applyArtisticStyleFn) {
         const cd = new Set(data.world.clearedDungeons || []);
         DUNGEONS_DEF.forEach(d => { d.cleared = cd.has(d.id); });
     }
-    if (data.settings) {
+	if (data.settings) {
         Object.assign(gameSettings, data.settings);
         if (typeof applyArtisticStyleFn === 'function') applyArtisticStyleFn(gameSettings.artStyle, true);
-        applyGraphicsSettings();
+        if (gfxContext) {
+            applyGraphicsSettings(gfxContext.renderer, gfxContext.camera, gfxContext.groundMistParticles);
+        }
     }
     revealFogAround(Math.round(player.x / TILE_SIZE), Math.round(player.y / TILE_SIZE), 12);
     applyEquippedWeaponVisuals();
@@ -1231,7 +1233,8 @@ export function bindAllUIEvents(engineCtx) {
         dirLight: engineCtx.dirLight,
         pbrTex: engineCtx.pbrTex
     });
-
+	const gfxArgs = [renderer, camera, groundMistParticles];
+	
     document.getElementById('btnOpenInventory').onclick = () => toggleModal('inventoryModal');
     document.getElementById('btnOpenSpells').onclick = () => toggleModal('spellsModal');
     document.getElementById('btnOpenMap').onclick = () => toggleModal('mapModal');
@@ -1290,7 +1293,7 @@ export function bindAllUIEvents(engineCtx) {
                 showToast('Sin Partida Guardada', 'Primero guarda tu partida o importa un código.', 'fa-folder-open', 'border-amber-400 text-amber-300');
                 return;
             }
-            if (applySaveObject(JSON.parse(raw), scene, (st, sil) => applyArtisticStyle(st, sil, styleCtx()))) {
+			if (applySaveObject(JSON.parse(raw), scene, (st, sil) => applyArtisticStyle(st, sil, styleCtx()), { renderer, camera, groundMistParticles })) {
                 closeAllModals();
                 showToast('Partida Cargada', '¡Bienvenido de nuevo a Prydain!', 'fa-folder-open');
             }
@@ -1310,7 +1313,7 @@ export function bindAllUIEvents(engineCtx) {
         if (!raw) return;
         try {
             const parsed = JSON.parse(decodeURIComponent(escape(atob(raw))));
-            if (applySaveObject(parsed, scene, (st, sil) => applyArtisticStyle(st, sil, styleCtx()))) {
+            if (applySaveObject(parsed, scene, (st, sil) => applyArtisticStyle(st, sil, styleCtx()), { renderer, camera, groundMistParticles })) {
                 closeAllModals();
                 showToast('Partida Importada', 'Progreso restaurado desde el código.', 'fa-file-import');
             }
