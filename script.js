@@ -130,6 +130,12 @@ const proyectos = [
         titulo: 'Juego RPG 3D',
         descripcion: 'Juego RPG 3D.',
         ruta: 'aethelgard/aethelgard.html'
+    },
+    {
+        categoria: 'juegos',
+        titulo: 'Juego RPG 3D index',
+        descripcion: 'Juego RPG 3D.',
+        ruta: 'aethelgard/index.html'
     }
 ];
 
