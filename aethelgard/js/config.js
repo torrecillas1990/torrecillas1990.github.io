@@ -17,21 +17,25 @@ const BIOMES = new Proxy({}, {
     ownKeys() { return Reflect.ownKeys(activeTheme.biomes); },
     getOwnPropertyDescriptor(_, prop) { return Reflect.getOwnPropertyDescriptor(activeTheme.biomes, prop); }
 });
-const pointsOfInterest = new Proxy([], {
-    get(_, prop) { return Reflect.get(activeTheme.pointsOfInterest, prop); }
+
+const makeArrayProxy = (getter) => new Proxy([], {
+    get(_, prop) {
+        const arr = getter();
+        const val = Reflect.get(arr, prop, arr);
+        return typeof val === 'function' ? val.bind(arr) : val;
+    }
 });
-const DUNGEONS_DEF = new Proxy([], {
-    get(_, prop) { return Reflect.get(activeTheme.dungeons, prop); }
-});
+
+const pointsOfInterest = makeArrayProxy(() => activeTheme.pointsOfInterest);
+const DUNGEONS_DEF = makeArrayProxy(() => activeTheme.dungeons);
 const DUNGEONS = DUNGEONS_DEF;
+const SPELLS_CATALOG = makeArrayProxy(() => activeTheme.spells);
+
 const WEAPONS_CATALOG = new Proxy({}, {
     get(_, prop) { return activeTheme.weapons[prop]; }
 });
 const POTIONS_CATALOG = new Proxy({}, {
     get(_, prop) { return activeTheme.potions[prop]; }
-});
-const SPELLS_CATALOG = new Proxy([], {
-    get(_, prop) { return Reflect.get(activeTheme.spells, prop); }
 });
 
 const ART_STYLES_META = {

@@ -890,9 +890,9 @@ function updateHeroAndCombatObjects(dt, elapsed, currentWaterY, groundY, isMovin
                 spawnJumpBurst3D(callbacks.scene, obj.mesh.position.x, gY, obj.mesh.position.z, obj.colorHex, 2.2);
             }
 			const baseFloorY = worldState.activeDungeon
-                ? DUNGEON_Y_OFFSET
-                : sampleWorldHeight3D(obj.mesh.position.x, obj.mesh.position.z);
-            const gY = baseFloorY + 0.45;
+				? DUNGEON_Y_OFFSET
+				: sampleWorldHeight3D(obj.mesh.position.x, obj.mesh.position.z);
+			gY = baseFloorY + 0.45;
             if (hit || obj.mesh.position.y <= gY) {
                 obj.mesh.position.y = gY;
                 obj.thrown = false;

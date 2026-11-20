@@ -968,23 +968,22 @@ class GameEngine {
         void baubleGroup;
         void SAVE_STORAGE_KEY;
 
-		const isNight = worldState.timeOfDay >= 18.5 || worldState.timeOfDay < 6.5;
-		const curTx = Math.round(player.x / TILE_SIZE);
-		const curTy = Math.round(player.y / TILE_SIZE);
-		const curTile = getTileData(curTx, curTy);
+		const worldTx = Math.round(player.x / TILE_SIZE);
+        const worldTy = Math.round(player.y / TILE_SIZE);
+        const worldTile = getTileData(worldTx, worldTy);
 
-		this.emit('hud:world', {
-			timeOfDay: worldState.timeOfDay,
-			timeFormatted: formatGameTime(worldState.timeOfDay),
-			isNight,
-			dayCount: worldState.dayCount,
-			weather: worldState.weather,
-			isDungeon: !!worldState.activeDungeon,
-			biomeName: worldState.activeDungeon ? worldState.activeDungeon.def.name : curTile.biome.name,
-			biomeId: worldState.activeDungeon ? 'DUNGEON' : curTile.biome.id,
-			tx: curTx,
-			ty: curTy
-		});
+        this.emit('hud:world', {
+            timeOfDay: worldState.timeOfDay,
+            timeFormatted: formatGameTime(worldState.timeOfDay),
+            isNight,
+            dayCount: worldState.dayCount,
+            weather: worldState.weather,
+            isDungeon: !!worldState.activeDungeon,
+            biomeName: worldState.activeDungeon ? worldState.activeDungeon.def.name : worldTile.biome.name,
+            biomeId: worldState.activeDungeon ? 'DUNGEON' : worldTile.biome.id,
+            tx: worldTx,
+            ty: worldTy
+        });
 		
 		let interaction = { visible: false, text: '' };
 		if (player.pilotingBoat) {

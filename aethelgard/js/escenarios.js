@@ -136,9 +136,11 @@ function generateWorld() {
 }
 
 function clearTerrainAroundPOIs() {
+    const pois = Array.isArray(pointsOfInterest) ? pointsOfInterest : Array.from(pointsOfInterest || []);
+    const dngs = Array.isArray(DUNGEONS_DEF) ? DUNGEONS_DEF : Array.from(DUNGEONS_DEF || []);
     const clearPoints = [
-        ...pointsOfInterest.map(p => ({ tx: p.tx, ty: p.ty })),
-        ...DUNGEONS_DEF.map(d => ({ tx: d.tx, ty: d.ty }))
+        ...pois.filter(p => p && typeof p.tx === 'number' && typeof p.ty === 'number').map(p => ({ tx: p.tx, ty: p.ty })),
+        ...dngs.filter(d => d && typeof d.tx === 'number' && typeof d.ty === 'number').map(d => ({ tx: d.tx, ty: d.ty }))
     ];
     clearPoints.forEach(pt => {
         for (let dx = -2; dx <= 2; dx++) {
