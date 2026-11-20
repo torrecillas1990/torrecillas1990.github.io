@@ -1,45 +1,5 @@
-import {
-    TILE_SIZE,
-    WORLD_SCALE_3D,
-    WORLD_TILES,
-    HALF_WORLD,
-    WATER_SURFACE_Y,
-    SAVE_STORAGE_KEY,
-    BIOMES,
-    pointsOfInterest,
-    DUNGEONS,
-    DUNGEONS_DEF,
-    WEAPONS_CATALOG,
-    POTIONS_CATALOG,
-    SPELLS_CATALOG,
-    ART_STYLES_META,
-    player,
-    worldState,
-    gameSettings,
-    mapViewConfig
-} from './config.js';
-import {
-    worldGrid,
-    fogGrid,
-    totalDiscoveredCells,
-    incrementDiscoveredCells,
-    getTileData,
-    createToonGradientTexture
-} from './escenarios.js';
-import { sampleWorldHeight3D, harborDocks, navigableBoats } from './fisicas.js';
-import {
-    enemies3D,
-    dungeonWorldGroup,
-    setDungeonWorldGroup,
-    applyEquippedWeaponVisuals,
-    usePotion,
-    cycleWeapon,
-    getSpellEffectiveStats,
-    castSpellById,
-    cycleEquippedSpell
-} from './objetos.js';
 
-export const MODAL_IDS = ['dialogModal', 'pauseModal', 'inventoryModal', 'spellsModal', 'mapModal', 'journalModal'];
+const MODAL_IDS = ['dialogModal', 'pauseModal', 'inventoryModal', 'spellsModal', 'mapModal', 'journalModal'];
 
 let minimapCanvas = null;
 let minimapCtx = null;
@@ -51,14 +11,14 @@ let exploredCanvas = null;
 let exploredCtx = null;
 let cachedToonGradient = null;
 
-export function isAnyModalOpen() {
+function isAnyModalOpen() {
     return MODAL_IDS.some(id => {
         const el = document.getElementById(id);
         return el && !el.classList.contains('hidden');
     });
 }
 
-export function closeAllModals() {
+function closeAllModals() {
     MODAL_IDS.forEach(id => {
         const el = document.getElementById(id);
         if (el) { el.classList.add('hidden'); el.classList.remove('flex'); }
@@ -66,7 +26,7 @@ export function closeAllModals() {
     worldState.paused = false;
 }
 
-export function toggleModal(modalId) {
+function toggleModal(modalId) {
     const modal = document.getElementById(modalId);
     if (!modal) return;
     const wasHidden = modal.classList.contains('hidden');
@@ -86,7 +46,7 @@ export function toggleModal(modalId) {
     }
 }
 
-export function showToast(title, subtitle, icon = 'fa-wand-sparkles', colorClass = 'border-emerald-400 text-emerald-300') {
+function showToast(title, subtitle, icon = 'fa-wand-sparkles', colorClass = 'border-emerald-400 text-emerald-300') {
     const container = document.getElementById('toastContainer');
     if (!container) return;
     const el = document.createElement('div');
@@ -104,18 +64,18 @@ export function showToast(title, subtitle, icon = 'fa-wand-sparkles', colorClass
     setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 3950);
 }
 
-export function formatGameTime(hoursFloat) {
+function formatGameTime(hoursFloat) {
     const h = Math.floor(hoursFloat) % 24;
     const m = Math.floor((hoursFloat - Math.floor(hoursFloat)) * 60);
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
-export function addLogEntry(text) {
+function addLogEntry(text) {
     player.logs.unshift({ time: `Ciclo ${worldState.dayCount}, ${formatGameTime(worldState.timeOfDay)}`, text });
     if (player.logs.length > 40) player.logs.pop();
 }
 
-export function cycleWeather(silent = false) {
+function cycleWeather(silent = false) {
     worldState.weather = worldState.weather === 'CLEAR' ? 'RAIN' : 'CLEAR';
     const isStorm = worldState.weather === 'RAIN';
     document.getElementById('hudWeatherIcon').className = isStorm ? 'fa-solid fa-cloud-bolt text-purple-400' : 'fa-solid fa-smog text-emerald-300';
@@ -125,7 +85,7 @@ export function cycleWeather(silent = false) {
     }
 }
 
-export function interactWithPOI(poi, { grantExperienceFn }) {
+function interactWithPOI(poi, { grantExperienceFn }) {
     const modal = document.getElementById('dialogModal');
     document.getElementById('dialogRole').textContent = poi.role;
     document.getElementById('dialogTitle').textContent = poi.name;
@@ -183,7 +143,7 @@ export function interactWithPOI(poi, { grantExperienceFn }) {
     modal.classList.add('flex');
 }
 
-export function updateQuestTracker() {
+function updateQuestTracker() {
     const titleEl = document.getElementById('questTitleText');
     const subEl = document.getElementById('questSubText');
     const badgeEl = document.getElementById('questStepBadge');
@@ -207,7 +167,7 @@ export function updateQuestTracker() {
     }
 }
 
-export function updateHUDCounters() {
+function updateHUDCounters() {
     const hpPct = Math.max(0, Math.min(100, (player.hp / player.maxHp) * 100));
     const mpPct = Math.max(0, Math.min(100, (player.mana / player.maxMana) * 100));
     const xpPct = Math.max(0, Math.min(100, (player.xp / player.xpToNext) * 100));
@@ -256,7 +216,7 @@ export function updateHUDCounters() {
     }
 }
 
-export function renderInventoryModalUI(scene) {
+function renderInventoryModalUI(scene) {
     document.getElementById('invGoldDisplay').textContent = player.gold;
     const potList = document.getElementById('invPotionsList');
     potList.innerHTML = '';
@@ -351,7 +311,7 @@ export function renderInventoryModalUI(scene) {
     });
 }
 
-export function renderSpellsModalUI() {
+function renderSpellsModalUI() {
     document.getElementById('spellHeroLevel').textContent = player.level;
     document.getElementById('spellXpDisplay').textContent = `${player.spendableXp} XP`;
     document.getElementById('spellGoldDisplay').textContent = `${player.gold}g`;
@@ -451,7 +411,7 @@ export function renderSpellsModalUI() {
     });
 }
 
-export function renderJournalUI() {
+function renderJournalUI() {
     document.getElementById('journalRelicCount').textContent = `${Math.max(0, player.relics.length - 1)}/8`;
     document.getElementById('journalBiomeCount').textContent = `${player.visitedBiomes.size}/6`;
 
@@ -494,7 +454,7 @@ export function renderJournalUI() {
     });
 }
 
-export function buildSaveObject() {
+function buildSaveObject() {
     return {
         v: 4,
         savedAt: new Date().toLocaleTimeString(),
@@ -518,7 +478,7 @@ export function buildSaveObject() {
     };
 }
 
-export function applySaveObject(data, scene, applyArtisticStyleFn, gfxContext = null) {
+function applySaveObject(data, scene, applyArtisticStyleFn, gfxContext = null) {
     if (!data || !data.player) return false;
     worldState.activeDungeon = null;
     if (dungeonWorldGroup) {
@@ -578,7 +538,7 @@ export function applySaveObject(data, scene, applyArtisticStyleFn, gfxContext = 
     return true;
 }
 
-export function updateSaveStatusLabel() {
+function updateSaveStatusLabel() {
     const lbl = document.getElementById('saveStatusText');
     try {
         const raw = localStorage.getItem(SAVE_STORAGE_KEY);
@@ -595,7 +555,7 @@ export function updateSaveStatusLabel() {
     }
 }
 
-export function applyGraphicsSettings(renderer, camera, groundMistParticles) {
+function applyGraphicsSettings(renderer, camera, groundMistParticles) {
     if (!renderer || !camera) return;
     camera.fov = gameSettings.fov;
     camera.updateProjectionMatrix();
@@ -618,7 +578,7 @@ export function applyGraphicsSettings(renderer, camera, groundMistParticles) {
     document.getElementById('valFog').textContent = `${gameSettings.fogMultiplier.toFixed(1)}x`;
 }
 
-export function applyArtisticStyle(styleKey, silent = false, { renderer, scene, terrainMeshRef, treeCrownInstRef, ambientLight, dirLight, pbrTex }) {
+function applyArtisticStyle(styleKey, silent = false, { renderer, scene, terrainMeshRef, treeCrownInstRef, ambientLight, dirLight, pbrTex }) {
     if (!ART_STYLES_META[styleKey]) styleKey = 'cgi1985';
     gameSettings.artStyle = styleKey;
     const meta = ART_STYLES_META[styleKey];
@@ -693,13 +653,13 @@ export function applyArtisticStyle(styleKey, silent = false, { renderer, scene, 
     }
 }
 
-export function cycleArtisticStyle(ctx) {
+function cycleArtisticStyle(ctx) {
     const order = ['cgi1985', 'toon', 'oil', 'ps1'];
     const nextIdx = (order.indexOf(gameSettings.artStyle) + 1) % order.length;
     applyArtisticStyle(order[nextIdx], false, ctx);
 }
 
-export function initMapCanvases() {
+function initMapCanvases() {
     minimapCanvas = document.getElementById('minimapCanvas');
     minimapCtx = minimapCanvas.getContext('2d');
     fullMapCanvas = document.getElementById('fullMapCanvas');
@@ -714,7 +674,7 @@ export function initMapCanvases() {
     exploredCtx = exploredCanvas.getContext('2d');
 }
 
-export function computeTopographicTileColor(gx, gy) {
+function computeTopographicTileColor(gx, gy) {
     const tile = worldGrid[gx][gy];
     if (tile.height3D < WATER_SURFACE_Y) {
         const depth = WATER_SURFACE_Y - tile.height3D;
@@ -734,7 +694,7 @@ export function computeTopographicTileColor(gx, gy) {
     return `rgb(${r},${g},${b})`;
 }
 
-export function bakeWorldReliefMap() {
+function bakeWorldReliefMap() {
     const img = reliefCtx.createImageData(WORLD_TILES, WORLD_TILES);
     const data = img.data;
     for (let gx = 0; gx < WORLD_TILES; gx++) {
@@ -766,7 +726,7 @@ export function bakeWorldReliefMap() {
     exploredCtx.fillRect(0, 0, WORLD_TILES, WORLD_TILES);
 }
 
-export function revealFogAround(centerTx, centerTy, radius = 11) {
+function revealFogAround(centerTx, centerTy, radius = 11) {
     const rSq = radius * radius;
     for (let dx = -radius; dx <= radius; dx++) {
         for (let dy = -radius; dy <= radius; dy++) {
@@ -855,7 +815,7 @@ function drawPlayerDirectionMarker(ctx, x, y, size = 6) {
     ctx.restore();
 }
 
-export function renderMinimap() {
+function renderMinimap() {
     if (!minimapCtx) return;
     if (worldState.activeDungeon) {
         const dng = worldState.activeDungeon;
@@ -1049,7 +1009,7 @@ function canvasCoordsToMapTile(normX, normY) {
     };
 }
 
-export function renderFullMap() {
+function renderFullMap() {
     if (!fullMapCtx) return;
     const w = fullMapCanvas.width;
     const h = fullMapCanvas.height;
@@ -1221,7 +1181,7 @@ export function renderFullMap() {
     fullMapCtx.restore();
 }
 
-export function bindAllUIEvents(engineCtx) {
+function bindAllUIEvents(engineCtx) {
     const { scene, renderer, camera, groundMistParticles, exitDungeonFn, boardOrLeaveBoatFn } = engineCtx;
     const gfxSync = () => applyGraphicsSettings(renderer, camera, groundMistParticles);
     const styleCtx = () => ({
@@ -1481,7 +1441,7 @@ export function bindAllUIEvents(engineCtx) {
     });
 }
 
-export function buildHudSnapshot() {
+function buildHudSnapshot() {
     const buffs = [];
     if (player.aegisTimer > 0) buffs.push(`Égida ${Math.ceil(player.aegisTimer)}s`);
     if (player.magicBuffTimer > 0) buffs.push(`Arcano ${Math.ceil(player.magicBuffTimer)}s`);
@@ -1515,7 +1475,7 @@ export function buildHudSnapshot() {
     };
 }
 
-export function buildQuestSnapshot() {
+function buildQuestSnapshot() {
     const dallben = pointsOfInterest.find(p => p.id === 'npc_aldric');
     const rem = pointsOfInterest.filter(p => (p.type === 'chest' || p.type === 'monolith') && !p.interacted);
 

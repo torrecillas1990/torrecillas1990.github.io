@@ -1,40 +1,28 @@
-import {
-    TILE_SIZE,
-    WORLD_SCALE_3D,
-    WATER_SURFACE_Y,
-    DUNGEON_Y_OFFSET,
-    WEAPONS_CATALOG,
-    POTIONS_CATALOG,
-    SPELLS_CATALOG,
-    player,
-    worldState
-} from './config.js';
-import { sampleWorldHeight3D, createDungeonInterior } from './escenarios.js';
 
-export const enemies3D = [];
-export const grabbables3D = [];
-export const jumpBurstEffects = [];
-export const waterBubbles3D = [];
-export const swordSlashEffects = [];
-export const spellProjectiles3D = [];
-export const lightningEffects3D = [];
+const enemies3D = [];
+const grabbables3D = [];
+const jumpBurstEffects = [];
+const waterBubbles3D = [];
+const swordSlashEffects = [];
+const spellProjectiles3D = [];
+const lightningEffects3D = [];
 
-export let heroGroup = null;
-export let heroMeshRoot = null;
-export let heroShadowMesh = null;
-export let heroAegisMesh = null;
-export let baubleGroup = null;
-export let baubleLight = null;
-export let heroBodyParts = {};
-export let heroSwordLight = null;
-export let heroRimLight = null;
-export let dungeonWorldGroup = null;
+let heroGroup = null;
+let heroMeshRoot = null;
+let heroShadowMesh = null;
+let heroAegisMesh = null;
+let baubleGroup = null;
+let baubleLight = null;
+let heroBodyParts = {};
+let heroSwordLight = null;
+let heroRimLight = null;
+let dungeonWorldGroup = null;
 
-export function setDungeonWorldGroup(grp) {
+function setDungeonWorldGroup(grp) {
     dungeonWorldGroup = grp;
 }
 
-export function spawnJumpBurst3D(scene, x, y, z, colorHex = 0x10b981, maxScale = 2.4) {
+function spawnJumpBurst3D(scene, x, y, z, colorHex = 0x10b981, maxScale = 2.4) {
     const ringGeo = new THREE.RingGeometry(0.28, 0.52, 20);
     ringGeo.rotateX(-Math.PI / 2);
     const ringMat = new THREE.MeshBasicMaterial({
@@ -47,7 +35,7 @@ export function spawnJumpBurst3D(scene, x, y, z, colorHex = 0x10b981, maxScale =
     jumpBurstEffects.push({ mesh, age: 0, duration: 0.48, maxScale });
 }
 
-export function spawnWaterRipple3D(scene, x, y, z, maxScale = 2.4, colorHex = 0x67e8f9) {
+function spawnWaterRipple3D(scene, x, y, z, maxScale = 2.4, colorHex = 0x67e8f9) {
     const ringGeo = new THREE.RingGeometry(0.22, 0.36, 20);
     ringGeo.rotateX(-Math.PI / 2);
     const ringMat = new THREE.MeshBasicMaterial({
@@ -60,7 +48,7 @@ export function spawnWaterRipple3D(scene, x, y, z, maxScale = 2.4, colorHex = 0x
     jumpBurstEffects.push({ mesh, age: 0, duration: 0.78, maxScale });
 }
 
-export function spawnUnderwaterBubble3D(scene, x, y, z) {
+function spawnUnderwaterBubble3D(scene, x, y, z) {
     const bGeo = new THREE.SphereGeometry(0.07 + Math.random() * 0.09, 6, 6);
     const bMat = new THREE.MeshBasicMaterial({
         color: 0xa5f3fc, transparent: true, opacity: 0.72,
@@ -75,7 +63,7 @@ export function spawnUnderwaterBubble3D(scene, x, y, z) {
     });
 }
 
-export function spawnLightningStrike3D(scene, x, y, z, colorHex = 0xc084fc) {
+function spawnLightningStrike3D(scene, x, y, z, colorHex = 0xc084fc) {
     const boltGeo = new THREE.CylinderGeometry(0.18, 0.42, 26, 6);
     const boltMat = new THREE.MeshBasicMaterial({
         color: colorHex, transparent: true, opacity: 0.92,
@@ -88,7 +76,7 @@ export function spawnLightningStrike3D(scene, x, y, z, colorHex = 0xc084fc) {
     spawnJumpBurst3D(scene, x, y, z, colorHex, 3.6);
 }
 
-export function applyEquippedWeaponVisuals() {
+function applyEquippedWeaponVisuals() {
     const w = WEAPONS_CATALOG[player.equippedWeapon] || WEAPONS_CATALOG.apprentice_sword;
     if (heroBodyParts.blade && heroBodyParts.swordBladeMat) {
         heroBodyParts.blade.scale.set(w.bladeWidth / 0.08, w.bladeLen / 1.35, w.bladeWidth / 0.08);
@@ -104,7 +92,7 @@ export function applyEquippedWeaponVisuals() {
     if (iconEl) iconEl.className = `fa-solid ${w.icon} text-amber-300 text-base pl-1`;
 }
 
-export function buildHeroCharacter3D(scene, pbrTex, toonOutlineMeshes) {
+function buildHeroCharacter3D(scene, pbrTex, toonOutlineMeshes) {
     heroGroup = new THREE.Group();
     heroMeshRoot = new THREE.Group();
     heroGroup.add(heroMeshRoot);
@@ -247,7 +235,7 @@ export function buildHeroCharacter3D(scene, pbrTex, toonOutlineMeshes) {
     applyEquippedWeaponVisuals();
 }
 
-export function buildGrabbableObjects3D(scene, pbrTex) {
+function buildGrabbableObjects3D(scene, pbrTex) {
     grabbables3D.length = 0;
     const spots = [
         { tx: -3, ty: 2, type: 'orb' }, { tx: 5, ty: -4, type: 'rock' },
@@ -279,7 +267,7 @@ export function buildGrabbableObjects3D(scene, pbrTex) {
     });
 }
 
-export function createEnemyMesh3D(kind, isBoss = false, pbrTex = null) {
+function createEnemyMesh3D(kind, isBoss = false, pbrTex = null) {
     const g = new THREE.Group();
     const scale = isBoss ? 1.65 : 1.0;
     g.scale.setScalar(scale);
@@ -334,7 +322,7 @@ export function createEnemyMesh3D(kind, isBoss = false, pbrTex = null) {
     return g;
 }
 
-export function spawnEnemy(scene, pbrTex, kind, wx, wz, yBase, hp, damage, xpReward, goldReward, isBoss = false, isDungeon = false, name = '') {
+function spawnEnemy(scene, pbrTex, kind, wx, wz, yBase, hp, damage, xpReward, goldReward, isBoss = false, isDungeon = false, name = '') {
     const mesh = createEnemyMesh3D(kind, isBoss, pbrTex);
     mesh.position.set(wx, yBase, wz);
     scene.add(mesh);
@@ -350,7 +338,7 @@ export function spawnEnemy(scene, pbrTex, kind, wx, wz, yBase, hp, damage, xpRew
     return enemy;
 }
 
-export function buildOverworldEnemies3D(scene, pbrTex) {
+function buildOverworldEnemies3D(scene, pbrTex) {
     enemies3D.length = 0;
     const spawns = [
         { kind: 'skeleton', tx: 12, ty: -8 }, { kind: 'skeleton', tx: -12, ty: -10 },
@@ -370,7 +358,7 @@ export function buildOverworldEnemies3D(scene, pbrTex) {
     });
 }
 
-export function enterDungeon(scene, pbrTex, dngDef, { showToast }) {
+function enterDungeon(scene, pbrTex, dngDef, { showToast }) {
     if (dungeonWorldGroup) {
         scene.remove(dungeonWorldGroup);
         dungeonWorldGroup = null;
@@ -411,7 +399,7 @@ export function enterDungeon(scene, pbrTex, dngDef, { showToast }) {
     showToast(`Mazmorra: ${dngDef.name}`, `Derrota a ${dngDef.bossName} en el altar norte para romper el sello.`, 'fa-dungeon', 'border-amber-400 text-amber-300');
 }
 
-export function exitDungeon(scene, { showToast }) {
+function exitDungeon(scene, { showToast }) {
     if (!worldState.activeDungeon) return;
     const retX = worldState.activeDungeon.returnX;
     const retY = worldState.activeDungeon.returnY;
@@ -435,7 +423,7 @@ export function exitDungeon(scene, { showToast }) {
     showToast('Regreso al Mundo Abierto', 'Sales de la mazmorra hacia las tierras de Prydain.', 'fa-door-open');
 }
 
-export function grantExperience(amount, { addLogEntry, showToast, updateHUDCounters }) {
+function grantExperience(amount, { addLogEntry, showToast, updateHUDCounters }) {
     player.xp += amount;
     player.spendableXp += amount;
     while (player.xp >= player.xpToNext) {
@@ -453,7 +441,7 @@ export function grantExperience(amount, { addLogEntry, showToast, updateHUDCount
     applyEquippedWeaponVisuals();
 }
 
-export function damageEnemy(scene, enemy, dmg, knockX = 0, knockZ = 0, callbacks) {
+function damageEnemy(scene, enemy, dmg, knockX = 0, knockZ = 0, callbacks) {
     if (enemy.dead) return;
     enemy.hp -= dmg;
     enemy.hitFlash = 0.22;
@@ -487,7 +475,7 @@ export function damageEnemy(scene, enemy, dmg, knockX = 0, knockZ = 0, callbacks
     }
 }
 
-export function performHeroAttack(scene, callbacks) {
+function performHeroAttack(scene, callbacks) {
     if (callbacks.isAnyModalOpen() || player.attackCooldown > 0) return;
     const hx = (player.x / TILE_SIZE) * WORLD_SCALE_3D;
     const hz = (player.y / TILE_SIZE) * WORLD_SCALE_3D;
@@ -567,7 +555,7 @@ export function performHeroAttack(scene, callbacks) {
     });
 }
 
-export function performGrabOrInteract(scene, pbrTex, callbacks) {
+function performGrabOrInteract(scene, pbrTex, callbacks) {
     if (callbacks.isAnyModalOpen()) return;
     if (player.pilotingBoat || player.nearbyBoat) {
         callbacks.boardOrLeaveBoat();
@@ -641,7 +629,7 @@ export function performGrabOrInteract(scene, pbrTex, callbacks) {
     }
 }
 
-export function usePotion(scene, type, callbacks) {
+function usePotion(scene, type, callbacks) {
     if ((player.potions[type] || 0) <= 0) {
         callbacks.showToast('Sin Existencias', `No te quedan unidades de ${POTIONS_CATALOG[type].name}. Destila más en Inventario (I).`, 'fa-flask', 'border-rose-400 text-rose-300');
         return;
@@ -668,7 +656,7 @@ export function usePotion(scene, type, callbacks) {
     if (!document.getElementById('inventoryModal').classList.contains('hidden')) callbacks.renderInventoryModalUI();
 }
 
-export function cycleWeapon(callbacks) {
+function cycleWeapon(callbacks) {
     if (player.ownedWeapons.length <= 1) return;
     const idx = player.ownedWeapons.indexOf(player.equippedWeapon);
     player.equippedWeapon = player.ownedWeapons[(idx + 1) % player.ownedWeapons.length];
@@ -676,14 +664,14 @@ export function cycleWeapon(callbacks) {
     callbacks.showToast('Arma Equipada', WEAPONS_CATALOG[player.equippedWeapon].name, 'fa-khanda');
 }
 
-export function getSpellEffectiveStats(spell) {
+function getSpellEffectiveStats(spell) {
     const lvl = player.spellLevels[spell.id] || 1;
     const power = Math.round(spell.basePower * (1 + (lvl - 1) * 0.28));
     const manaCost = Math.max(4, Math.round(spell.manaCost * (1 - (lvl - 1) * 0.06)));
     return { lvl, power, manaCost };
 }
 
-export function castSpellById(scene, spellId, callbacks) {
+function castSpellById(scene, spellId, callbacks) {
     if (callbacks.isAnyModalOpen()) return;
     const spell = SPELLS_CATALOG.find(s => s.id === spellId);
     if (!spell || !player.unlockedSpells.includes(spellId)) return;
@@ -807,7 +795,7 @@ export function castSpellById(scene, spellId, callbacks) {
     callbacks.updateHUDCounters();
 }
 
-export function cycleEquippedSpell(callbacks) {
+function cycleEquippedSpell(callbacks) {
     if (player.unlockedSpells.length === 0) return;
     const idx = player.unlockedSpells.indexOf(player.equippedSpellId);
     player.equippedSpellId = player.unlockedSpells[(idx + 1) % player.unlockedSpells.length];
@@ -816,7 +804,7 @@ export function cycleEquippedSpell(callbacks) {
     if (sp) callbacks.showToast('Hechizo Activo', `${sp.name} (Pulsa G para invocar)`, sp.icon, 'border-purple-400 text-purple-300');
 }
 
-export function updateHeroAndCombatObjects(dt, elapsed, currentWaterY, groundY, isMoving, isSprinting, callbacks) {
+function updateHeroAndCombatObjects(dt, elapsed, currentWaterY, groundY, isMoving, isSprinting, callbacks) {
     const hero3DX = (player.x / TILE_SIZE) * WORLD_SCALE_3D;
     const hero3DZ = (player.y / TILE_SIZE) * WORLD_SCALE_3D;
 

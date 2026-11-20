@@ -1,13 +1,3 @@
-import {
-    WORLD_SCALE_3D,
-    WORLD_TILES,
-    HALF_WORLD,
-    WATER_SURFACE_Y,
-    DUNGEON_Y_OFFSET,
-    BIOMES,
-    pointsOfInterest,
-    DUNGEONS_DEF
-} from './config.js';
 
 class WorldNoise {
     constructor(seed = 1985) { this.seed = seed; }
@@ -44,16 +34,16 @@ const noiseElev = new WorldNoise(1985);
 const noiseMoist = new WorldNoise(909);
 const noiseDetail = new WorldNoise(777);
 
-export const worldGrid = new Array(WORLD_TILES);
-export const fogGrid = new Array(WORLD_TILES);
-export let totalDiscoveredCells = 0;
+const worldGrid = new Array(WORLD_TILES);
+const fogGrid = new Array(WORLD_TILES);
+let totalDiscoveredCells = 0;
 
-export function incrementDiscoveredCells() {
+function incrementDiscoveredCells() {
     totalDiscoveredCells++;
     return totalDiscoveredCells;
 }
 
-export function getElevationAtTile(tx, ty) {
+function getElevationAtTile(tx, ty) {
     const distFromCenter = Math.hypot(tx, ty);
     const gx = tx + HALF_WORLD;
     const gy = ty + HALF_WORLD;
@@ -80,7 +70,7 @@ export function getElevationAtTile(tx, ty) {
     return e;
 }
 
-export function getHeightAtTile(tx, ty) {
+function getHeightAtTile(tx, ty) {
     const e = getElevationAtTile(tx, ty);
     if (e < 0.30) {
         const depthNorm = (0.30 - e) / 0.27;
@@ -91,7 +81,7 @@ export function getHeightAtTile(tx, ty) {
     return (e - 0.30) * 7.8;
 }
 
-export function getTileData(tx, ty) {
+function getTileData(tx, ty) {
     const gx = Math.round(tx) + HALF_WORLD;
     const gy = Math.round(ty) + HALF_WORLD;
     if (gx < 0 || gx >= WORLD_TILES || gy < 0 || gy >= WORLD_TILES) {
@@ -100,7 +90,7 @@ export function getTileData(tx, ty) {
     return worldGrid[gx][gy];
 }
 
-export function generateWorld() {
+function generateWorld() {
     totalDiscoveredCells = 0;
     for (let gx = 0; gx < WORLD_TILES; gx++) {
         worldGrid[gx] = new Array(WORLD_TILES);
@@ -145,7 +135,7 @@ export function generateWorld() {
     }
 }
 
-export function clearTerrainAroundPOIs() {
+function clearTerrainAroundPOIs() {
     const clearPoints = [
         ...pointsOfInterest.map(p => ({ tx: p.tx, ty: p.ty })),
         ...DUNGEONS_DEF.map(d => ({ tx: d.tx, ty: d.ty }))
@@ -167,7 +157,7 @@ export function clearTerrainAroundPOIs() {
     });
 }
 
-export function createPBRMicroTexture(type) {
+function createPBRMicroTexture(type) {
     const c = document.createElement('canvas');
     c.width = 256; c.height = 256;
     const ctx = c.getContext('2d');
@@ -243,7 +233,7 @@ export function createPBRMicroTexture(type) {
     return tex;
 }
 
-export function createToonGradientTexture() {
+function createToonGradientTexture() {
     const c = document.createElement('canvas');
     c.width = 4; c.height = 1;
     const ctx = c.getContext('2d');
@@ -257,7 +247,7 @@ export function createToonGradientTexture() {
     return tex;
 }
 
-export function buildAtmosphericSky3D(scene) {
+function buildAtmosphericSky3D(scene) {
     const skyGeo = new THREE.SphereGeometry(195, 24, 16);
     const skyMat = new THREE.ShaderMaterial({
         side: THREE.BackSide,
@@ -314,7 +304,7 @@ export function buildAtmosphericSky3D(scene) {
     return { skyDomeMesh, starFieldPoints };
 }
 
-export function buildStylizedEnvironmentProps(scene, pbrTex) {
+function buildStylizedEnvironmentProps(scene, pbrTex) {
     const treePos = [], pinePos = [], spirePos = [], rockPos = [];
     for (let gx = 0; gx < WORLD_TILES; gx++) {
         for (let gy = 0; gy < WORLD_TILES; gy++) {
@@ -424,7 +414,7 @@ export function buildStylizedEnvironmentProps(scene, pbrTex) {
     return { treeTrunkInst, treeCrownInst };
 }
 
-export function buildPOIMeshes3D(scene, pbrTex, sampleWorldHeight3D) {
+function buildPOIMeshes3D(scene, pbrTex, sampleWorldHeight3D) {
     const poiMeshes3D = [];
     pointsOfInterest.forEach(poi => {
         const wx = poi.tx * WORLD_SCALE_3D;
@@ -500,7 +490,7 @@ export function buildPOIMeshes3D(scene, pbrTex, sampleWorldHeight3D) {
     return poiMeshes3D;
 }
 
-export function buildDungeonPortals3D(scene, pbrTex, sampleWorldHeight3D) {
+function buildDungeonPortals3D(scene, pbrTex, sampleWorldHeight3D) {
     const dungeonPortals3D = [];
     DUNGEONS_DEF.forEach(dng => {
         const wx = dng.tx * WORLD_SCALE_3D;
@@ -536,7 +526,7 @@ export function buildDungeonPortals3D(scene, pbrTex, sampleWorldHeight3D) {
     return dungeonPortals3D;
 }
 
-export function buildVolumetricAtmosphere(scene) {
+function buildVolumetricAtmosphere(scene) {
     const mistCount = 300;
     const mistGeo = new THREE.BufferGeometry();
     const mistPos = new Float32Array(mistCount * 3);
@@ -559,7 +549,7 @@ export function buildVolumetricAtmosphere(scene) {
     return groundMistParticles;
 }
 
-export function createDungeonInterior(scene, pbrTex, dngDef, spawnEnemyFn) {
+function createDungeonInterior(scene, pbrTex, dngDef, spawnEnemyFn) {
     const dungeonWorldGroup = new THREE.Group();
     const floorMat = new THREE.MeshStandardMaterial({ map: pbrTex.stone, roughness: 0.88 });
     const wallMat = new THREE.MeshStandardMaterial({ map: pbrTex.stone, color: 0x262036, roughness: 0.85 });

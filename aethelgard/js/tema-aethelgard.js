@@ -1,4 +1,4 @@
-export const AETHELGARD_THEME = {
+const AETHELGARD_THEME = {
     id: 'aethelgard',
     title: 'Aethelgard: El Caldero Negro (3D Dark Fantasy)',
     heroName: 'Taron de Prydain',

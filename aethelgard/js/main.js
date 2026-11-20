@@ -1,83 +1,5 @@
-import {
-    TILE_SIZE,
-    WORLD_SCALE_3D,
-    WORLD_TILES,
-    HALF_WORLD,
-    WATER_SURFACE_Y,
-    SAVE_STORAGE_KEY,
-    pointsOfInterest,
-    player,
-    worldState,
-    gameSettings,
-    setGameTheme
-} from './config.js';
-import {
-    generateWorld,
-    clearTerrainAroundPOIs,
-    getTileData,
-    createPBRMicroTexture,
-    buildAtmosphericSky3D,
-    buildStylizedEnvironmentProps,
-    buildPOIMeshes3D,
-    buildDungeonPortals3D,
-    buildVolumetricAtmosphere
-} from './escenarios.js';
-import {
-    getSupportSurfaceHeight3D,
-    isSolidAtWorldPos,
-    buildHarborsAndBoats3D,
-    boardOrLeaveBoat,
-    updateBoatsAndNavigation,
-    stepVerticalAndWaterPhysics
-} from './fisicas.js';
-import {
-    grabbables3D,
-    baubleGroup,
-    heroSwordLight,
-    heroBodyParts,
-    buildHeroCharacter3D,
-    buildGrabbableObjects3D,
-    buildOverworldEnemies3D,
-    spawnJumpBurst3D,
-    spawnWaterRipple3D,
-    spawnUnderwaterBubble3D,
-    enterDungeon,
-    exitDungeon,
-    grantExperience,
-    performHeroAttack,
-    performGrabOrInteract,
-    usePotion,
-    cycleWeapon,
-    castSpellById,
-    cycleEquippedSpell,
-    updateHeroAndCombatObjects
-} from './objetos.js';
-import {
-    isAnyModalOpen,
-    closeAllModals,
-    toggleModal,
-    showToast,
-    formatGameTime,
-    addLogEntry,
-    cycleWeather,
-    interactWithPOI,
-    updateQuestTracker,
-    updateHUDCounters,
-    renderInventoryModalUI,
-    applyArtisticStyle,
-    cycleArtisticStyle,
-    initMapCanvases,
-    bakeWorldReliefMap,
-    revealFogAround,
-    renderMinimap,
-    renderFullMap,
-    bindAllUIEvents,
-	buildHudSnapshot,
-	buildQuestSnapshot
-} from './ui.js';
-import { DomHudBridge } from './hud-bridge.js';
 
-export class GameEngine {
+class GameEngine {
     constructor(theme = null) {
         if (theme) {
             setGameTheme(theme);
@@ -1090,7 +1012,11 @@ export class GameEngine {
     }
 
     async initCloudSanctuary() {
-        const badgeEl = document.getElementById('cloudStatusBadge');
+		const badgeEl = document.getElementById('cloudStatusBadge');
+		if (window.location.protocol === 'file:' || typeof window.__firebase_config === 'undefined' || !window.__firebase_config) {
+			if (badgeEl) badgeEl.textContent = 'Modo Pergamino Activo';
+			return;
+		}
         try {
             if (typeof window.__firebase_config === 'undefined' || !window.__firebase_config) {
                 if (badgeEl) badgeEl.textContent = 'Modo Pergamino Activo';

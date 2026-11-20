@@ -1,41 +1,40 @@
-import { AETHELGARD_THEME } from './tema-aethelgard.js';
 
-export const TILE_SIZE = 48;
-export const WORLD_SCALE_3D = 2.6;
-export const WORLD_TILES = 140;
-export const HALF_WORLD = WORLD_TILES / 2;
-export const WATER_SURFACE_Y = -0.22;
-export const SWIM_START_DEPTH = 1.28;
-export const SWIM_EXIT_DEPTH = 1.05;
-export const DIVE_MIN_DEPTH = 2.6;
-export const DUNGEON_Y_OFFSET = -60;
-export const SAVE_STORAGE_KEY = 'aethelgard_black_cauldron_save_v4';
+const TILE_SIZE = 48;
+const WORLD_SCALE_3D = 2.6;
+const WORLD_TILES = 140;
+const HALF_WORLD = WORLD_TILES / 2;
+const WATER_SURFACE_Y = -0.22;
+const SWIM_START_DEPTH = 1.28;
+const SWIM_EXIT_DEPTH = 1.05;
+const DIVE_MIN_DEPTH = 2.6;
+const DUNGEON_Y_OFFSET = -60;
+const SAVE_STORAGE_KEY = 'aethelgard_black_cauldron_save_v4';
 
-export let activeTheme = AETHELGARD_THEME;
+let activeTheme = AETHELGARD_THEME;
 
-export const BIOMES = new Proxy({}, {
+const BIOMES = new Proxy({}, {
     get(_, prop) { return activeTheme.biomes[prop]; },
     ownKeys() { return Reflect.ownKeys(activeTheme.biomes); },
     getOwnPropertyDescriptor(_, prop) { return Reflect.getOwnPropertyDescriptor(activeTheme.biomes, prop); }
 });
-export const pointsOfInterest = new Proxy([], {
+const pointsOfInterest = new Proxy([], {
     get(_, prop) { return Reflect.get(activeTheme.pointsOfInterest, prop); }
 });
-export const DUNGEONS_DEF = new Proxy([], {
+const DUNGEONS_DEF = new Proxy([], {
     get(_, prop) { return Reflect.get(activeTheme.dungeons, prop); }
 });
-export const DUNGEONS = DUNGEONS_DEF;
-export const WEAPONS_CATALOG = new Proxy({}, {
+const DUNGEONS = DUNGEONS_DEF;
+const WEAPONS_CATALOG = new Proxy({}, {
     get(_, prop) { return activeTheme.weapons[prop]; }
 });
-export const POTIONS_CATALOG = new Proxy({}, {
+const POTIONS_CATALOG = new Proxy({}, {
     get(_, prop) { return activeTheme.potions[prop]; }
 });
-export const SPELLS_CATALOG = new Proxy([], {
+const SPELLS_CATALOG = new Proxy([], {
     get(_, prop) { return Reflect.get(activeTheme.spells, prop); }
 });
 
-export const ART_STYLES_META = {
+const ART_STYLES_META = {
     cgi1985: {
         label: 'CGI 1985',
         fullName: 'CGI Fantasía Oscura 1985',
@@ -58,7 +57,7 @@ export const ART_STYLES_META = {
     }
 };
 
-export const gameSettings = {
+const gameSettings = {
     artStyle: 'cgi1985',
     mouseSensitivity: 1.0,
     fov: 50,
@@ -74,7 +73,7 @@ export const gameSettings = {
     highDpi: true
 };
 
-export const player = {
+const player = {
     x: 0, y: 0,
     y3D: 0.4, vy3D: 0,
     gravity: -34.0, jumpForce: 13.6,
@@ -114,7 +113,7 @@ export const player = {
     waypoint: { ...activeTheme.initialWaypoint }
 };
 
-export function setGameTheme(theme) {
+function setGameTheme(theme) {
     if (!theme) return;
     activeTheme = theme;
 
@@ -125,7 +124,7 @@ export function setGameTheme(theme) {
     player.waypoint = { ...theme.initialWaypoint };
 }
 
-export const worldState = {
+const worldState = {
     timeOfDay: 20.5,
     dayCount: 1,
     weather: 'CLEAR',
@@ -138,7 +137,7 @@ export const worldState = {
     paused: false
 };
 
-export const mapState = {
+const mapState = {
     zoom: 1.0,
     panX: 0,
     panY: 0,
@@ -150,4 +149,4 @@ export const mapState = {
     dragStartY: 0
 };
 
-export const mapViewConfig = mapState;
+const mapViewConfig = mapState;

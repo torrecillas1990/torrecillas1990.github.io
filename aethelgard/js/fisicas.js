@@ -1,22 +1,8 @@
-import {
-    TILE_SIZE,
-    WORLD_SCALE_3D,
-    HALF_WORLD,
-    WATER_SURFACE_Y,
-    SWIM_START_DEPTH,
-    SWIM_EXIT_DEPTH,
-    DIVE_MIN_DEPTH,
-    DUNGEON_Y_OFFSET,
-    player,
-    worldState,
-    gameSettings
-} from './config.js';
-import { getHeightAtTile, getTileData } from './escenarios.js';
 
-export const harborDocks = [];
-export const navigableBoats = [];
+const harborDocks = [];
+const navigableBoats = [];
 
-export function sampleWorldHeight3D(wx, wz) {
+function sampleWorldHeight3D(wx, wz) {
     if (worldState.activeDungeon) return DUNGEON_Y_OFFSET;
     const tx = wx / WORLD_SCALE_3D;
     const ty = wz / WORLD_SCALE_3D;
@@ -33,7 +19,7 @@ export function sampleWorldHeight3D(wx, wz) {
     return h0 + (h1 - h0) * fy;
 }
 
-export function getSupportSurfaceHeight3D(wx, wz) {
+function getSupportSurfaceHeight3D(wx, wz) {
     let h = sampleWorldHeight3D(wx, wz);
     if (worldState.activeDungeon) return h;
     const tx = Math.round(wx / WORLD_SCALE_3D);
@@ -50,7 +36,7 @@ export function getSupportSurfaceHeight3D(wx, wz) {
     return h;
 }
 
-export function isSolidAtWorldPos(wx, wy) {
+function isSolidAtWorldPos(wx, wy) {
     if (worldState.activeDungeon) {
         const w3DX = (wx / TILE_SIZE) * WORLD_SCALE_3D;
         const w3DZ = (wy / TILE_SIZE) * WORLD_SCALE_3D;
@@ -128,7 +114,7 @@ function createSmallBoatMesh3D(hullMat, trimMat, sailMat, postMat) {
     return boat;
 }
 
-export function buildHarborsAndBoats3D(scene, pbrTex) {
+function buildHarborsAndBoats3D(scene, pbrTex) {
     harborDocks.length = 0;
     navigableBoats.length = 0;
     if (!scene) return;
@@ -249,7 +235,7 @@ export function buildHarborsAndBoats3D(scene, pbrTex) {
     });
 }
 
-export function boardOrLeaveBoat(targetBoat, { isAnyModalOpen, showToast }) {
+function boardOrLeaveBoat(targetBoat, { isAnyModalOpen, showToast }) {
     if (player.pilotingBoat) {
         const boat = player.pilotingBoat;
         player.pilotingBoat = null;
@@ -292,7 +278,7 @@ export function boardOrLeaveBoat(targetBoat, { isAnyModalOpen, showToast }) {
     return true;
 }
 
-export function updateBoatsAndNavigation(dt, elapsed, currentWaterY, { keys, touchVector, touchSprint, isAnyModalOpen, spawnWaterRipple3D, revealFogAround }) {
+function updateBoatsAndNavigation(dt, elapsed, currentWaterY, { keys, touchVector, touchSprint, isAnyModalOpen, spawnWaterRipple3D, revealFogAround }) {
     if (worldState.activeDungeon) {
         player.nearbyBoat = null;
         return;
@@ -396,7 +382,7 @@ export function updateBoatsAndNavigation(dt, elapsed, currentWaterY, { keys, tou
     player.nearbyBoat = closestBoat;
 }
 
-export function stepVerticalAndWaterPhysics(dt, elapsed, currentWaterY, groundY, isMoving, isSprinting, {
+function stepVerticalAndWaterPhysics(dt, elapsed, currentWaterY, groundY, isMoving, isSprinting, {
     keys, diveDownBtnHeld, diveUpBtnHeld, touchAscend, isAnyModalOpen,
     spawnJumpBurst3D, spawnWaterRipple3D, spawnUnderwaterBubble3D, showToast, damagePlayer
 }) {

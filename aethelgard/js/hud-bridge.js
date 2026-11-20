@@ -1,7 +1,5 @@
-import { SPELLS_CATALOG } from './config.js';
-import { getSpellEffectiveStats } from './objetos.js';
 
-export class DomHudBridge {
+class DomHudBridge {
     constructor(engine) {
         this.engine = engine;
         this.unsubscribers = [];
