@@ -2572,6 +2572,85 @@
                 canvas.requestRenderAll();
             }
         }
+		
+		function calcularPosicionMarcadorAsiento(mesa, invitadoObj, indiceInsercion) {
+            const listaSimulada = mesa.invitadosSentados.filter(inv => inv !== invitadoObj);
+            const idx = Math.max(0, Math.min(indiceInsercion, listaSimulada.length));
+            listaSimulada.splice(idx, 0, invitadoObj);
+
+            const ancho = invitadoObj.item(0) ? invitadoObj.item(0).width : (invitadoObj.width || 112);
+            const alto = 30;
+            const cx = mesa.left;
+            const cy = mesa.top;
+            const forma = mesa.forma || 'redonda';
+            const orientacion = mesa.orientacion || 'horizontal';
+
+            // 1. Mesa redonda (usa la misma elipse dinámica que el posicionamiento real)
+            if (forma === 'redonda') {
+                if (typeof calcularElipseMesaRedonda === 'function') {
+                    const { rx, ry, medidas } = calcularElipseMesaRedonda(listaSimulada);
+                    const m = medidas[idx];
+                    return {
+                        x: cx + (rx * m.cos),
+                        y: cy + (ry * m.sin),
+                        ancho,
+                        alto
+                    };
+                }
+                const angulo = (idx / listaSimulada.length) * (2 * Math.PI) - (Math.PI / 2);
+                const r = radioMesaVisual + 44;
+                return {
+                    x: cx + (r * Math.cos(angulo)),
+                    y: cy + (r * Math.sin(angulo)),
+                    ancho,
+                    alto
+                };
+            }
+
+            const dims = obtenerDimensionesMesa(forma, orientacion);
+
+            const calcularEnFila = (grupo, idxEnGrupo, yFijo) => {
+                const gap = 12;
+                const anchos = grupo.map(inv => (inv.item(0) ? inv.item(0).width : (inv.width || 112)));
+                const anchoTotal = anchos.reduce((s, w) => s + w, 0) + gap * (grupo.length - 1);
+                let cursorX = cx - anchoTotal / 2;
+                for (let i = 0; i < idxEnGrupo; i++) {
+                    cursorX += anchos[i] + gap;
+                }
+                return { x: cursorX + anchos[idxEnGrupo] / 2, y: yFijo, ancho, alto };
+            };
+
+            const calcularEnColumna = (grupo, idxEnGrupo, xBase, lado) => {
+                const pasoY = 38;
+                const altoTotal = pasoY * (grupo.length - 1);
+                const inicioY = cy - altoTotal / 2;
+                const w = grupo[idxEnGrupo].item(0) ? grupo[idxEnGrupo].item(0).width : (grupo[idxEnGrupo].width || 112);
+                const xFinal = lado === 'izq' ? xBase - (w / 2) - 14 : xBase + (w / 2) + 14;
+                return { x: xFinal, y: inicioY + idxEnGrupo * pasoY, ancho, alto };
+            };
+
+            // 2. Mesa presidencial (1 lado)
+            if (forma === 'presidencial') {
+                return orientacion === 'vertical'
+                    ? calcularEnColumna(listaSimulada, idx, cx - dims.ancho / 2, 'izq')
+                    : calcularEnFila(listaSimulada, idx, cy - dims.alto / 2 - 26);
+            }
+
+            // 3. Mesa rectangular (2 lados)
+            const mitad = Math.ceil(listaSimulada.length / 2);
+            const enGrupoA = idx < mitad;
+            const grupo = enGrupoA ? listaSimulada.slice(0, mitad) : listaSimulada.slice(mitad);
+            const idxEnGrupo = enGrupoA ? idx : idx - mitad;
+
+            if (orientacion === 'vertical') {
+                return enGrupoA
+                    ? calcularEnColumna(grupo, idxEnGrupo, cx - dims.ancho / 2, 'izq')
+                    : calcularEnColumna(grupo, idxEnGrupo, cx + dims.ancho / 2, 'der');
+            }
+            return enGrupoA
+                ? calcularEnFila(grupo, idxEnGrupo, cy - dims.alto / 2 - 26)
+                : calcularEnFila(grupo, idxEnGrupo, cy + dims.alto / 2 + 26);
+        }
 
         function actualizarResaltadoMesaDestino(invitadoObj) {
             const mesa = encontrarMesaDestino(invitadoObj);
@@ -2587,13 +2666,20 @@
                 : ocupacionActual + (invitadoObj.cantidad || 1);
             const cabe = ocupacionFinal <= mesa.capacidadMax;
 
+            const indiceInsercion = calcularIndiceInsercionEnMesa(mesa, invitadoObj);
+            const marcador = calcularPosicionMarcadorAsiento(mesa, invitadoObj, indiceInsercion);
+
             const cambio = !mesaResaltadaDrop
                 || mesaResaltadaDrop.mesa !== mesa
                 || mesaResaltadaDrop.cabe !== cabe
-                || mesaResaltadaDrop.ocupacionFinal !== ocupacionFinal;
+                || mesaResaltadaDrop.ocupacionFinal !== ocupacionFinal
+                || mesaResaltadaDrop.indiceInsercion !== indiceInsercion
+                || !mesaResaltadaDrop.marcador
+                || Math.abs(mesaResaltadaDrop.marcador.x - marcador.x) > 0.5
+                || Math.abs(mesaResaltadaDrop.marcador.y - marcador.y) > 0.5;
 
             if (cambio) {
-                mesaResaltadaDrop = { mesa, cabe, ocupacionFinal };
+                mesaResaltadaDrop = { mesa, cabe, ocupacionFinal, indiceInsercion, marcador };
                 canvas.requestRenderAll();
             }
         }
@@ -2616,7 +2702,7 @@
         canvas.on('after:render', function() {
             if (!mesaResaltadaDrop || !mesaResaltadaDrop.mesa) return;
 
-            const { mesa, cabe, ocupacionFinal } = mesaResaltadaDrop;
+            const { mesa, cabe, ocupacionFinal, indiceInsercion, marcador } = mesaResaltadaDrop;
             const ctx = canvas.getContext();
             const vpt = canvas.viewportTransform;
 
@@ -2685,7 +2771,63 @@
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(etiqueta, mesa.left, by + hBadge / 2 + 0.5);
+			
+			if (marcador) {
+                const { x, y, ancho, alto } = marcador;
 
+                // Punto de salida en el borde exterior de la mesa (sin cruzar el texto central)
+                let bordeX = mesa.left;
+                let bordeY = mesa.top;
+                if (forma === 'redonda') {
+                    const dist = Math.hypot(x - mesa.left, y - mesa.top) || 1;
+                    const r = radioMesaVisual + 5;
+                    bordeX = mesa.left + ((x - mesa.left) / dist) * r;
+                    bordeY = mesa.top + ((y - mesa.top) / dist) * r;
+                } else {
+                    bordeX = Math.max(mesa.left - dims.ancho / 2, Math.min(mesa.left + dims.ancho / 2, x));
+                    bordeY = Math.max(mesa.top - dims.alto / 2, Math.min(mesa.top + dims.alto / 2, y));
+                }
+
+                // 1. Conector discontinuo entre el borde de la mesa y el asiento destino
+                ctx.save();
+                ctx.beginPath();
+                ctx.moveTo(bordeX, bordeY);
+                ctx.lineTo(x, y);
+                ctx.strokeStyle = cabe ? 'rgba(16, 185, 129, 0.55)' : 'rgba(225, 29, 72, 0.55)';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([4, 3]);
+                ctx.stroke();
+                ctx.restore();
+
+                // 2. Silueta fantasma de la pastilla en la posición exacta de inserción
+                ctx.save();
+                trazarRectRedondeado(ctx, x - ancho / 2, y - alto / 2, ancho, alto, alto / 2);
+                ctx.fillStyle = cabe ? 'rgba(16, 185, 129, 0.16)' : 'rgba(225, 29, 72, 0.16)';
+                ctx.fill();
+                ctx.strokeStyle = colorBorde;
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 4]);
+                ctx.stroke();
+                ctx.restore();
+
+                // 3. Pin circular con el número de posición (#1, #2, ...)
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(x, y, 9, 0, Math.PI * 2);
+                ctx.fillStyle = colorBorde;
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '700 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(String(indiceInsercion + 1), x, y + 0.5);
+                ctx.restore();
+            }
+			
             ctx.restore();
         });
 		
