@@ -38,7 +38,7 @@
         }
 
         * {
-            box-sizing: border-box;
+            box-sizing: border-box;.modal-seats-empty
         }
 
         body {
@@ -1163,7 +1163,162 @@
             padding-top: 10px;
             border-top: 1px solid var(--border-subtle);
         }
+		
+		.modal-seats-list {
+            display: flex;
+            flex-direction: column;
+            max-height: 215px;
+            overflow-y: auto;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            background-color: #f8fafc;
+        }
 
+        .modal-seats-list::-webkit-scrollbar {
+            width: 5px;
+        }
+        .modal-seats-list::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        .modal-seat-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 7px 9px;
+            background-color: #ffffff;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .modal-seat-row:last-child {
+            border-bottom: none;
+        }
+
+        .modal-seat-info {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            min-width: 0;
+            flex: 1;
+        }
+
+        .modal-seat-num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 22px;
+            height: 20px;
+            padding: 0 5px;
+            border-radius: 999px;
+            background-color: #f1f5f9;
+            color: var(--text-muted);
+            font-size: 10.5px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .modal-seat-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .modal-seat-name-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+            flex: 1;
+        }
+
+        .modal-seat-name {
+            font-size: 12.5px;
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .modal-seat-qty {
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        .modal-seat-actions {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            flex-shrink: 0;
+        }
+
+        .seat-action-btn {
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            border: 1px solid var(--border-subtle);
+            background-color: #ffffff;
+            color: var(--text-secondary);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            padding: 0;
+            transition: all 0.12s ease;
+        }
+
+        .seat-action-btn:hover:not(:disabled) {
+            background-color: #f1f5f9;
+            border-color: #94a3b8;
+            color: var(--text-primary);
+        }
+
+        .seat-action-btn:disabled {
+            opacity: 0.32;
+            cursor: not-allowed;
+        }
+
+        .seat-action-btn.remove {
+            color: var(--danger-text);
+            border-color: var(--danger-border);
+            background-color: var(--danger-bg);
+            margin-left: 2px;
+        }
+
+        .seat-action-btn.remove:hover {
+            background-color: var(--danger-hover-bg);
+            border-color: var(--danger-hover-bg);
+            color: #ffffff;
+        }
+
+        .modal-seats-empty {
+            padding: 16px 12px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+		
+		.modal-add-seat-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .modal-add-seat-row .input-select {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .modal-add-seat-row .btn {
+            width: auto;
+            flex-shrink: 0;
+            padding: 8px 12px;
+        }
+		
         .modal-footer {
             padding: 14px 20px;
             background-color: #f8fafc;
@@ -2201,6 +2356,9 @@
         let estaRestaurando = false;
         let contadorNuevasMesas = 1;
         let objetoEnEdicion = null;
+		let invitadosMesaModal = [];
+        let invitadosSacadosModal = [];
+		let invitadosSinMesaModal = [];
         let formaMesaSeleccionada = 'redonda';
         let mesasBloqueadas = false;
         let guiasMagneticasActivas = true;
@@ -3568,6 +3726,145 @@
                 input.value = maxZ + 1;
             }
         }
+		
+		function actualizarCabeceraMesaModal() {
+            if (!objetoEnEdicion || objetoEnEdicion.tipoObjeto !== 'mesa') return;
+            const inputCap = document.getElementById('editMesaCap');
+            const cap = inputCap ? (parseInt(inputCap.value) || objetoEnEdicion.capacidadMax) : objetoEnEdicion.capacidadMax;
+            const ocupados = invitadosMesaModal.reduce((s, inv) => s + (inv.cantidad || 1), 0);
+            modalTitulo.textContent = `Editar mesa (${ocupados}/${cap} ocupadas)`;
+
+            const contadorEl = document.getElementById('contadorAsientosModal');
+            if (contadorEl) {
+                contadorEl.textContent = `${invitadosMesaModal.length} ${invitadosMesaModal.length === 1 ? 'grupo' : 'grupos'} · ${ocupados} pers.`;
+            }
+        }
+
+        function renderizarListaAsientosModal() {
+            const contenedor = document.getElementById('listaAsientosModal');
+            if (!contenedor) return;
+
+            actualizarCabeceraMesaModal();
+            renderizarSelectorSinMesaModal();
+
+            if (invitadosMesaModal.length === 0) {
+                contenedor.innerHTML = `<div class="modal-seats-empty">No hay invitados sentados en esta mesa.</div>`;
+                return;
+            }
+
+            contenedor.innerHTML = invitadosMesaModal.map((inv, idx) => {
+                const cant = inv.cantidad || 1;
+                const cantHTML = cant > 1 ? ` <span class="modal-seat-qty">(${cant})</span>` : '';
+                const colorLado = typeof obtenerColorLadoInvitado === 'function'
+                    ? obtenerColorLadoInvitado(inv.lado, inv.edad)
+                    : null;
+                const dotHTML = colorLado
+                    ? `<span class="modal-seat-dot" style="background:${colorLado};" title="${escaparHTML(inv.lado || '')}"></span>`
+                    : '';
+                const alergiaHTML = inv.alergias
+                    ? `<span class="badge-alergia" title="${escaparHTML(inv.alergias)}">${escaparHTML(inv.alergias)}</span>`
+                    : '';
+
+                return `
+                    <div class="modal-seat-row">
+                        <div class="modal-seat-info">
+                            <span class="modal-seat-num">${idx + 1}</span>
+                            ${dotHTML}
+                            <div class="modal-seat-name-wrap">
+                                <span class="modal-seat-name" title="${escaparHTML(inv.nombreAsignado)}">${escaparHTML(inv.nombreAsignado)}${cantHTML}</span>
+                                ${alergiaHTML}
+                            </div>
+                        </div>
+                        <div class="modal-seat-actions">
+                            <button type="button" class="seat-action-btn" onclick="moverAsientoModal(${idx}, -1)" title="Subir posición" ${idx === 0 ? 'disabled' : ''}>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" width="13" height="13"><polyline points="18 15 12 9 6 15"/></svg>
+                            </button>
+                            <button type="button" class="seat-action-btn" onclick="moverAsientoModal(${idx}, 1)" title="Bajar posición" ${idx === invitadosMesaModal.length - 1 ? 'disabled' : ''}>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" width="13" height="13"><polyline points="6 9 12 15 18 9"/></svg>
+                            </button>
+                            <button type="button" class="seat-action-btn remove" onclick="sacarInvitadoDeMesaModal(${idx})" title="Sacar de la mesa (quedará sin asignar)">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" width="13" height="13"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function moverAsientoModal(indice, direccion) {
+            const destino = indice + direccion;
+            if (destino < 0 || destino >= invitadosMesaModal.length) return;
+            const temp = invitadosMesaModal[indice];
+            invitadosMesaModal[indice] = invitadosMesaModal[destino];
+            invitadosMesaModal[destino] = temp;
+            renderizarListaAsientosModal();
+        }
+
+        function sacarInvitadoDeMesaModal(indice) {
+            if (indice < 0 || indice >= invitadosMesaModal.length) return;
+            const [invitado] = invitadosMesaModal.splice(indice, 1);
+            if (invitado && !invitadosSacadosModal.includes(invitado)) {
+                invitadosSacadosModal.push(invitado);
+            }
+            renderizarListaAsientosModal();
+        }
+		
+		function renderizarSelectorSinMesaModal() {
+            const selectEl = document.getElementById('selectInvitadoSinMesa');
+            const btnEl = document.getElementById('btnAgregarSinMesaModal');
+            if (!selectEl || !btnEl) return;
+
+            const todosInvitados = canvas.getObjects().filter(o => o.tipoObjeto === 'invitado' && !o.esTemporal);
+            const otrasMesas = canvas.getObjects().filter(m =>
+                m !== objetoEnEdicion && m.tipoObjeto === 'mesa' && !m.esTemporal
+            );
+
+            invitadosSinMesaModal = todosInvitados
+                .filter(inv =>
+                    !invitadosMesaModal.includes(inv) &&
+                    !otrasMesas.some(m => m.invitadosSentados.includes(inv))
+                )
+                .sort((a, b) => a.nombreAsignado.localeCompare(b.nombreAsignado, 'es', { sensitivity: 'base' }));
+
+            if (invitadosSinMesaModal.length === 0) {
+                selectEl.innerHTML = `<option value="">No quedan invitados sin mesa</option>`;
+                selectEl.disabled = true;
+                btnEl.disabled = true;
+                return;
+            }
+
+            const opciones = invitadosSinMesaModal.map((inv, idx) => {
+                const cant = inv.cantidad || 1;
+                const extra = [];
+                if (inv.lado && inv.lado !== 'General') extra.push(inv.lado);
+                if (esNino(inv.edad)) extra.push('Infantil');
+                if (inv.alergias) extra.push(inv.alergias);
+
+                const etiqueta = `${inv.nombreAsignado}${cant > 1 ? ` (${cant})` : ''}${extra.length ? ` — ${extra.join(' · ')}` : ''}`;
+                return `<option value="${idx}">${escaparHTML(etiqueta)}</option>`;
+            }).join('');
+
+            selectEl.innerHTML = `<option value="">Selecciona un invitado (${invitadosSinMesaModal.length})...</option>${opciones}`;
+            selectEl.disabled = false;
+            btnEl.disabled = false;
+        }
+
+        function agregarInvitadoSinMesaModal() {
+            const selectEl = document.getElementById('selectInvitadoSinMesa');
+            if (!selectEl || selectEl.value === '') return;
+
+            const idx = parseInt(selectEl.value, 10);
+            const invitado = invitadosSinMesaModal[idx];
+            if (!invitado) return;
+
+            invitadosMesaModal.push(invitado);
+            invitadosSacadosModal = invitadosSacadosModal.filter(inv => inv !== invitado);
+
+            renderizarListaAsientosModal();
+
+            const listaEl = document.getElementById('listaAsientosModal');
+            if (listaEl) listaEl.scrollTop = listaEl.scrollHeight;
+        }
 
         function abrirModalEdicion(objeto) {
             if (!objeto || objeto.esTemporal) return;
@@ -3576,11 +3873,11 @@
             objetoEnEdicion = objeto;
 
             if (objeto.tipoObjeto === 'mesa') {
-                const ocupados = objeto.invitadosSentados.reduce((s, inv) => s + (inv.cantidad || 1), 0);
                 const formaActual = objeto.forma || 'redonda';
                 const orientActual = objeto.orientacion || 'horizontal';
+                invitadosMesaModal = [...objeto.invitadosSentados];
+                invitadosSacadosModal = [];
 
-                modalTitulo.textContent = `Editar mesa (${ocupados}/${objeto.capacidadMax} ocupadas)`;
                 modalCampos.innerHTML = `
                     <div class="field-group">
                         <label class="field-label" for="editMesaL1">Nombre principal</label>
@@ -3593,7 +3890,7 @@
                         </div>
                         <div class="field-group compact">
                             <label class="field-label" for="editMesaCap">Plazas</label>
-                            <input type="number" id="editMesaCap" class="input-text" value="${objeto.capacidadMax || 10}" min="1" max="50" required>
+                            <input type="number" id="editMesaCap" class="input-text" value="${objeto.capacidadMax || 10}" min="1" max="50" required oninput="actualizarCabeceraMesaModal()">
                         </div>
                     </div>
                     <div class="modal-grid-2">
@@ -3613,18 +3910,26 @@
                             </select>
                         </div>
                     </div>
+
+                    <div class="modal-divider-label" style="display:flex; align-items:center; justify-content:space-between;">
+                        <span>Asientos asignados</span>
+                        <span id="contadorAsientosModal" style="font-weight:600; text-transform:none; letter-spacing:0;"></span>
+                    </div>
+                    <div id="listaAsientosModal" class="modal-seats-list"></div>
 					<div class="field-group">
-                        <label class="field-label" for="editSalonZIndex">Capa entre elementos del salón (Z-Index)</label>
-                        <div class="row-flex">
-                            <input type="number" id="editSalonZIndex" class="input-text" value="${objeto.zIndex ?? 0}" step="1" style="width: 90px; flex: 0 0 90px;">
-                            <button type="button" class="btn btn-secondary" onclick="ajustarZIndexModal('fondo')">Al fondo</button>
-                            <button type="button" class="btn btn-secondary" onclick="ajustarZIndexModal('frente')">Al frente</button>
+                        <label class="field-label" for="selectInvitadoSinMesa">Sentar invitado sin mesa</label>
+                        <div class="modal-add-seat-row">
+                            <select id="selectInvitadoSinMesa" class="input-select"></select>
+                            <button type="button" id="btnAgregarSinMesaModal" class="btn btn-secondary" onclick="agregarInvitadoSinMesaModal()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                Añadir
+                            </button>
                         </div>
                     </div>
                 `;
                 actualizarVisibilidadOrientacionModal();
-
-            } else if (objeto.tipoObjeto === 'invitado') {
+                renderizarListaAsientosModal(); 
+			} else if (objeto.tipoObjeto === 'invitado') {
                 const chipsHTML = CHIPS_ALERGIAS.map(tag =>
                     `<button type="button" class="allergy-chip" data-tag="${escaparHTML(tag)}" onclick="toggleChipAlergiaModal('${escaparHTML(tag)}')">${escaparHTML(tag)}</button>`
                 ).join('');
@@ -3670,14 +3975,6 @@
                     <div class="field-group">
                         <label class="field-label" for="editInvDeParteDe">De parte de</label>
                         <input type="text" id="editInvDeParteDe" class="input-text" value="${escaparHTML(objeto.deParteDe || 'General')}">
-                    </div>
-					<div class="field-group">
-                        <label class="field-label" for="editSalonZIndex">Capa entre elementos del salón (Z-Index)</label>
-                        <div class="row-flex">
-                            <input type="number" id="editSalonZIndex" class="input-text" value="${objeto.zIndex ?? 0}" step="1" style="width: 90px; flex: 0 0 90px;">
-                            <button type="button" class="btn btn-secondary" onclick="ajustarZIndexModal('fondo')">Al fondo</button>
-                            <button type="button" class="btn btn-secondary" onclick="ajustarZIndexModal('frente')">Al frente</button>
-                        </div>
                     </div>
                 `;
                 sincronizarChipsAlergiaModal();
@@ -3754,6 +4051,9 @@
         function cerrarModalEdicion() {
             modalOverlay.classList.remove('open');
             objetoEnEdicion = null;
+            invitadosMesaModal = [];
+            invitadosSacadosModal = [];
+            invitadosSinMesaModal = [];
         }
 
         function guardarEdicionModal(evento) {
@@ -3772,6 +4072,8 @@
                 const cambioGeometria = (objetoEnEdicion.forma || 'redonda') !== nuevaForma
                     || (objetoEnEdicion.orientacion || 'horizontal') !== nuevaOrientacion;
 
+                let mesaFinal = objetoEnEdicion;
+
                 if (cambioGeometria) {
                     const nuevaMesa = crearMesa(
                         objetoEnEdicion.left,
@@ -3783,19 +4085,34 @@
                         nuevaForma,
                         nuevaOrientacion
                     );
-                    nuevaMesa.invitadosSentados = [...objetoEnEdicion.invitadosSentados];
+                    nuevaMesa.invitadosSentados = [...invitadosMesaModal];
                     canvas.remove(objetoEnEdicion);
                     canvas.add(nuevaMesa);
-                    reposicionarInvitadosEnCirculo(nuevaMesa);
-                    ordenarCapasCanvas();
+                    mesaFinal = nuevaMesa;
                     canvas.setActiveObject(nuevaMesa);
                 } else {
                     objetoEnEdicion.linea1 = nuevaL1;
                     objetoEnEdicion.linea2 = nuevaL2;
                     objetoEnEdicion.capacidadMax = nuevaCap;
-                    reposicionarInvitadosEnCirculo(objetoEnEdicion);
+                    objetoEnEdicion.invitadosSentados = [...invitadosMesaModal];
                 }
 
+                // Coloca a los invitados sacados en una columna ordenada justo al lado de la mesa
+                if (invitadosSacadosModal.length > 0) {
+                    const dimsMesa = obtenerDimensionesMesa(nuevaForma, nuevaOrientacion);
+                    const totalSacados = invitadosSacadosModal.length;
+                    invitadosSacadosModal.forEach((inv, idx) => {
+                        estilizarInvitado(inv, false);
+                        inv.set({
+                            left: mesaFinal.left + (dimsMesa.ancho / 2) + 125,
+                            top: mesaFinal.top - ((totalSacados - 1) * 19) + (idx * 38)
+                        });
+                        inv.setCoords();
+                    });
+                }
+
+                reposicionarInvitadosEnCirculo(mesaFinal);
+                ordenarCapasCanvas();
                 canvas.renderAll();
                 actualizarContadorTotal();
                 registrarCambio();
@@ -4671,13 +4988,14 @@
 
         canvas.on('object:modified', function(options) {
             limpiarGuiasActivas();
+			limpiarResaltadoMesaDestino();
             const objetoMovido = options.target;
             if (!objetoMovido || objetoMovido.esTemporal) return;
 
             if (objetoMovido.tipoObjeto === 'elementoSalon') {
                 if (objetoMovido.scaleX !== 1 || objetoMovido.scaleY !== 1) {
-                    const nuevoAncho = Math.max(80, Math.round(objetoMovido.anchoBloque * objetoMovido.scaleX));
-                    const nuevoAlto = Math.max(44, Math.round(objetoMovido.altoBloque * objetoMovido.scaleY));
+                    const nuevoAncho = Math.max(10, Math.round(objetoMovido.anchoBloque * objetoMovido.scaleX));
+                    const nuevoAlto = Math.max(10, Math.round(objetoMovido.altoBloque * objetoMovido.scaleY));
                     const reconstruido = crearElementoSalon(
                         objetoMovido.left,
                         objetoMovido.top,
