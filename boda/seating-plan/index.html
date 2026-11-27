@@ -439,6 +439,105 @@
             color: var(--text-primary);
             box-shadow: 0 1px 3px rgba(15, 23, 42, 0.10);
         }
+		
+		/* Selector rápido de lado para invitados */
+        .side-segmented-control {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 3px;
+            background-color: #f1f5f9;
+            padding: 3px;
+            border-radius: 8px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .side-seg-btn {
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-family: inherit;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 6px 2px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            transition: all 0.14s ease;
+            white-space: nowrap;
+        }
+
+        .side-seg-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .side-seg-btn.active {
+            background-color: #ffffff;
+            color: var(--text-primary);
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.10);
+        }
+
+        .side-seg-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+		
+		.side-seg-btn {
+            min-width: 0;
+        }
+
+        .side-seg-label {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+		
+		.couple-swap-grid {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: end;
+            gap: 6px;
+        }
+
+        .couple-swap-grid .field-group {
+            min-width: 0;
+        }
+
+        .couple-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .swap-couple-btn {
+            width: 32px;
+            height: 34px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-strong);
+            background-color: #ffffff;
+            color: var(--text-secondary);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            padding: 0;
+            flex-shrink: 0;
+            transition: all 0.14s ease;
+        }
+
+        .swap-couple-btn:hover {
+            background-color: #eef2ff;
+            border-color: #c7d2fe;
+            color: var(--accent-brand);
+        }
+
+        .swap-couple-btn:active {
+            transform: scale(0.95);
+        }
 
         /* Grid de bloques del salón */
         .venue-grid {
@@ -725,6 +824,7 @@
             background-size: 24px 24px;
             background-position: 0px 0px;
             cursor: grab;
+			min-width: 0;
         }
 
         .canvas-wrapper.is-panning {
@@ -1100,20 +1200,123 @@
             margin: 0 3px;
         }
 
-        /* Ayuda sutil en esquina inferior derecha */
+        /* Ayuda sutil y filtro rápido por bando en esquina inferior derecha */
         .canvas-hint {
             position: absolute;
             bottom: 20px;
             right: 20px;
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(6px);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             border: 1px solid var(--border-subtle);
-            padding: 6px 12px;
+            box-shadow: var(--shadow-float);
+            padding: 4px 10px 4px 6px;
             border-radius: var(--radius-pill);
             font-size: 11.5px;
             color: var(--text-muted);
-            pointer-events: none;
-            z-index: 10;
+            pointer-events: auto;
+            user-select: none;
+            z-index: 15;
+        }
+
+        .hint-filters {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .hint-filter-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 8px;
+            border-radius: var(--radius-pill);
+            border: 1px solid transparent;
+            background: transparent;
+            color: var(--text-secondary);
+            font-family: inherit;
+            font-size: 11.5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.14s ease;
+        }
+
+        .hint-filter-btn:hover {
+            background-color: #f1f5f9;
+            color: var(--text-primary);
+        }
+
+        .hint-filter-btn.is-active[data-filtro="novio"] {
+            background-color: #eff6ff;
+            border-color: #93c5fd;
+            color: #1d4ed8;
+        }
+
+        .hint-filter-btn.is-active[data-filtro="novia"] {
+            background-color: #fdf2f8;
+            border-color: #f9a8d4;
+            color: #be185d;
+        }
+
+        .hint-filter-btn.is-active[data-filtro="infantil"] {
+            background-color: #fefce8;
+            border-color: #fde047;
+            color: #a16207;
+        }
+		
+		.hint-filter-btn.is-active[data-filtro="alergia"] {
+            background-color: #fff7ed;
+            border-color: #fdba74;
+            color: #c2410c;
+        }
+
+        .hint-filter-clear {
+            display: none;
+            align-items: center;
+            padding: 3px 8px;
+            border-radius: var(--radius-pill);
+            border: 1px solid var(--border-strong);
+            background-color: #ffffff;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.14s ease;
+        }
+
+        .hint-filter-clear:hover {
+            background-color: #f1f5f9;
+        }
+
+        .hint-filter-clear.visible {
+            display: inline-flex;
+        }
+
+        .hint-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .hint-static-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .hint-sep {
+            width: 1px;
+            height: 14px;
+            background-color: var(--border-subtle);
+            flex-shrink: 0;
         }
 
         .canvas-hint kbd {
@@ -2132,7 +2335,7 @@
                         <circle cx="21" cy="12" r="1.5"></circle>
                     </svg>
                 </div>
-                <<div>
+                <div>
                     <h1 id="tituloSidebar">Seating Plan</h1>
                     <p class="sidebar-subtitle" id="subtituloSidebar">Organizador visual de mesas</p>
                 </div>
@@ -2200,6 +2403,20 @@
             <!-- SECCIÓN: Invitados -->
             <section class="section">
                 <h3 class="section-title">Invitados individuales</h3>
+				<div class="side-segmented-control" role="radiogroup" aria-label="Lado del invitado">
+                    <button type="button" class="side-seg-btn" data-lado="novio" onclick="seleccionarLadoInvitado('novio')">
+                        <span class="side-seg-dot" style="background:#2563eb;"></span><span id="labelSideNovio" class="side-seg-label">Novio</span>
+                    </button>
+                    <button type="button" class="side-seg-btn" data-lado="novia" onclick="seleccionarLadoInvitado('novia')">
+                        <span class="side-seg-dot" style="background:#db2777;"></span><span id="labelSideNovia" class="side-seg-label">Novia</span>
+                    </button>
+                    <button type="button" class="side-seg-btn" data-lado="infantil" onclick="seleccionarLadoInvitado('infantil')">
+                        <span class="side-seg-dot" style="background:#eab308;"></span><span class="side-seg-label">Infantil</span>
+                    </button>
+                    <button type="button" class="side-seg-btn active" data-lado="general" onclick="seleccionarLadoInvitado('general')">
+                        <span class="side-seg-label">General</span>
+                    </button>
+                </div>
                 <div class="row-flex">
                     <div class="field-group">
                         <label class="field-label" for="nombreInvitado">Nombre o grupo</label>
@@ -2249,6 +2466,14 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                         Photocall
                     </button>
+					<button type="button" class="venue-chip" onclick="agregarElementoSalonPreset('perimetro')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v2"/><path d="M15 20v-2"/></svg>
+                        Perímetro
+                    </button>
+                    <button type="button" class="venue-chip" onclick="agregarElementoSalonPreset('pared')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="9" width="20" height="6" rx="1.5"/></svg>
+                        Pared
+                    </button>
                     <button type="button" class="venue-chip" onclick="agregarElementoSalonPreset('personalizado')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="4 3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
                         Otro bloque
@@ -2282,6 +2507,30 @@
                     <label class="field-label" for="fechaEvento">Fecha del evento</label>
                     <input type="date" id="fechaEvento" class="input-text">
                 </div>
+				<div class="couple-swap-grid">
+                    <div class="field-group">
+                        <label class="field-label couple-label" for="nombreNovio">
+                            <span class="side-seg-dot" style="background:#2563eb;"></span>Novio
+                        </label>
+                        <input type="text" id="nombreNovio" class="input-text" placeholder="Ej. Novio" autocomplete="off">
+                    </div>
+
+                    <button type="button" class="swap-couple-btn" onclick="intercambiarNovios()" title="Intercambiar nombres y colores (azul ↔ rosa)" aria-label="Intercambiar novio y novia">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" width="15" height="15">
+                            <polyline points="17 2 21 6 17 10"/>
+                            <line x1="3" y1="6" x2="21" y2="6"/>
+                            <polyline points="7 22 3 18 7 14"/>
+                            <line x1="21" y1="18" x2="3" y2="18"/>
+                        </svg>
+                    </button>
+
+                    <div class="field-group">
+                        <label class="field-label couple-label" for="nombreNovia">
+                            <span class="side-seg-dot" style="background:#db2777;"></span>Novia
+                        </label>
+                        <input type="text" id="nombreNovia" class="input-text" placeholder="Ej. Novia" autocomplete="off">
+                    </div>
+                </div>
             </section>
 
             <!-- SECCIÓN: Datos (Excel y Proyecto) -->
@@ -2310,7 +2559,7 @@
                     1ª pestaña · Fila 1 cabeceras (se ignora).
                     <ul>
                         <li><strong>A:</strong> Nombre <em>(ej. Familia Tía Koke)</em></li>
-                        <li><strong>B:</strong> Lado <em>(Manuel o Gemma)</em></li>
+						<li><strong>B:</strong> Lado <em>(Nombre del novio o de la novia)</em></li>
                         <li><strong>C:</strong> Relación <em>(Familia o Amigos)</em></li>
                         <li><strong>D:</strong> Origen <em>(Orihuela, Benejúzar...)</em></li>
                         <li><strong>E:</strong> Edad <em>(Adultos o Niños)</em></li>
@@ -2422,13 +2671,27 @@
             </button>
         </div>
 
-        <!-- Ayuda rápida -->
+        <!-- Ayuda rápida y filtros por bando -->
         <div class="canvas-hint">
-			<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#2563eb;margin-right:3px;"></span>Manuel ·
-			<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#db2777;margin:0 3px;"></span>Gemma ·
-			<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#eab308;margin:0 3px;"></span>Infantil ·
-			<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f97316;margin:0 3px;"></span>Alergia ·
-			Doble clic: editar · <kbd>Ctrl+D</kbd> duplicar · <kbd>Ctrl+Z</kbd> deshacer · <kbd>Supr</kbd> eliminar <kbd>↑↓←→</kbd> mover (<kbd>Shift</kbd> ×10) <kbd>R</kbd> rotar · <kbd>RePág/AvPág</kbd> capa
+            <div class="hint-filters" role="group" aria-label="Filtrar invitados en el plano">
+                <button type="button" class="hint-filter-btn" data-filtro="novio" onclick="toggleFiltroVisual('novio')" title="Resaltar solo invitados de este bando">
+                    <span class="hint-dot" style="background:#2563eb;"></span><span id="hintNovio">Novio</span>
+                </button>
+                <button type="button" class="hint-filter-btn" data-filtro="novia" onclick="toggleFiltroVisual('novia')" title="Resaltar solo invitados de este bando">
+                    <span class="hint-dot" style="background:#db2777;"></span><span id="hintNovia">Novia</span>
+                </button>
+                <button type="button" class="hint-filter-btn" data-filtro="infantil" onclick="toggleFiltroVisual('infantil')" title="Resaltar solo invitados infantiles">
+                    <span class="hint-dot" style="background:#eab308;"></span><span>Infantil</span>
+                </button>
+                <button type="button" class="hint-filter-btn" data-filtro="alergia" onclick="toggleFiltroVisual('alergia')" title="Resaltar solo invitados con alergias o menús especiales">
+                    <span class="hint-dot" style="background:#f97316;"></span><span>Alergia</span>
+                </button>
+                <button type="button" id="btnLimpiarFiltroVisual" class="hint-filter-clear" onclick="limpiarFiltroVisual()" title="Mostrar todos los invitados (Esc)">
+                    × Todos
+                </button>
+            </div>
+            <span class="hint-sep"></span>
+            <span><br>Doble clic: editar · <kbd>Ctrl+D</kbd> duplicar · <kbd>Ctrl+Z</kbd> deshacer · <kbd>Supr</kbd> eliminar <kbd>↑↓←→</kbd> mover (<kbd>Shift</kbd> ×10) <kbd>R</kbd> rotar · <kbd>RePág/AvPág</kbd> capa</span>
         </div>
     </main>
 
@@ -2547,10 +2810,10 @@
 
     <!-- Sugerencias reutilizables -->
     <datalist id="listaLados">
-        <option value="Manuel"></option>
-        <option value="Gemma"></option>
-        <option value="General"></option>
-    </datalist>
+		<option value="Novio"></option>
+		<option value="Novia"></option>
+		<option value="General"></option>
+	</datalist>
     <datalist id="listaRelaciones">
         <option value="Familia"></option>
         <option value="Amigos"></option>
@@ -2602,6 +2865,7 @@
         let invitadosSacadosModal = [];
 		let invitadosSinMesaModal = [];
         let formaMesaSeleccionada = 'redonda';
+		let ladoInvitadoSeleccionado = 'general';
         let mesasBloqueadas = false;
         let guiasMagneticasActivas = true;
         let guiasActivas = { verticales: [], horizontales: [] };
@@ -2611,8 +2875,15 @@
         let listaInvitadosHud = [];
 		let tituloEvento = '';
         let fechaEvento = '';
+		let nombreNovio = '';
+        let nombreNovia = '';
+        let ultimoNovioConfirmado = 'Novio';
+        let ultimaNoviaConfirmada = 'Novia';
+		let tituloEsAutomatico = false;
+        let tituloBloqueadoManual = false;
         let timerGuardadoEvento = null;
 		let timerGuardadoFlechas = null;
+		let filtroVisualActivo = null; // null | 'novio' | 'novia' | 'infantil'
 
         const CHIPS_ALERGIAS = [
             'Celíaco',
@@ -2634,12 +2905,31 @@
         };
 
         const PRESETS_SALON = {
-            escenario:     { etiqueta: 'ESCENARIO / BANDA', ancho: 280, alto: 95,  tema: 'indigo' },
-            pista:         { etiqueta: 'PISTA DE BAILE',    ancho: 300, alto: 220, tema: 'amber' },
-            barra:         { etiqueta: 'BARRA LIBRE',       ancho: 220, alto: 75,  tema: 'slate' },
-            entrada:       { etiqueta: 'ENTRADA SALÓN',     ancho: 180, alto: 60,  tema: 'emerald' },
-            photocall:     { etiqueta: 'PHOTOCALL',         ancho: 190, alto: 70,  tema: 'rose' },
-            personalizado: { etiqueta: 'ZONA SALÓN',        ancho: 200, alto: 90,  tema: 'slate' }
+            escenario:     { etiqueta: 'ESCENARIO / BANDA', ancho: 280,  alto: 95,  tema: 'indigo' },
+            pista:         { etiqueta: 'PISTA DE BAILE',    ancho: 300,  alto: 220, tema: 'amber' },
+            barra:         { etiqueta: 'BARRA LIBRE',       ancho: 220,  alto: 75,  tema: 'slate' },
+            entrada:       { etiqueta: 'ENTRADA SALÓN',     ancho: 180,  alto: 60,  tema: 'emerald' },
+            photocall:     { etiqueta: 'PHOTOCALL',         ancho: 190,  alto: 70,  tema: 'rose' },
+            perimetro:     {
+                etiqueta: '',
+                nombreToast: 'Perímetro del salón',
+                ancho: 1200,
+                alto: 800,
+                tema: 'slate',
+                tipoBorde: 'continuo',
+                fondoTransparente: true,
+                enviarAlFondo: true
+            },
+            pared:         {
+                etiqueta: '',
+                nombreToast: 'Pared',
+                ancho: 260,
+                alto: 14,
+                tema: 'slate',
+                tipoBorde: 'continuo',
+                fondoTransparente: true
+            },
+            personalizado: { etiqueta: 'ZONA SALÓN',        ancho: 200,  alto: 90,  tema: 'slate' }
         };
 
         // Sombras reutilizables
@@ -2716,23 +3006,256 @@
                 .replace(/^_+|_+$/g, '')
                 .slice(0, 60);
 
-            if (!slug) {
-                return `${nombreDefecto}.${extension}`;
+            const fechaLimpia = (fechaEvento || '')
+                .trim()
+                .replace(/[^0-9-]+/g, '');
+
+            const partes = [];
+            if (slug) {
+                partes.push(slug);
+                if (fechaLimpia) partes.push(fechaLimpia);
+                partes.push(sufijo);
+            } else {
+                partes.push(nombreDefecto);
+                if (fechaLimpia) partes.push(fechaLimpia);
             }
-            return `${slug}_${sufijo}.${extension}`;
+
+            return `${partes.join('_')}.${extension}`;
+        }
+
+        function obtenerNombreNovio() {
+            return (nombreNovio || '').trim() || 'Novio';
+        }
+
+        function obtenerNombreNovia() {
+            return (nombreNovia || '').trim() || 'Novia';
+        }
+		
+		function construirTituloEventoSugerido(novio, novia) {
+            const n1 = (novio || '').trim();
+            const n2 = (novia || '').trim();
+            if (!n1 || !n2) return '';
+            const conjuncion = /^h?[ií](?![aeiouáéíóú])/i.test(n2) ? 'e' : 'y';
+            return `Boda de ${n1} ${conjuncion} ${n2}`;
+        }
+
+        function autocompletarTituloEventoSiProcede({ forzarSiVacio = false } = {}) {
+            const sugerido = construirTituloEventoSugerido(nombreNovio, nombreNovia);
+            if (!sugerido) {
+                if (tituloEsAutomatico) {
+                    tituloEvento = '';
+                    tituloEsAutomatico = false;
+                }
+                return false;
+            }
+
+            const puedeAutocompletar = tituloEsAutomatico
+                || (!tituloEvento && (forzarSiVacio || !tituloBloqueadoManual));
+
+            if (puedeAutocompletar) {
+                tituloEvento = sugerido;
+                tituloEsAutomatico = true;
+                tituloBloqueadoManual = false;
+                return true;
+            }
+            return false;
+        }
+
+        function detectarNombresDesdeLados(listaLados) {
+            const excluidos = new Set([
+                '', 'general', 'comun', 'comunes', 'ambos',
+                'infantil', 'ninos', 'ninguno', 'otros', '-', 'sin asignar'
+            ]);
+            const mapa = new Map();
+
+            (listaLados || []).forEach((valor, idx) => {
+                const limpio = (valor || '').toString().trim();
+                const norm = normalizarTexto(limpio);
+                if (!norm || excluidos.has(norm)) return;
+
+                if (mapa.has(norm)) {
+                    mapa.get(norm).cuenta++;
+                } else {
+                    mapa.set(norm, { texto: limpio, cuenta: 1, primerIndice: idx });
+                }
+            });
+
+            // Toma los 2 bandos más frecuentes (evita erratas sueltas) conservando su orden de aparición
+            const topDos = Array.from(mapa.values())
+                .sort((a, b) => b.cuenta - a.cuenta || a.primerIndice - b.primerIndice)
+                .slice(0, 2)
+                .sort((a, b) => a.primerIndice - b.primerIndice);
+
+            return {
+                novio: topDos[0] ? topDos[0].texto : '',
+                novia: topDos[1] ? topDos[1].texto : ''
+            };
+        }
+
+        function refrescarEstilosPorNovios() {
+            const objetos = canvas.getObjects().filter(o => !o.esTemporal);
+            objetos.forEach(obj => {
+                if (obj.tipoObjeto === 'invitado') {
+                    actualizarVisualInvitado(obj);
+                }
+            });
+            objetos.forEach(obj => {
+                if (obj.tipoObjeto === 'mesa') {
+                    reposicionarInvitadosEnCirculo(obj);
+                }
+            });
+			aplicarFiltroVisualEnCanvas();
+            canvas.requestRenderAll();
+        }
+		
+		// ==================== FILTRO VISUAL RÁPIDO EN EL LIENZO ====================
+        function invitadoCoincideConFiltro(inv, filtro) {
+            if (!filtro) return true;
+            if (filtro === 'infantil') return esNino(inv.edad);
+            if (filtro === 'alergia') return Boolean(inv.alergias && inv.alergias.trim() !== '');
+
+            const normLado = normalizarTexto(inv.lado);
+            if (!normLado || normLado === 'general') return false;
+
+            const normNovio = normalizarTexto(obtenerNombreNovio());
+            const normNovia = normalizarTexto(obtenerNombreNovia());
+
+            if (filtro === 'novio') {
+                if (normLado === normNovio) return true;
+                if (normLado === normNovia) return false;
+                return normNovio.length >= 2 && normLado.includes(normNovio);
+            }
+            if (filtro === 'novia') {
+                if (normLado === normNovia) return true;
+                if (normLado === normNovio) return false;
+                return normNovia.length >= 2 && normLado.includes(normNovia);
+            }
+            return true;
+        }
+
+        function actualizarUIEstadoFiltroVisual() {
+            document.querySelectorAll('.hint-filter-btn').forEach(btn => {
+                const activo = btn.dataset.filtro === filtroVisualActivo;
+                btn.classList.toggle('is-active', activo);
+                btn.setAttribute('aria-pressed', activo ? 'true' : 'false');
+            });
+
+            const btnLimpiar = document.getElementById('btnLimpiarFiltroVisual');
+            if (btnLimpiar) {
+                btnLimpiar.classList.toggle('visible', Boolean(filtroVisualActivo));
+            }
+        }
+
+        function aplicarFiltroVisualEnCanvas() {
+            const objetos = canvas.getObjects().filter(o => !o.esTemporal);
+
+            if (!filtroVisualActivo) {
+                objetos.forEach(obj => {
+                    if (obj.opacity !== 1) obj.set('opacity', 1);
+                });
+                canvas.requestRenderAll();
+                return;
+            }
+
+            objetos.forEach(obj => {
+                if (obj.tipoObjeto === 'invitado') {
+                    const coincide = invitadoCoincideConFiltro(obj, filtroVisualActivo);
+                    obj.set('opacity', coincide ? 1 : 0.16);
+                } else if (obj.tipoObjeto === 'mesa') {
+                    const tieneCoincidencia = obj.invitadosSentados.some(inv =>
+                        invitadoCoincideConFiltro(inv, filtroVisualActivo)
+                    );
+                    obj.set('opacity', tieneCoincidencia ? 1 : 0.28);
+                } else if (obj.tipoObjeto === 'elementoSalon') {
+                    obj.set('opacity', 0.45);
+                }
+            });
+
+            canvas.requestRenderAll();
+        }
+
+        function toggleFiltroVisual(filtro) {
+            if (filtroVisualActivo === filtro) {
+                limpiarFiltroVisual();
+                return;
+            }
+
+            filtroVisualActivo = filtro;
+            actualizarUIEstadoFiltroVisual();
+            aplicarFiltroVisualEnCanvas();
+
+            const invitados = canvas.getObjects().filter(o => o.tipoObjeto === 'invitado' && !o.esTemporal);
+            const coincidentes = invitados.filter(inv => invitadoCoincideConFiltro(inv, filtro));
+            const totalPers = coincidentes.reduce((s, inv) => s + (inv.cantidad || 1), 0);
+
+            const etiquetasFiltro = {
+                novio: obtenerNombreNovio(),
+                novia: obtenerNombreNovia(),
+                infantil: 'Infantil',
+                alergia: 'Alergias'
+            };
+            const nombreFiltro = etiquetasFiltro[filtro] || filtro;
+
+            if (coincidentes.length === 0) {
+                mostrarToast(`Filtro ${nombreFiltro}: sin invitados coincidentes.`);
+            } else {
+                mostrarToast(`Filtro ${nombreFiltro}: ${totalPers} pers. en ${coincidentes.length} ${coincidentes.length === 1 ? 'grupo' : 'grupos'}.`);
+            }
+        }
+
+        function limpiarFiltroVisual({ silencioso = false } = {}) {
+            if (!filtroVisualActivo) return;
+            filtroVisualActivo = null;
+            actualizarUIEstadoFiltroVisual();
+            aplicarFiltroVisualEnCanvas();
+            if (!silencioso) {
+                mostrarToast("Filtro desactivado: mostrando todos los invitados.");
+            }
         }
 
         function sincronizarUIEvento() {
             const inputTitulo = document.getElementById('tituloEvento');
             const inputFecha = document.getElementById('fechaEvento');
+            const inputNovio = document.getElementById('nombreNovio');
+            const inputNovia = document.getElementById('nombreNovia');
             const h1Sidebar = document.getElementById('tituloSidebar');
             const subSidebar = document.getElementById('subtituloSidebar');
 
-            if (inputTitulo && inputTitulo.value !== tituloEvento) {
-                inputTitulo.value = tituloEvento;
+            if (inputTitulo && inputTitulo.value !== tituloEvento) inputTitulo.value = tituloEvento;
+            if (inputFecha && inputFecha.value !== fechaEvento) inputFecha.value = fechaEvento;
+            if (inputNovio && inputNovio.value !== nombreNovio) inputNovio.value = nombreNovio;
+            if (inputNovia && inputNovia.value !== nombreNovia) inputNovia.value = nombreNovia;
+			if (inputTitulo) {
+                const sugerido = construirTituloEventoSugerido(nombreNovio, nombreNovia);
+                inputTitulo.placeholder = sugerido ? `Ej. ${sugerido}` : 'Ej. Boda de Novio y Novia';
             }
-            if (inputFecha && inputFecha.value !== fechaEvento) {
-                inputFecha.value = fechaEvento;
+
+            const etiquetaNovio = obtenerNombreNovio();
+            const etiquetaNovia = obtenerNombreNovia();
+
+            const labelSideNovio = document.getElementById('labelSideNovio');
+            const labelSideNovia = document.getElementById('labelSideNovia');
+            const hintNovio = document.getElementById('hintNovio');
+            const hintNovia = document.getElementById('hintNovia');
+            const datalistLados = document.getElementById('listaLados');
+
+            if (labelSideNovio) {
+                labelSideNovio.textContent = etiquetaNovio;
+                labelSideNovio.parentElement.title = etiquetaNovio;
+            }
+            if (labelSideNovia) {
+                labelSideNovia.textContent = etiquetaNovia;
+                labelSideNovia.parentElement.title = etiquetaNovia;
+            }
+            if (hintNovio) hintNovio.textContent = etiquetaNovio;
+            if (hintNovia) hintNovia.textContent = etiquetaNovia;
+
+            if (datalistLados) {
+                datalistLados.innerHTML = `
+                    <option value="${escaparHTML(etiquetaNovio)}"></option>
+                    <option value="${escaparHTML(etiquetaNovia)}"></option>
+                    <option value="General"></option>
+                `;
             }
 
             const fechaBonita = formatearFechaEvento(fechaEvento);
@@ -2742,15 +3265,55 @@
             if (subSidebar) {
                 subSidebar.textContent = fechaBonita || 'Organizador visual de mesas';
             }
-            document.title = tituloEvento ? `${tituloEvento} — Seating Plan` : 'Seating Plan';
+			const partesDocTitle = [tituloEvento || 'Seating Plan', fechaEvento].filter(Boolean);
+            document.title = partesDocTitle.join(' - ');
         }
 
-        function manejarCambioDatosEvento(inmediato = false) {
+        function manejarCambioDatosEvento(inmediato = false, origen = 'general') {
             const inputTitulo = document.getElementById('tituloEvento');
             const inputFecha = document.getElementById('fechaEvento');
+            const inputNovio = document.getElementById('nombreNovio');
+            const inputNovia = document.getElementById('nombreNovia');
+
             tituloEvento = inputTitulo ? inputTitulo.value.trim() : '';
             fechaEvento = inputFecha ? inputFecha.value.trim() : '';
+            nombreNovio = inputNovio ? inputNovio.value.trim() : '';
+            nombreNovia = inputNovia ? inputNovia.value.trim() : '';
+
+            if (origen === 'titulo') {
+                tituloEsAutomatico = false;
+                tituloBloqueadoManual = true;
+            } else if (origen === 'novios') {
+                autocompletarTituloEventoSiProcede({ forzarSiVacio: false });
+            }
+
+            const nuevoNovio = obtenerNombreNovio();
+            const nuevaNovia = obtenerNombreNovia();
+
+            if (inmediato) {
+                const normViejoNovio = normalizarTexto(ultimoNovioConfirmado);
+                const normViejaNovia = normalizarTexto(ultimaNoviaConfirmada);
+                const cambioNovio = normViejoNovio !== normalizarTexto(nuevoNovio);
+                const cambioNovia = normViejaNovia !== normalizarTexto(nuevaNovia);
+
+                if (cambioNovio || cambioNovia) {
+                    canvas.getObjects().forEach(obj => {
+                        if (obj.esTemporal || obj.tipoObjeto !== 'invitado') return;
+                        const normLado = normalizarTexto(obj.lado);
+                        if (cambioNovio && normLado === normViejoNovio) {
+                            obj.lado = nuevoNovio;
+                        } else if (cambioNovia && normLado === normViejaNovia) {
+                            obj.lado = nuevaNovia;
+                        }
+                    });
+                }
+
+                ultimoNovioConfirmado = nuevoNovio;
+                ultimaNoviaConfirmada = nuevaNovia;
+            }
+
             sincronizarUIEvento();
+            refrescarEstilosPorNovios();
 
             clearTimeout(timerGuardadoEvento);
             if (inmediato) {
@@ -2758,6 +3321,45 @@
             } else {
                 timerGuardadoEvento = setTimeout(() => registrarCambio(), 500);
             }
+        }
+		
+		function intercambiarNovios() {
+            const inputNovio = document.getElementById('nombreNovio');
+            const inputNovia = document.getElementById('nombreNovia');
+            const actualNovio = (inputNovio ? inputNovio.value : nombreNovio).trim();
+            const actualNovia = (inputNovia ? inputNovia.value : nombreNovia).trim();
+
+            if (!actualNovio && !actualNovia) {
+                mostrarToast("Escribe o importa primero los nombres para poder intercambiarlos.");
+                return;
+            }
+
+            const tituloSugeridoPrevio = construirTituloEventoSugerido(actualNovio, actualNovia);
+            const coincideConSugeridoPrevio = Boolean(
+                tituloEvento &&
+                tituloSugeridoPrevio &&
+                normalizarTexto(tituloEvento) === normalizarTexto(tituloSugeridoPrevio)
+            );
+
+            nombreNovio = actualNovia;
+            nombreNovia = actualNovio;
+
+            // Se actualizan los nombres confirmados sin renombrar inv.lado,
+            // de modo que cada invitado conserva su bando y solo cambian sus colores azul/rosa
+            ultimoNovioConfirmado = obtenerNombreNovio();
+            ultimaNoviaConfirmada = obtenerNombreNovia();
+
+            // Si el título coincide con el formato automático, actualiza también el orden de los nombres
+            if (coincideConSugeridoPrevio) {
+                tituloEsAutomatico = true;
+            }
+            autocompletarTituloEventoSiProcede({ forzarSiVacio: false });
+
+            clearTimeout(timerGuardadoEvento);
+            sincronizarUIEvento();
+            refrescarEstilosPorNovios();
+            registrarCambio();
+            mostrarToast(`Intercambiados: ${obtenerNombreNovio()} (azul) · ${obtenerNombreNovia()} (rosa)`);
         }
 
         // ==================== MOTOR DE GUÍAS MAGNÉTICAS (SNAP) ====================
@@ -3462,19 +4064,29 @@
                 if (!inputNombre.value.trim()) inputCap.value = '10';
             }
         }
+		
+		// ==================== SELECTOR DEL LADO DEL INVITADOS ====================
+        function seleccionarLadoInvitado(lado) {
+            ladoInvitadoSeleccionado = lado;
+            document.querySelectorAll('.side-seg-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.lado === lado);
+            });
+        }
 
         // ==================== MOTOR DE ESTADO, AUTOGUARDADO E HISTORIAL ====================
         function obtenerEstadoPlano() {
 			const estado = {
-			   evento: {
-				   titulo: tituloEvento,
-				   fecha: fechaEvento
-			   },
-			   mesas: [],
-			   invitados: [],
-			   elementosSalon: [],
-			   contadorNuevasMesas: contadorNuevasMesas
-			};
+                evento: {
+                    titulo: tituloEvento,
+                    fecha: fechaEvento,
+                    novio: nombreNovio,
+                    novia: nombreNovia
+                },
+                mesas: [],
+                invitados: [],
+                elementosSalon: [],
+                contadorNuevasMesas: contadorNuevasMesas
+            };
             const mesas = canvas.getObjects().filter(o => o.tipoObjeto === 'mesa' && !o.esTemporal);
 
             canvas.getObjects().forEach(obj => {
@@ -3525,16 +4137,43 @@
             return estado;
         }
 
-        function cargarEstadoPlano(estado, { ajustarVista = false } = {}) {
+        function cargarEstadoPlano(estado, { ajustarVista = false, autocompletarTitulo = false } = {}) {
             estaRestaurando = true;
+			clearTimeout(timerGuardadoFlechas);
+			clearTimeout(timerGuardadoEvento);
             limpiarGuiasActivas();
 			limpiarResaltadoMesaDestino();
             const vptActual = [...canvas.viewportTransform];
 
             canvas.clear();
 			tituloEvento = (estado.evento && typeof estado.evento.titulo === 'string') ? estado.evento.titulo : '';
-			fechaEvento = (estado.evento && typeof estado.evento.fecha === 'string') ? estado.evento.fecha : '';
-			sincronizarUIEvento();
+            fechaEvento = (estado.evento && typeof estado.evento.fecha === 'string') ? estado.evento.fecha : '';
+            nombreNovio = (estado.evento && typeof estado.evento.novio === 'string') ? estado.evento.novio.trim() : '';
+            nombreNovia = (estado.evento && typeof estado.evento.novia === 'string') ? estado.evento.novia.trim() : '';
+
+            // Si es un JSON antiguo sin novio/novia explícitos, los infiere de los invitados cargados
+            if ((!nombreNovio || !nombreNovia) && Array.isArray(estado.invitados) && estado.invitados.length > 0) {
+                const detectados = detectarNombresDesdeLados(estado.invitados.map(i => i.lado));
+                const candidatos = [detectados.novio, detectados.novia].filter(Boolean);
+                if (!nombreNovio) {
+                    const libre = candidatos.find(c => normalizarTexto(c) !== normalizarTexto(nombreNovia));
+                    if (libre) nombreNovio = libre;
+                }
+                if (!nombreNovia) {
+                    const libre = candidatos.find(c => normalizarTexto(c) !== normalizarTexto(nombreNovio));
+                    if (libre) nombreNovia = libre;
+                }
+            }
+			
+			tituloEsAutomatico = false;
+            tituloBloqueadoManual = Boolean(tituloEvento);
+            if (autocompletarTitulo && !tituloEvento) {
+                autocompletarTituloEventoSiProcede({ forzarSiVacio: true });
+            }
+			
+            ultimoNovioConfirmado = obtenerNombreNovio();
+            ultimaNoviaConfirmada = obtenerNombreNovia();
+            sincronizarUIEvento();
             const diccionarioMesas = {};
 
             if (estado.elementosSalon) {
@@ -3708,6 +4347,7 @@
 
             limpiarGuiasActivas();
             limpiarResaltadoMesaDestino();
+			limpiarFiltroVisual({ silencioso: true });
             cerrarPanelHud();
             canvas.clear();
             contadorNuevasMesas = 1;
@@ -4962,20 +5602,33 @@
             const idUnico = `salon_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
             const bloquesActuales = canvas.getObjects().filter(o => o.tipoObjeto === 'elementoSalon' && !o.esTemporal);
-            const zInicial = bloquesActuales.length > 0
-                ? Math.max(...bloquesActuales.map(b => b.zIndex ?? 0)) + 1
-                : 0;
+            let zInicial = 0;
+
+            if (preset.enviarAlFondo) {
+                zInicial = bloquesActuales.length > 0
+                    ? Math.min(...bloquesActuales.map(b => b.zIndex ?? 0)) - 1
+                    : -1;
+            } else {
+                zInicial = bloquesActuales.length > 0
+                    ? Math.max(...bloquesActuales.map(b => b.zIndex ?? 0)) + 1
+                    : 0;
+            }
+
+            const desplazamientoX = preset.enviarAlFondo ? 0 : (Math.random() * 40 - 20);
+            const desplazamientoY = preset.enviarAlFondo ? 0 : (Math.random() * 40 - 20);
 
             const bloque = crearElementoSalon(
-                centro.x + (Math.random() * 40 - 20),
-                centro.y + (Math.random() * 40 - 20),
+                centro.x + desplazamientoX,
+                centro.y + desplazamientoY,
                 idUnico,
                 preset.etiqueta,
                 preset.ancho,
                 preset.alto,
                 preset.tema,
                 0,
-                zInicial
+                zInicial,
+                preset.tipoBorde || 'discontinuo',
+                Boolean(preset.fondoTransparente)
             );
 
             canvas.add(bloque);
@@ -4987,7 +5640,8 @@
             if (tipo === 'personalizado') {
                 abrirModalEdicion(bloque);
             } else {
-                mostrarToast(`${preset.etiqueta} añadido al plano.`);
+                const nombreVisible = preset.nombreToast || preset.etiqueta || 'Elemento del salón';
+                mostrarToast(`${nombreVisible} añadido al plano.`);
             }
         }
 
@@ -5017,21 +5671,24 @@
                     texto: '#9f1239'
                 };
             }
-            const textoL1 = (linea1 || '').toLowerCase();
+            const textoL1 = normalizarTexto(linea1);
+            const normNovio = normalizarTexto(obtenerNombreNovio());
+            const normNovia = normalizarTexto(obtenerNombreNovia());
+
             if (forma === 'presidencial' || textoL1.includes('presidencial') || textoL1.includes('novios')) {
                 return { fondo: '#fffbeb', borde: '#b45309', anillo: '#fde68a', texto: '#78350f' };
             }
-            if (textoL1.includes('manuel')) {
+            if (normNovio.length >= 2 && textoL1.includes(normNovio)) {
                 return textoL1.includes('familia')
                     ? { fondo: '#eff6ff', borde: '#2563eb', anillo: '#bfdbfe', texto: '#1e3a8a' }
                     : { fondo: '#eef2ff', borde: '#4f46e5', anillo: '#c7d2fe', texto: '#312e81' };
             }
-            if (textoL1.includes('gemma')) {
+            if (normNovia.length >= 2 && textoL1.includes(normNovia)) {
                 return textoL1.includes('familia')
                     ? { fondo: '#fdf2f8', borde: '#db2777', anillo: '#fbcfe8', texto: '#831843' }
                     : { fondo: '#faf5ff', borde: '#9333ea', anillo: '#e9d5ff', texto: '#581c87' };
             }
-            if (textoL1.includes('niños') || textoL1.includes('infantil')) {
+            if (textoL1.includes('ninos') || textoL1.includes('infantil')) {
                 return { fondo: '#fefce8', borde: '#ca8a04', anillo: '#fef08a', texto: '#713f12' };
             }
             return { fondo: '#ffffff', borde: '#334155', anillo: '#e2e8f0', texto: '#0f172a' };
@@ -5148,9 +5805,16 @@
         function obtenerColorLadoInvitado(lado, edad) {
             if (esNino(edad)) return '#eab308'; // Infantil (amarillo)
             const normLado = normalizarTexto(lado);
-            if (normLado.includes('manuel')) return '#2563eb'; // Manuel (azul)
-            if (normLado.includes('gemma')) return '#db2777';  // Gemma (rosa)
-            return null; // General: sin punto
+            if (!normLado || normLado === 'general') return null;
+
+            const normNovio = normalizarTexto(obtenerNombreNovio());
+            const normNovia = normalizarTexto(obtenerNombreNovia());
+
+            if (normLado === normNovio) return '#2563eb';
+            if (normLado === normNovia) return '#db2777';
+            if (normNovio.length >= 2 && normLado.includes(normNovio)) return '#2563eb';
+            if (normNovia.length >= 2 && normLado.includes(normNovia)) return '#db2777';
+            return null;
         }
 
         function crearInvitado(x, y, nombre, cantidad = 1, alergias = '', lado = 'General', edad = 'Adultos') {
@@ -5764,7 +6428,7 @@
             const inputAlergias = document.getElementById('alergiasInvitado');
 
             const nombre = inputNombre.value.trim();
-            const cantidad = parseInt(inputCantidad.value) || 1;
+            const cantidad = parseInt(inputCantidad.value, 10) || 1;
             const alergias = inputAlergias.value.trim();
 
             if (!nombre) {
@@ -5776,13 +6440,31 @@
             const centro = obtenerCentroVisible();
             const xInicial = centro.x - 160 + (Math.random() * 30 - 15);
             const yInicial = centro.y + (Math.random() * 120 - 60);
+			
+			const esSeleccionInfantil = ladoInvitadoSeleccionado === 'infantil';
+            let ladoInicial = 'General';
+            if (ladoInvitadoSeleccionado === 'novio') {
+                ladoInicial = obtenerNombreNovio();
+            } else if (ladoInvitadoSeleccionado === 'novia') {
+                ladoInicial = obtenerNombreNovia();
+            }
+            const edadInicial = (esSeleccionInfantil || normalizarTexto(alergias).includes('infantil'))
+                ? 'Niños'
+                : 'Adultos';
 
-			const edadInicial = normalizarTexto(alergias).includes('infantil') ? 'Niños' : 'Adultos';
-			const nuevoInvitado = crearInvitado(xInicial, yInicial, nombre, cantidad, alergias, 'General', edadInicial);
-            nuevoInvitado.lado = 'General';
+            const nuevoInvitado = crearInvitado(
+                xInicial,
+                yInicial,
+                nombre,
+                cantidad,
+                alergias,
+                ladoInicial,
+                edadInicial
+            );
+            nuevoInvitado.lado = ladoInicial;
             nuevoInvitado.relacion = 'General';
             nuevoInvitado.origen = 'General';
-            nuevoInvitado.edad = normalizarTexto(alergias).includes('infantil') ? 'Niños' : 'Adultos';
+            nuevoInvitado.edad = edadInicial;
             nuevoInvitado.deParteDe = 'General';
 
             canvas.add(nuevoInvitado);
@@ -5948,6 +6630,34 @@
                         contadorX += 180;
                     }
                 };
+				
+				// Detecta automáticamente los nombres de novio y novia desde la columna B (Lado)
+                const ladosExcel = [];
+                for (let i = 1; i < filas.length; i++) {
+                    const fila = filas[i];
+                    if (!fila || !fila[0] || String(fila[0]).trim() === '') continue;
+                    if (parseInt(fila[6], 10) === 0) continue;
+                    if (fila[1] != null) ladosExcel.push(fila[1]);
+                }
+
+                const noviosExcel = detectarNombresDesdeLados(ladosExcel);
+                if (noviosExcel.novio && noviosExcel.novia) {
+					nombreNovio = noviosExcel.novio;
+					nombreNovia = noviosExcel.novia;
+				} else if (noviosExcel.novio) {
+					const normUnico = normalizarTexto(noviosExcel.novio);
+					if (normUnico !== normalizarTexto(nombreNovio) && normUnico !== normalizarTexto(nombreNovia)) {
+						if (!nombreNovio) nombreNovio = noviosExcel.novio;
+						else if (!nombreNovia) nombreNovia = noviosExcel.novio;
+					}
+				}
+                if (noviosExcel.novio || noviosExcel.novia) {
+                    autocompletarTituloEventoSiProcede({ forzarSiVacio: true });
+                    ultimoNovioConfirmado = obtenerNombreNovio();
+                    ultimaNoviaConfirmada = obtenerNombreNovia();
+                    sincronizarUIEvento();
+                    refrescarEstilosPorNovios();
+                }
 
                 for (let i = 1; i < filas.length; i++) {
                     const fila = filas[i];
@@ -6696,7 +7406,7 @@
             lector.onload = function(e) {
                 try {
                     const estado = JSON.parse(e.target.result);
-                    cargarEstadoPlano(estado, { ajustarVista: true });
+					cargarEstadoPlano(estado, { ajustarVista: true, autocompletarTitulo: true });
                     registrarCambio();
                     evento.target.value = '';
                     mostrarToast("Plano cargado con éxito.");
@@ -6828,8 +7538,8 @@
 
             // 3. Leyenda superior izquierda (Manuel, Gemma, Infantil y Alergia)
             const itemsLeyenda = [
-                { label: 'Manuel', color: '#2563eb' },
-                { label: 'Gemma', color: '#db2777' },
+                { label: obtenerNombreNovio(), color: '#2563eb' },
+                { label: obtenerNombreNovia(), color: '#db2777' },
                 { label: 'Infantil', color: '#eab308' },
                 { label: 'Alergia', color: '#f97316' }
             ];
@@ -6941,6 +7651,11 @@
             temporales.push(leyendaGroup, badgeGroup);
 
             canvas.add(...temporales);
+			const filtroPrevioPNG = filtroVisualActivo;
+			if (filtroPrevioPNG) {
+				filtroVisualActivo = null;
+				aplicarFiltroVisualEnCanvas();
+			}
             canvas.backgroundColor = '#ffffff';
             canvas.renderAll();
 
@@ -6957,6 +7672,10 @@
             temporales.forEach(t => canvas.remove(t));
             canvas.backgroundColor = null;
             canvas.setViewportTransform(vptOriginal);
+            if (filtroPrevioPNG) {
+				filtroVisualActivo = filtroPrevioPNG;
+				aplicarFiltroVisualEnCanvas();
+            }
             canvas.getObjects().forEach(obj => obj.setCoords());
             canvas.renderAll();
 
@@ -7255,6 +7974,10 @@
             if (panelHudActivo) {
                 renderizarPanelHud();
             }
+			
+			if (filtroVisualActivo) {
+                aplicarFiltroVisualEnCanvas();
+            }
         }
 		
 		function moverObjetoConFlechas(evento) {
@@ -7448,6 +8171,11 @@
                 }
                 return;
             }
+			
+			if (printOverlay.classList.contains('open')) {
+				if (evento.key === 'Escape') cerrarVistaImprimible();
+				return;
+			}
 
             if (modalOverlay.classList.contains('open')) {
                 if (evento.key === 'Escape') cerrarModalEdicion();
@@ -7456,6 +8184,11 @@
 
             if (evento.key === 'Escape' && panelHudActivo) {
                 cerrarPanelHud();
+                return;
+            }
+			
+			if (evento.key === 'Escape' && filtroVisualActivo) {
+                limpiarFiltroVisual();
                 return;
             }
 
@@ -7525,10 +8258,14 @@
         document.getElementById('alergiasInvitado').addEventListener('keydown', e => {
             if (e.key === 'Enter') agregarInvitado();
         });
-		document.getElementById('tituloEvento').addEventListener('input', () => manejarCambioDatosEvento(false));
-        document.getElementById('tituloEvento').addEventListener('change', () => manejarCambioDatosEvento(true));
-        document.getElementById('fechaEvento').addEventListener('input', () => manejarCambioDatosEvento(true));
-        document.getElementById('fechaEvento').addEventListener('change', () => manejarCambioDatosEvento(true));
+		document.getElementById('tituloEvento').addEventListener('input', () => manejarCambioDatosEvento(false, 'titulo'));
+        document.getElementById('tituloEvento').addEventListener('change', () => manejarCambioDatosEvento(true, 'titulo'));
+        document.getElementById('fechaEvento').addEventListener('input', () => manejarCambioDatosEvento(true, 'fecha'));
+        document.getElementById('fechaEvento').addEventListener('change', () => manejarCambioDatosEvento(true, 'fecha'));
+        document.getElementById('nombreNovio').addEventListener('input', () => manejarCambioDatosEvento(false, 'novios'));
+        document.getElementById('nombreNovio').addEventListener('change', () => manejarCambioDatosEvento(true, 'novios'));
+        document.getElementById('nombreNovia').addEventListener('input', () => manejarCambioDatosEvento(false, 'novios'));
+        document.getElementById('nombreNovia').addEventListener('change', () => manejarCambioDatosEvento(true, 'novios'));
 
         // ==================== INICIALIZACIÓN Y RESTAURACIÓN ====================
         (function inicializarAplicacion() {
@@ -7554,10 +8291,14 @@
                 const guardado = localStorage.getItem(STORAGE_KEY);
                 if (guardado) {
                     const estado = JSON.parse(guardado);
-                    const tieneContenido =
-                        (estado.mesas && estado.mesas.length > 0) ||
-                        (estado.invitados && estado.invitados.length > 0) ||
-                        (estado.elementosSalon && estado.elementosSalon.length > 0);
+                    const tieneDatosEvento = Boolean(
+						estado.evento && (estado.evento.titulo || estado.evento.fecha || estado.evento.novio || estado.evento.novia)
+					);
+					const tieneContenido =
+						tieneDatosEvento ||
+						(estado.mesas && estado.mesas.length > 0) ||
+						(estado.invitados && estado.invitados.length > 0) ||
+						(estado.elementosSalon && estado.elementosSalon.length > 0);
                     if (tieneContenido) {
                         cargarEstadoPlano(estado, { ajustarVista: true });
                         restaurado = true;
