@@ -38,7 +38,7 @@
         }
 
         * {
-            box-sizing: border-box;.modal-seats-empty
+            box-sizing: border-box;
         }
 
         body {
@@ -137,6 +137,422 @@
             height: 6px;
             border-radius: 50%;
             background-color: #10b981;
+        }
+		
+		/* ==================== HUD DERECHO (LISTADO COMPLETO DE INVITADOS) ==================== */
+        .right-panel {
+            width: 332px;
+            min-width: 332px;
+            height: 100vh;
+            background-color: var(--bg-sidebar);
+            border-left: 1px solid var(--border-subtle);
+            display: flex;
+            flex-direction: column;
+            z-index: 20;
+            box-shadow: -4px 0 20px -8px rgba(15, 23, 42, 0.06);
+            transition: margin-right 0.22s ease, box-shadow 0.22s ease;
+        }
+
+        .right-panel.is-collapsed {
+            margin-right: -332px;
+            box-shadow: none;
+            border-left-color: transparent;
+            pointer-events: none;
+        }
+
+        .right-panel-header {
+            padding: 14px 16px 12px;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .right-panel-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+        }
+
+        .right-panel-title {
+            margin: 0;
+            font-size: 14.5px;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.01em;
+        }
+
+        .right-panel-badge {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--accent-brand);
+            background-color: #eef2ff;
+            border: 1px solid #c7d2fe;
+            padding: 2px 8px;
+            border-radius: var(--radius-pill);
+            white-space: nowrap;
+        }
+
+        .right-panel-controls {
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border-subtle);
+            background-color: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+        }
+
+        .right-filter-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .right-filter-chip {
+            border: 1px solid var(--border-strong);
+            background-color: #ffffff;
+            color: var(--text-secondary);
+            border-radius: var(--radius-pill);
+            padding: 4px 9px;
+            font-size: 11px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            max-width: 120px;
+            transition: all 0.12s ease;
+        }
+
+        .right-filter-chip:hover {
+            border-color: #94a3b8;
+            color: var(--text-primary);
+        }
+
+        .right-filter-chip.active {
+            background-color: var(--accent-dark);
+            border-color: var(--accent-dark);
+            color: #ffffff;
+        }
+
+        .right-filter-chip.active[data-bando="novio"] {
+            background-color: #eff6ff;
+            border-color: #60a5fa;
+            color: #1d4ed8;
+        }
+
+        .right-filter-chip.active[data-bando="novia"] {
+            background-color: #fdf2f8;
+            border-color: #f472b6;
+            color: #be185d;
+        }
+
+        .right-filter-chip.active[data-bando="infantil"] {
+            background-color: #fefce8;
+            border-color: #facc15;
+            color: #a16207;
+        }
+
+        .right-filter-chip.is-allergy.active {
+            background-color: #fff7ed;
+            border-color: #fb923c;
+            color: #c2410c;
+        }
+
+        .right-filter-chip-label {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .right-filter-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .right-filter-row .input-select {
+            padding: 6px 8px;
+            font-size: 12px;
+        }
+
+        .right-filter-extras {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+        }
+
+        .right-reset-btn {
+            border: none;
+            background: transparent;
+            color: var(--accent-brand);
+            font-family: inherit;
+            font-size: 11.5px;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 3px 6px;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .right-reset-btn:hover {
+            background-color: #eef2ff;
+        }
+
+        .right-reset-btn.visible {
+            display: inline-flex;
+            align-items: center;
+        }
+		
+		.right-sync-btn {
+            flex: 1; min-width: 0;
+            padding: 7px 10px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-strong);
+            background-color: #ffffff;
+            color: var(--text-secondary);
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.14s ease;
+        }
+
+        .right-sync-btn:hover {
+            background-color: #f8fafc;
+            border-color: #94a3b8;
+            color: var(--text-primary);
+        }
+
+        .right-sync-btn.is-active {
+            background-color: #eef2ff;
+            border-color: #818cf8;
+            color: var(--accent-brand-hover);
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.10);
+        }
+
+        .right-sync-btn.is-active:hover {
+            background-color: #e0e7ff;
+        }
+
+        .right-sync-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background-color: #94a3b8;
+            flex-shrink: 0;
+            transition: background-color 0.14s ease;
+        }
+
+        .right-sync-btn.is-active .right-sync-dot {
+            background-color: var(--accent-brand);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.22);
+        }
+		
+		.right-sync-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .right-sync-row .right-sync-btn {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .right-fit-btn {
+            height: 32px;
+            padding: 0 10px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-strong);
+            background-color: #ffffff;
+            color: var(--text-secondary);
+            font-family: inherit;
+            font-size: 11.5px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: all 0.14s ease;
+        }
+
+        .right-fit-btn:hover:not(:disabled) {
+            background-color: #f8fafc;
+            border-color: #94a3b8;
+            color: var(--text-primary);
+        }
+
+        .right-fit-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .right-panel-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 4px 0;
+        }
+
+        .right-panel-list::-webkit-scrollbar {
+            width: 5px;
+        }
+        .right-panel-list::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 10px;
+        }
+        .right-panel-list::-webkit-scrollbar-thumb:hover {
+            background: #cbd5e1;
+        }
+
+        .right-guest-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 9px 14px;
+            border-bottom: 1px solid #f1f5f9;
+            cursor: pointer;
+            transition: background-color 0.12s ease;
+        }
+
+        .right-guest-row:hover {
+            background-color: #f8fafc;
+        }
+
+        .right-guest-row.is-selected {
+            background-color: #eef2ff;
+            box-shadow: inset 3px 0 0 var(--accent-brand);
+        }
+		
+		.right-guest-row[draggable="true"] {
+            cursor: grab;
+        }
+
+        .right-guest-row.is-dragging {
+            opacity: 0.45;
+            background-color: #eef2ff;
+            cursor: grabbing;
+        }
+
+        .right-drag-handle {
+            color: #94a3b8;
+            display: inline-flex;
+            align-items: center;
+            flex-shrink: 0;
+            margin-right: 2px;
+        }
+
+        .right-guest-row:hover .right-drag-handle {
+            color: var(--text-secondary);
+        }
+
+        .canvas-wrapper.is-drop-active {
+            box-shadow: inset 0 0 0 2px rgba(79, 70, 229, 0.35);
+        }
+
+        .drag-ghost-pill {
+            position: fixed;
+            top: -9999px;
+            left: -9999px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background-color: #ffffff;
+            border: 2px solid #4f46e5;
+            color: #0f172a;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-size: 12.5px;
+            font-weight: 600;
+            box-shadow: 0 10px 22px -6px rgba(15, 23, 42, 0.25);
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        .right-guest-name-line {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            min-width: 0;
+        }
+
+        .right-guest-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+		
+		.right-seat-select {
+            height: 22px;
+            max-width: 175px;
+            padding: 0 8px;
+            border-radius: 999px;
+            border: 1px solid #a7f3d0;
+            background-color: #ecfdf5;
+            color: #047857;
+            font-family: inherit;
+            font-size: 10.5px;
+            font-weight: 600;
+            cursor: pointer;
+            outline: none;
+            transition: border-color 0.14s ease, box-shadow 0.14s ease, background-color 0.14s ease;
+        }
+
+        .right-seat-select:hover:not(:disabled) {
+            border-color: #34d399;
+        }
+
+        .right-seat-select:focus {
+            border-color: var(--accent-brand);
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.16);
+        }
+
+        .right-seat-select.sin-mesa {
+            background-color: #fff1f2;
+            color: #be123c;
+            border-color: #fecdd3;
+        }
+
+        .right-seat-select.sin-mesa:hover:not(:disabled) {
+            border-color: #fda4af;
+        }
+
+        .right-seat-select:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+
+        .right-panel-empty {
+            padding: 28px 18px;
+            text-align: center;
+            font-size: 12.5px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .right-panel-footer {
+            padding: 10px 14px;
+            border-top: 1px solid var(--border-subtle);
+            background-color: #f8fafc;
+            font-size: 11px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
         }
 
         /* ==================== BUSCADOR RÁPIDO FIJO ==================== */
@@ -910,10 +1326,17 @@
         }
 
         /* ==================== HUD FLOTANTE SUPERIOR Y DESPLEGABLE RÁPIDO ==================== */
-        .hud-stats {
+        .hud-top-right {
             position: absolute;
             top: 16px;
             right: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 25;
+        }
+
+        .hud-stats {
             display: flex;
             align-items: center;
             gap: 8px;
@@ -927,8 +1350,52 @@
             font-size: 12px;
             color: var(--text-secondary);
             pointer-events: auto;
-            z-index: 25;
             user-select: none;
+        }
+
+        .right-panel-toggle-btn {
+            height: 36px;
+            padding: 0 12px;
+            border-radius: var(--radius-pill);
+            border: 1px solid var(--border-subtle);
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: var(--text-secondary);
+            box-shadow: var(--shadow-float);
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.15s ease;
+        }
+
+        .right-panel-toggle-btn:hover {
+            background-color: #ffffff;
+            border-color: #94a3b8;
+            color: var(--text-primary);
+        }
+
+        .right-panel-toggle-btn.is-collapsed {
+            background-color: var(--accent-dark);
+            border-color: var(--accent-dark);
+            color: #ffffff;
+        }
+
+        .right-panel-toggle-btn.is-collapsed:hover {
+            background-color: var(--accent-dark-hover);
+            border-color: var(--accent-dark-hover);
+            color: #ffffff;
+        }
+
+        .right-panel-toggle-btn svg {
+            width: 15px;
+            height: 15px;
+            flex-shrink: 0;
         }
 
         .stat-item {
@@ -1319,7 +1786,7 @@
             flex-shrink: 0;
         }
 
-        .canvas-hint kbd {
+        .canvas-hint kbd, .right-panel-footer kbd {
             background: #f1f5f9;
             border: 1px solid #cbd5e1;
             border-radius: 4px;
@@ -2254,9 +2721,6 @@
             .modal-overlay,
             .toast,
             .canvas-tooltip,
-            .print-toolbar {
-                display: none !important;
-            }
 
             .print-overlay {
                 position: static !important;
@@ -2288,6 +2752,16 @@
             .protocol-table {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
+            }
+			
+			.sidebar,
+            .right-panel,
+            .canvas-wrapper,
+            .modal-overlay,
+            .toast,
+            .canvas-tooltip,
+            .print-toolbar {
+                display: none !important;
             }
         }
 
@@ -2344,18 +2818,6 @@
                 <span class="autosave-dot"></span>
                 <span>Autoguardado activo</span>
             </div>
-        </div>
-
-        <!-- BUSCADOR RÁPIDO SIEMPRE VISIBLE -->
-        <div class="sidebar-search">
-            <div class="search-input-wrap">
-                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input type="text" id="buscadorInvitados" class="search-input" placeholder="Buscar invitado, mesa o alergia..." autocomplete="off">
-                <button type="button" id="btnLimpiarBusqueda" class="search-clear" title="Limpiar búsqueda" onclick="limpiarBusqueda()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                </button>
-            </div>
-            <div id="resultadosBusqueda" class="search-results"></div>
         </div>
 
         <div class="sidebar-scroll">
@@ -2614,8 +3076,18 @@
             <span id="textToggleSidebar">Ocultar panel</span>
         </button>
 		
-        <!-- Contador flotante superior (con filtros clicables) -->
-        <div id="contador-total" class="hud-stats"></div>
+        <!-- HUD superior derecho: estadísticas + botón de listado de invitados -->
+        <div class="hud-top-right">
+            <div id="contador-total" class="hud-stats"></div>
+            <button type="button" id="btnToggleRightPanel" class="right-panel-toggle-btn" onclick="toggleRightPanel()" title="Ocultar listado de invitados (Ctrl+K para buscar)" aria-expanded="true" aria-controls="rightPanel">
+                <svg id="iconToggleRightPanel" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <line x1="15" y1="3" x2="15" y2="21"/>
+                    <polyline points="10 9 13 12 10 15"/>
+                </svg>
+                <span id="textToggleRightPanel">Invitados</span>
+            </button>
+        </div>
 
         <!-- Panel desplegable rápido para Sin mesa / Menús especiales -->
         <div id="hudPopover" class="hud-popover" role="dialog" aria-label="Listado rápido de invitados">
@@ -2691,9 +3163,102 @@
                 </button>
             </div>
             <span class="hint-sep"></span>
-            <span><br>Doble clic: editar · <kbd>Ctrl+D</kbd> duplicar · <kbd>Ctrl+Z</kbd> deshacer · <kbd>Supr</kbd> eliminar <kbd>↑↓←→</kbd> mover (<kbd>Shift</kbd> ×10) <kbd>R</kbd> rotar · <kbd>RePág/AvPág</kbd> capa</span>
+            <span>Doble clic: editar · <kbd>Ctrl+D</kbd> duplicar · <kbd>Ctrl+Z</kbd> deshacer · <kbd>Supr</kbd> eliminar <kbd>↑↓←→</kbd> mover (<kbd>Shift</kbd> ×10) <kbd>R</kbd> rotar · <kbd>RePág/AvPág</kbd> capa</span>
         </div>
     </main>
+	
+	<!-- HUD DERECHO: Listado completo y filtros de invitados -->
+    <aside class="right-panel" id="rightPanel" aria-label="Listado completo de invitados">
+        <div class="right-panel-header">
+            <div class="right-panel-title-wrap">
+                <h2 class="right-panel-title">Invitados</h2>
+                <span id="contadorListadoDerecho" class="right-panel-badge">0 pers.</span>
+            </div>
+            <button type="button" class="modal-close" onclick="toggleRightPanel()" title="Ocultar panel derecho">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="16" height="16"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
+            </button>
+        </div>
+
+        <div class="right-panel-controls">
+            <!-- Buscador movido desde el sidebar izquierdo -->
+            <div class="search-input-wrap">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="buscadorInvitados" class="search-input" placeholder="Buscar nombre, mesa, origen, alergia..." autocomplete="off">
+                <button type="button" id="btnLimpiarBusqueda" class="search-clear" title="Limpiar búsqueda" onclick="limpiarBusqueda()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+
+            <!-- Filtros rápidos por bando -->
+            <div class="right-filter-chips" role="group" aria-label="Filtrar listado por bando">
+                <button type="button" class="right-filter-chip active" data-bando="todos" onclick="setFiltroBandoDerecho('todos')">Todos</button>
+                <button type="button" class="right-filter-chip" data-bando="novio" onclick="setFiltroBandoDerecho('novio')">
+                    <span class="side-seg-dot" style="background:#2563eb;"></span><span id="rightFilterNovio" class="right-filter-chip-label">Novio</span>
+                </button>
+                <button type="button" class="right-filter-chip" data-bando="novia" onclick="setFiltroBandoDerecho('novia')">
+                    <span class="side-seg-dot" style="background:#db2777;"></span><span id="rightFilterNovia" class="right-filter-chip-label">Novia</span>
+                </button>
+                <button type="button" class="right-filter-chip" data-bando="infantil" onclick="setFiltroBandoDerecho('infantil')">
+                    <span class="side-seg-dot" style="background:#eab308;"></span><span>Infantil</span>
+                </button>
+                <button type="button" class="right-filter-chip" data-bando="general" onclick="setFiltroBandoDerecho('general')">General</button>
+            </div>
+
+            <!-- Filtro por mesa y orden -->
+            <div class="right-filter-row">
+                <select id="filtroMesaDerecho" class="input-select" onchange="renderizarListadoInvitadosDerecho()" aria-label="Filtrar por mesa">
+                    <option value="todas">Todas las mesas</option>
+                    <option value="sin_mesa">Solo sin mesa</option>
+                    <option value="con_mesa">Solo asignados</option>
+                </select>
+                <select id="ordenInvitadosDerecho" class="input-select" onchange="renderizarListadoInvitadosDerecho()" aria-label="Ordenar listado">
+                    <option value="az">Orden: A–Z</option>
+                    <option value="mesa">Orden: Por mesa</option>
+                    <option value="cantidad">Orden: Personas</option>
+                    <option value="sin_mesa">Sin mesa primero</option>
+                </select>
+            </div>
+
+            <!-- Filtro de alergias + limpiar filtros -->
+            <div class="right-filter-extras">
+                <button type="button" id="btnFiltroAlergiaDerecho" class="right-filter-chip is-allergy" onclick="toggleFiltroAlergiaDerecho()" aria-pressed="false">
+                    <span class="side-seg-dot" style="background:#f97316;"></span>Solo alergias / menú esp.
+                </button>
+                <button type="button" id="btnResetFiltrosDerecho" class="right-reset-btn" onclick="limpiarFiltrosDerecho()">
+                    Limpiar filtros
+                </button>
+            </div>
+			
+			<!-- Sincronizar y encuadrar invitados filtrados en el plano -->
+            <div class="right-sync-row">
+                <button type="button" id="btnSyncFiltroPlano" class="right-sync-btn" onclick="toggleSincronizarFiltroPlano()" aria-pressed="false" title="Resaltar en el lienzo únicamente los invitados visibles en este listado">
+                    <span class="right-sync-dot"></span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" width="14" height="14">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    <span id="textSyncFiltroPlano">Resaltar en plano</span>
+                </button>
+
+                <button type="button" id="btnEncuadrarFiltrados" class="right-fit-btn" onclick="encuadrarFiltradosEnPlano()" title="Hacer zoom y encuadrar en el lienzo los invitados filtrados">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" width="14" height="14">
+                        <path d="M15 3h6v6"/>
+                        <path d="M9 21H3v-6"/>
+                        <path d="M21 3l-7 7"/>
+                        <path d="M3 21l7-7"/>
+                    </svg>
+                    <span>Encuadrar</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="listaInvitadosDerecho" class="right-panel-list"></div>
+
+        <div class="right-panel-footer">
+            <span id="resumenListadoDerecho">0 grupos</span>
+            <span>Clic: centrar · Arrastra a una mesa · <kbd>Ctrl+K</kbd> buscar</span>
+        </div>
+    </aside>
 
     <!-- Tooltip flotante para invitados con alergias -->
     <div id="canvasTooltip" class="canvas-tooltip"></div>
@@ -2884,6 +3449,12 @@
         let timerGuardadoEvento = null;
 		let timerGuardadoFlechas = null;
 		let filtroVisualActivo = null; // null | 'novio' | 'novia' | 'infantil'
+		const RIGHT_PANEL_STORAGE_KEY = 'seating_plan_boda_right_panel_v1';
+        let rightPanelPlegado = false;
+        let filtroBandoDerecho = 'todos'; // 'todos' | 'novio' | 'novia' | 'infantil' | 'general'
+        let filtroAlergiaDerecho = false;
+        let listaInvitadosDerecho = [];
+		let invitadoArrastradoDesdeDerecho = null;
 
         const CHIPS_ALERGIAS = [
             'Celíaco',
@@ -3144,6 +3715,17 @@
             if (btnLimpiar) {
                 btnLimpiar.classList.toggle('visible', Boolean(filtroVisualActivo));
             }
+
+            const btnSync = document.getElementById('btnSyncFiltroPlano');
+            const textSync = document.getElementById('textSyncFiltroPlano');
+            if (btnSync) {
+                const syncActivo = filtroVisualActivo === 'listado';
+                btnSync.classList.toggle('is-active', syncActivo);
+                btnSync.setAttribute('aria-pressed', syncActivo ? 'true' : 'false');
+                if (textSync) {
+                    textSync.textContent = syncActivo ? 'Sincronizado' : 'Resaltar en plano';
+                }
+            }
         }
 
         function aplicarFiltroVisualEnCanvas() {
@@ -3153,6 +3735,35 @@
                 objetos.forEach(obj => {
                     if (obj.opacity !== 1) obj.set('opacity', 1);
                 });
+                canvas.requestRenderAll();
+                return;
+            }
+
+            if (filtroVisualActivo === 'listado') {
+                if (!hayFiltrosActivosEnDerecho()) {
+                    objetos.forEach(obj => {
+                        if (obj.opacity !== 1) obj.set('opacity', 1);
+                    });
+                    canvas.requestRenderAll();
+                    return;
+                }
+
+                const visibles = new Set(listaInvitadosDerecho.map(item => item.inv));
+                const filtroMesa = document.getElementById('filtroMesaDerecho')?.value || 'todas';
+                const idMesaFiltrada = filtroMesa.startsWith('mesa:') ? filtroMesa.slice(5) : null;
+
+                objetos.forEach(obj => {
+                    if (obj.tipoObjeto === 'invitado') {
+                        obj.set('opacity', visibles.has(obj) ? 1 : 0.16);
+                    } else if (obj.tipoObjeto === 'mesa') {
+                        const esMesaElegida = idMesaFiltrada && obj.nombreAsignado === idMesaFiltrada;
+                        const tieneVisible = obj.invitadosSentados.some(inv => visibles.has(inv));
+                        obj.set('opacity', (esMesaElegida || tieneVisible) ? 1 : 0.28);
+                    } else if (obj.tipoObjeto === 'elementoSalon') {
+                        obj.set('opacity', 0.45);
+                    }
+                });
+
                 canvas.requestRenderAll();
                 return;
             }
@@ -3212,6 +3823,101 @@
                 mostrarToast("Filtro desactivado: mostrando todos los invitados.");
             }
         }
+		
+		function hayFiltrosActivosEnDerecho() {
+            const termino = normalizarTexto(inputBuscador ? inputBuscador.value : '');
+            const filtroMesa = document.getElementById('filtroMesaDerecho')?.value || 'todas';
+            return Boolean(termino)
+                || filtroBandoDerecho !== 'todos'
+                || filtroMesa !== 'todas'
+                || filtroAlergiaDerecho;
+        }
+
+        function toggleSincronizarFiltroPlano() {
+            if (filtroVisualActivo === 'listado') {
+                limpiarFiltroVisual();
+                return;
+            }
+
+            filtroVisualActivo = 'listado';
+            renderizarListadoInvitadosDerecho();
+            actualizarUIEstadoFiltroVisual();
+            aplicarFiltroVisualEnCanvas();
+
+            if (!hayFiltrosActivosEnDerecho()) {
+                mostrarToast("Sincronización activa: aplica un filtro o búsqueda para resaltar en el plano.");
+                return;
+            }
+
+            const totalPers = listaInvitadosDerecho.reduce((s, item) => s + (item.inv.cantidad || 1), 0);
+            if (listaInvitadosDerecho.length === 0) {
+                mostrarToast("Plano sincronizado: ningún invitado coincide con los filtros.");
+            } else {
+                mostrarToast(`Plano sincronizado: ${totalPers} pers. en ${listaInvitadosDerecho.length} ${listaInvitadosDerecho.length === 1 ? 'grupo' : 'grupos'}.`);
+            }
+        }
+		
+		function encuadrarFiltradosEnPlano() {
+            const objetivos = new Set();
+            listaInvitadosDerecho.forEach(item => {
+                if (item.inv) objetivos.add(item.inv);
+                if (item.mesa) objetivos.add(item.mesa);
+            });
+
+            // Si se filtró una mesa concreta (incluso vacía), la incluye también en el encuadre
+            const filtroMesa = document.getElementById('filtroMesaDerecho')?.value || 'todas';
+            if (filtroMesa.startsWith('mesa:')) {
+                const idMesa = filtroMesa.slice(5);
+                const mesaElegida = canvas.getObjects().find(
+                    o => o.tipoObjeto === 'mesa' && !o.esTemporal && o.nombreAsignado === idMesa
+                );
+                if (mesaElegida) objetivos.add(mesaElegida);
+            }
+
+            if (objetivos.size === 0) {
+                mostrarToast("No hay invitados filtrados para encuadrar.", true);
+                return;
+            }
+
+            ocultarTooltip();
+            canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            objetivos.forEach(obj => {
+                obj.setCoords();
+                const rect = obj.getBoundingRect(true, true);
+                if (rect.left < minX) minX = rect.left;
+                if (rect.top < minY) minY = rect.top;
+                if (rect.left + rect.width > maxX) maxX = rect.left + rect.width;
+                if (rect.top + rect.height > maxY) maxY = rect.top + rect.height;
+            });
+
+            const anchoContenido = Math.max(140, maxX - minX);
+            const altoContenido = Math.max(140, maxY - minY);
+            const padding = 95;
+            const anchoDisp = Math.max(150, canvas.width - padding * 2);
+            const altoDisp = Math.max(150, canvas.height - padding * 2);
+
+            let zoom = Math.min(anchoDisp / anchoContenido, altoDisp / altoContenido);
+            zoom = Math.min(Math.max(zoom, 0.15), 1.35);
+
+            const centroX = (minX + maxX) / 2;
+            const centroY = (minY + maxY) / 2;
+            const panX = (canvas.width / 2) - (centroX * zoom);
+            const panY = (canvas.height / 2) - (centroY * zoom);
+
+            canvas.setViewportTransform([zoom, 0, 0, zoom, panX, panY]);
+            canvas.getObjects().forEach(obj => obj.setCoords());
+            canvas.renderAll();
+            actualizarCuadricula();
+
+            const totalGrupos = listaInvitadosDerecho.length;
+            if (totalGrupos > 0) {
+                mostrarToast(`Encuadrados ${totalGrupos} ${totalGrupos === 1 ? 'grupo' : 'grupos'} filtrados.`);
+            } else {
+                mostrarToast("Mesa seleccionada encuadrada.");
+            }
+        }
 
         function sincronizarUIEvento() {
             const inputTitulo = document.getElementById('tituloEvento');
@@ -3237,6 +3943,16 @@
             const labelSideNovia = document.getElementById('labelSideNovia');
             const hintNovio = document.getElementById('hintNovio');
             const hintNovia = document.getElementById('hintNovia');
+			const rightFilterNovio = document.getElementById('rightFilterNovio');
+            const rightFilterNovia = document.getElementById('rightFilterNovia');
+            if (rightFilterNovio) {
+                rightFilterNovio.textContent = etiquetaNovio;
+                rightFilterNovio.parentElement.title = etiquetaNovio;
+            }
+            if (rightFilterNovia) {
+                rightFilterNovia.textContent = etiquetaNovia;
+                rightFilterNovia.parentElement.title = etiquetaNovia;
+            }
             const datalistLados = document.getElementById('listaLados');
 
             if (labelSideNovio) {
@@ -3956,6 +4672,38 @@
             // Ajuste final exacto tras completar la transición CSS
             setTimeout(ajustarTamanoCanvas, 240);
         }
+		
+		// ==================== PLEGAR / DESPLEGAR HUD DERECHO ====================
+        function actualizarUIEstadoRightPanel() {
+            const panelEl = document.getElementById('rightPanel');
+            const btnToggle = document.getElementById('btnToggleRightPanel');
+            const iconToggle = document.getElementById('iconToggleRightPanel');
+            const textToggle = document.getElementById('textToggleRightPanel');
+            if (!panelEl || !btnToggle) return;
+
+            panelEl.classList.toggle('is-collapsed', rightPanelPlegado);
+            btnToggle.classList.toggle('is-collapsed', rightPanelPlegado);
+            btnToggle.setAttribute('aria-expanded', rightPanelPlegado ? 'false' : 'true');
+
+            if (rightPanelPlegado) {
+                btnToggle.title = 'Mostrar listado de invitados (Ctrl+K para buscar)';
+                textToggle.textContent = 'Invitados';
+                iconToggle.innerHTML = `<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="15" y1="3" x2="15" y2="21"/><polyline points="12 9 9 12 12 15"/>`;
+            } else {
+                btnToggle.title = 'Ocultar listado de invitados';
+                textToggle.textContent = 'Ocultar';
+                iconToggle.innerHTML = `<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="15" y1="3" x2="15" y2="21"/><polyline points="10 9 13 12 10 15"/>`;
+            }
+        }
+
+        function toggleRightPanel(forzarEstado = null) {
+            rightPanelPlegado = forzarEstado !== null ? Boolean(forzarEstado) : !rightPanelPlegado;
+            try {
+                localStorage.setItem(RIGHT_PANEL_STORAGE_KEY, rightPanelPlegado ? '1' : '0');
+            } catch (e) {}
+            actualizarUIEstadoRightPanel();
+            setTimeout(ajustarTamanoCanvas, 240);
+        }
 
         const resizeObserver = new ResizeObserver(() => ajustarTamanoCanvas());
         resizeObserver.observe(wrapperEl);
@@ -3984,6 +4732,10 @@
             bloques.forEach(b => b.moveTo(indiceCapa++));
             mesas.forEach(m => m.moveTo(indiceCapa++));
             invitados.forEach(i => i.moveTo(indiceCapa++));
+			
+			if (filtroVisualActivo) {
+				aplicarFiltroVisualEnCanvas();
+			}
         }
 
         // ==================== BLOQUEO DE MESAS Y SALÓN (CANDADO) ====================
@@ -4254,7 +5006,6 @@
             }
 
             actualizarContadorTotal();
-            actualizarResultadosBusqueda();
             estaRestaurando = false;
         }
 
@@ -4506,105 +5257,310 @@
             abrirModalEdicion(inv);
         }
 
-        // ==================== BUSCADOR RÁPIDO EN SIDEBAR ====================
+        // ==================== HUD DERECHO: LISTADO COMPLETO Y FILTROS ====================
         const inputBuscador = document.getElementById('buscadorInvitados');
-        const contenedorResultados = document.getElementById('resultadosBusqueda');
         const btnLimpiarBusqueda = document.getElementById('btnLimpiarBusqueda');
-        let ultimasCoincidencias = [];
 
         function limpiarBusqueda() {
+            if (!inputBuscador) return;
             inputBuscador.value = '';
             btnLimpiarBusqueda.classList.remove('visible');
-            contenedorResultados.classList.remove('open');
-            contenedorResultados.innerHTML = '';
-            ultimasCoincidencias = [];
+            renderizarListadoInvitadosDerecho();
             inputBuscador.focus();
         }
 
-        function actualizarResultadosBusqueda() {
-            const termino = normalizarTexto(inputBuscador.value);
-            btnLimpiarBusqueda.classList.toggle('visible', inputBuscador.value.length > 0);
+        function setFiltroBandoDerecho(bando) {
+            filtroBandoDerecho = bando;
+            document.querySelectorAll('.right-filter-chip[data-bando]').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.bando === bando);
+            });
+            renderizarListadoInvitadosDerecho();
+        }
 
-            if (!termino) {
-                contenedorResultados.classList.remove('open');
-                contenedorResultados.innerHTML = '';
-                ultimasCoincidencias = [];
-                return;
+        function toggleFiltroAlergiaDerecho() {
+            filtroAlergiaDerecho = !filtroAlergiaDerecho;
+            const btn = document.getElementById('btnFiltroAlergiaDerecho');
+            if (btn) {
+                btn.classList.toggle('active', filtroAlergiaDerecho);
+                btn.setAttribute('aria-pressed', filtroAlergiaDerecho ? 'true' : 'false');
             }
+            renderizarListadoInvitadosDerecho();
+        }
+
+        function limpiarFiltrosDerecho() {
+            if (inputBuscador) inputBuscador.value = '';
+            if (btnLimpiarBusqueda) btnLimpiarBusqueda.classList.remove('visible');
+            filtroBandoDerecho = 'todos';
+            filtroAlergiaDerecho = false;
+
+            const selMesa = document.getElementById('filtroMesaDerecho');
+            if (selMesa) selMesa.value = 'todas';
+
+            document.querySelectorAll('.right-filter-chip[data-bando]').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.bando === 'todos');
+            });
+            const btnAlerg = document.getElementById('btnFiltroAlergiaDerecho');
+            if (btnAlerg) {
+                btnAlerg.classList.remove('active');
+                btnAlerg.setAttribute('aria-pressed', 'false');
+            }
+
+            renderizarListadoInvitadosDerecho();
+        }
+
+        function actualizarOpcionesMesasDerecho(mesasOrdenadas) {
+            const selMesa = document.getElementById('filtroMesaDerecho');
+            if (!selMesa) return;
+
+            const valorPrevio = selMesa.value || 'todas';
+            const opcionesMesas = mesasOrdenadas.map(m => {
+                const ocup = m.invitadosSentados.reduce((s, inv) => s + (inv.cantidad || 1), 0);
+                return `<option value="mesa:${escaparHTML(m.nombreAsignado)}">${escaparHTML(m.linea1)} (${ocup}/${m.capacidadMax})</option>`;
+            }).join('');
+
+            selMesa.innerHTML = `
+                <option value="todas">Todas las mesas</option>
+                <option value="sin_mesa">Solo sin mesa</option>
+                <option value="con_mesa">Solo asignados</option>
+                ${opcionesMesas}
+            `;
+
+            const existeValor = Array.from(selMesa.options).some(opt => opt.value === valorPrevio);
+            selMesa.value = existeValor ? valorPrevio : 'todas';
+        }
+
+        function invitadoCoincideConBandoDerecho(inv, bando) {
+            if (bando === 'todos') return true;
+            if (bando === 'novio' || bando === 'novia' || bando === 'infantil') {
+                return invitadoCoincideConFiltro(inv, bando);
+            }
+            if (bando === 'general') {
+                return !esNino(inv.edad)
+                    && !invitadoCoincideConFiltro(inv, 'novio')
+                    && !invitadoCoincideConFiltro(inv, 'novia');
+            }
+            return true;
+        }
+
+        function renderizarListadoInvitadosDerecho() {
+            const listaEl = document.getElementById('listaInvitadosDerecho');
+            const badgeEl = document.getElementById('contadorListadoDerecho');
+            const resumenEl = document.getElementById('resumenListadoDerecho');
+            const btnReset = document.getElementById('btnResetFiltrosDerecho');
+            if (!listaEl) return;
+
+            const mesas = obtenerMesasOrdenadasParaInforme();
+            actualizarOpcionesMesasDerecho(mesas);
 
             const invitados = canvas.getObjects().filter(o => o.tipoObjeto === 'invitado' && !o.esTemporal);
-            const mesas = canvas.getObjects().filter(o => o.tipoObjeto === 'mesa' && !o.esTemporal);
+            const termino = normalizarTexto(inputBuscador ? inputBuscador.value : '');
+            const filtroMesa = document.getElementById('filtroMesaDerecho')?.value || 'todas';
+            const orden = document.getElementById('ordenInvitadosDerecho')?.value || 'az';
+            const activoEnCanvas = canvas.getActiveObject();
 
-            const coincidencias = [];
+            if (btnLimpiarBusqueda && inputBuscador) {
+                btnLimpiarBusqueda.classList.toggle('visible', inputBuscador.value.length > 0);
+            }
+
+            const hayFiltrosActivos = Boolean(termino)
+                || filtroBandoDerecho !== 'todos'
+                || filtroMesa !== 'todas'
+                || filtroAlergiaDerecho;
+
+            if (btnReset) {
+                btnReset.classList.toggle('visible', hayFiltrosActivos);
+            }
+
+            const registros = [];
             invitados.forEach(inv => {
-                const mesa = mesas.find(m => m.invitadosSentados.includes(inv));
+                const mesa = mesas.find(m => m.invitadosSentados.includes(inv)) || null;
                 const nombreMesa = mesa ? mesa.linea1 : '';
-                const coincideNombre = normalizarTexto(inv.nombreAsignado).includes(termino);
-                const coincideMesa = nombreMesa && normalizarTexto(nombreMesa).includes(termino);
-                const coincideAlergia = inv.alergias && normalizarTexto(inv.alergias).includes(termino);
-                const coincideMeta = normalizarTexto(`${inv.lado} ${inv.origen} ${inv.relacion}`).includes(termino);
 
-                if (coincideNombre || coincideMesa || coincideAlergia || coincideMeta) {
-                    coincidencias.push({ inv, mesa, nombreMesa });
+                // 1. Filtro por mesa
+                if (filtroMesa === 'sin_mesa' && mesa) return;
+                if (filtroMesa === 'con_mesa' && !mesa) return;
+                if (filtroMesa.startsWith('mesa:')) {
+                    const idObjetivo = filtroMesa.slice(5);
+                    if (!mesa || mesa.nombreAsignado !== idObjetivo) return;
                 }
+
+                // 2. Filtro por bando
+                if (!invitadoCoincideConBandoDerecho(inv, filtroBandoDerecho)) return;
+
+                // 3. Filtro por alergia / menú especial
+                if (filtroAlergiaDerecho && (!inv.alergias || inv.alergias.trim() === '')) return;
+
+                // 4. Buscador de texto libre
+                if (termino) {
+                    const coincideNombre = normalizarTexto(inv.nombreAsignado).includes(termino);
+                    const coincideMesa = nombreMesa && normalizarTexto(nombreMesa).includes(termino);
+                    const coincideAlergia = inv.alergias && normalizarTexto(inv.alergias).includes(termino);
+                    const coincideMeta = normalizarTexto(`${inv.lado} ${inv.origen} ${inv.relacion} ${inv.deParteDe}`).includes(termino);
+                    if (!coincideNombre && !coincideMesa && !coincideAlergia && !coincideMeta) return;
+                }
+
+                registros.push({
+                    inv,
+                    mesa,
+                    nombreMesa,
+                    indiceMesa: mesa ? mesas.indexOf(mesa) : 9999
+                });
             });
 
-            coincidencias.sort((a, b) => {
-                const aNom = normalizarTexto(a.inv.nombreAsignado).includes(termino) ? 0 : 1;
-                const bNom = normalizarTexto(b.inv.nombreAsignado).includes(termino) ? 0 : 1;
-                if (aNom !== bNom) return aNom - bNom;
-                return a.inv.nombreAsignado.localeCompare(b.inv.nombreAsignado, 'es');
+            // Ordenación
+            registros.sort((a, b) => {
+                if (orden === 'mesa') {
+                    if (a.indiceMesa !== b.indiceMesa) return a.indiceMesa - b.indiceMesa;
+                } else if (orden === 'cantidad') {
+                    const diff = (b.inv.cantidad || 1) - (a.inv.cantidad || 1);
+                    if (diff !== 0) return diff;
+                } else if (orden === 'sin_mesa') {
+                    const aSin = a.mesa ? 1 : 0;
+                    const bSin = b.mesa ? 1 : 0;
+                    if (aSin !== bSin) return aSin - bSin;
+                }
+                return a.inv.nombreAsignado.localeCompare(b.inv.nombreAsignado, 'es', { sensitivity: 'base' });
             });
 
-            ultimasCoincidencias = coincidencias;
-            contenedorResultados.classList.add('open');
+            listaInvitadosDerecho = registros;
+			
+			const btnEncuadrar = document.getElementById('btnEncuadrarFiltrados');
+            if (btnEncuadrar) {
+                const hayMesaConcreta = filtroMesa.startsWith('mesa:');
+                btnEncuadrar.disabled = registros.length === 0 && !hayMesaConcreta;
+            }
 
-            if (coincidencias.length === 0) {
-                contenedorResultados.innerHTML = `<div class="search-empty">No se encontró ningún invitado</div>`;
+            const totalPersonas = invitados.reduce((s, inv) => s + (inv.cantidad || 1), 0);
+            const personasFiltradas = registros.reduce((s, r) => s + (r.inv.cantidad || 1), 0);
+
+            if (badgeEl) {
+                badgeEl.textContent = hayFiltrosActivos
+                    ? `${personasFiltradas}/${totalPersonas} pers.`
+                    : `${totalPersonas} pers.`;
+            }
+
+            if (resumenEl) {
+                resumenEl.textContent = `${registros.length} ${registros.length === 1 ? 'grupo' : 'grupos'} · ${personasFiltradas} pers.`;
+            }
+			
+			if (invitados.length === 0) {
+                listaEl.innerHTML = `<div class="right-panel-empty">Aún no hay invitados en el plano.<br>Añádelos desde el panel izquierdo o carga un Excel.</div>`;
+                if (filtroVisualActivo === 'listado') aplicarFiltroVisualEnCanvas();
                 return;
             }
 
-            const html = coincidencias.slice(0, 25).map((item, idx) => {
-                const cant = item.inv.cantidad > 1 ? ` (${item.inv.cantidad})` : '';
-                const badgeClass = item.mesa ? 'badge-mesa' : 'badge-mesa sin-mesa';
-                const badgeText = item.mesa ? escaparHTML(item.nombreMesa) : 'Sin mesa';
-                const badgeAlergia = item.inv.alergias
-                    ? `<span class="badge-alergia" title="${escaparHTML(item.inv.alergias)}">${escaparHTML(item.inv.alergias)}</span>`
+            if (registros.length === 0) {
+                listaEl.innerHTML = `<div class="right-panel-empty">Ningún invitado coincide con los filtros actuales.</div>`;
+                if (filtroVisualActivo === 'listado') aplicarFiltroVisualEnCanvas();
+                return;
+            }
+
+            const scrollPrevio = listaEl.scrollTop;
+            const resumenMesas = mesas.map(m => ({
+                id: m.nombreAsignado,
+                nombre: m.linea1,
+                ocupacion: m.invitadosSentados.reduce((s, i) => s + (i.cantidad || 1), 0),
+                capacidad: m.capacidadMax
+            }));
+
+            listaEl.innerHTML = registros.map((item, idx) => {
+                const { inv, mesa } = item;
+                const cant = inv.cantidad > 1 ? ` (${inv.cantidad})` : '';
+                const colorDot = obtenerColorLadoInvitado(inv.lado, inv.edad);
+                const dotHTML = colorDot
+                    ? `<span class="right-guest-dot" style="background:${colorDot};" title="${escaparHTML(esNino(inv.edad) ? 'Infantil' : (inv.lado || ''))}"></span>`
                     : '';
 
+                const mesaIdActual = mesa ? mesa.nombreAsignado : '';
+                const opcionesMesaHTML = [
+                    `<option value="" ${!mesaIdActual ? 'selected' : ''}>Sin mesa</option>`,
+                    ...resumenMesas.map(m => {
+                        const esActual = m.id === mesaIdActual;
+                        const llena = !esActual && m.ocupacion >= m.capacidad;
+                        const textoOpt = `${m.nombre} (${m.ocupacion}/${m.capacidad}${llena ? ' · llena' : ''})`;
+                        return `<option value="${escaparHTML(m.id)}" ${esActual ? 'selected' : ''}>${escaparHTML(textoOpt)}</option>`;
+                    })
+                ].join('');
+
+                const selectMesaHTML = `
+                    <select
+                        class="right-seat-select ${mesa ? '' : 'sin-mesa'}"
+                        onclick="event.stopPropagation()"
+                        onchange="asignarMesaDesdeListadoDerecho(${idx}, this.value)"
+                        title="${mesas.length === 0 ? 'Crea al menos una mesa para asignar' : 'Asignar o cambiar de mesa'}"
+                        aria-label="Mesa asignada para ${escaparHTML(inv.nombreAsignado)}"
+                        ${mesas.length === 0 ? 'disabled' : ''}
+                    >${opcionesMesaHTML}</select>
+                `;
+
+                const badgeAlergia = inv.alergias
+                    ? `<span class="badge-alergia" title="${escaparHTML(inv.alergias)}">${escaparHTML(inv.alergias)}</span>`
+                    : '';
+                const badgeMeta = (inv.relacion && inv.relacion !== 'General')
+                    ? `<span class="badge-meta-soft">${escaparHTML(inv.relacion)}</span>`
+                    : '';
+                const seleccionadoClass = activoEnCanvas === inv ? ' is-selected' : '';
+
                 return `
-                    <div class="search-result-item" onclick="seleccionarResultadoBusqueda(${idx})">
+                    <div
+                        class="right-guest-row${seleccionadoClass}"
+                        draggable="true"
+                        ondragstart="iniciarArrastreInvitadoDerecho(event, ${idx})"
+                        ondragend="finalizarArrastreInvitadoDerecho(event)"
+                        onclick="seleccionarInvitadoDerecho(${idx})"
+                    >
+                        <span class="right-drag-handle" title="Arrastra sobre una mesa del plano">
+                            <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12">
+                                <circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/>
+                                <circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/>
+                                <circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/>
+                            </svg>
+                        </span>
                         <div class="search-item-info">
-                            <span class="search-item-name">${escaparHTML(item.inv.nombreAsignado)}${cant}</span>
+                            <div class="right-guest-name-line">
+                                ${dotHTML}
+                                <span class="search-item-name" title="${escaparHTML(inv.nombreAsignado)}">${escaparHTML(inv.nombreAsignado)}${cant}</span>
+                            </div>
                             <div class="search-item-meta">
-                                <span class="${badgeClass}">${badgeText}</span>
+                                ${selectMesaHTML}
                                 ${badgeAlergia}
+                                ${badgeMeta}
                             </div>
                         </div>
-                        <button type="button" class="search-edit-btn" title="Editar invitado" onclick="event.stopPropagation(); editarResultadoBusqueda(${idx});">
+                        <button type="button" class="search-edit-btn" title="Editar invitado" onclick="event.stopPropagation(); editarInvitadoDerecho(${idx});">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                         </button>
                     </div>
                 `;
             }).join('');
 
-            contenedorResultados.innerHTML = html;
+            listaEl.scrollTop = scrollPrevio;
+
+            if (filtroVisualActivo === 'listado') {
+                aplicarFiltroVisualEnCanvas();
+            }
         }
 
-        function seleccionarResultadoBusqueda(idx) {
-            const item = ultimasCoincidencias[idx];
+        // Alias para mantener compatibilidad con llamadas existentes
+        function actualizarResultadosBusqueda() {
+            renderizarListadoInvitadosDerecho();
+        }
+
+        function seleccionarInvitadoDerecho(idx) {
+            const item = listaInvitadosDerecho[idx];
             if (!item || !item.inv) return;
             centrarEnObjeto(item.inv);
+            renderizarListadoInvitadosDerecho();
         }
 
-        function editarResultadoBusqueda(idx) {
-            const item = ultimasCoincidencias[idx];
+        function editarInvitadoDerecho(idx) {
+            const item = listaInvitadosDerecho[idx];
             if (!item || !item.inv) return;
             centrarEnObjeto(item.inv);
             abrirModalEdicion(item.inv);
         }
-
-        function centrarEnObjeto(objeto) {
+		
+		function centrarEnObjeto(objeto) {
             if (!objeto) return;
             const zoomActual = canvas.getZoom();
             const zoomObjetivo = Math.min(Math.max(zoomActual, 1.15), 1.55);
@@ -4665,17 +5621,228 @@
                 }
             });
         }
+		
+		function asignarMesaDesdeListadoDerecho(idx, mesaIdDestino) {
+            const item = listaInvitadosDerecho[idx];
+            if (!item || !item.inv) return;
 
-        inputBuscador.addEventListener('input', actualizarResultadosBusqueda);
-        inputBuscador.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && ultimasCoincidencias.length > 0) {
-                e.preventDefault();
-                seleccionarResultadoBusqueda(0);
-            } else if (e.key === 'Escape') {
-                limpiarBusqueda();
-                inputBuscador.blur();
+            const inv = item.inv;
+            const mesas = canvas.getObjects().filter(o => o.tipoObjeto === 'mesa' && !o.esTemporal);
+            const mesaOrigen = mesas.find(m => m.invitadosSentados.includes(inv)) || null;
+            const mesaDestino = mesaIdDestino
+                ? (mesas.find(m => m.nombreAsignado === mesaIdDestino) || null)
+                : null;
+
+            if (mesaOrigen === mesaDestino) return;
+
+            limpiarGuiasActivas();
+            limpiarResaltadoMesaDestino();
+
+            if (mesaOrigen) {
+                mesaOrigen.invitadosSentados = mesaOrigen.invitadosSentados.filter(i => i !== inv);
+                reposicionarInvitadosEnCirculo(mesaOrigen);
+            }
+
+            let mensajeToast = '';
+            let esAlerta = false;
+
+            if (mesaDestino) {
+                mesaDestino.invitadosSentados.push(inv);
+                reposicionarInvitadosEnCirculo(mesaDestino);
+
+                const ocupacion = mesaDestino.invitadosSentados.reduce((s, i) => s + (i.cantidad || 1), 0);
+                if (ocupacion > mesaDestino.capacidadMax) {
+                    mensajeToast = `${inv.nombreAsignado} asignado a ${mesaDestino.linea1} (${ocupacion}/${mesaDestino.capacidadMax} plazas excedidas).`;
+                    esAlerta = true;
+                } else {
+                    mensajeToast = `${inv.nombreAsignado} asignado a ${mesaDestino.linea1}.`;
+                }
+            } else {
+                estilizarInvitado(inv, false);
+                if (mesaOrigen) {
+                    const dims = obtenerDimensionesMesa(mesaOrigen.forma || 'redonda', mesaOrigen.orientacion || 'horizontal');
+                    inv.set({
+                        left: mesaOrigen.left + (dims.ancho / 2) + 125,
+                        top: mesaOrigen.top
+                    });
+                } else {
+                    const centro = obtenerCentroVisible();
+                    inv.set({ left: centro.x, top: centro.y });
+                }
+                inv.setCoords();
+                mensajeToast = mesaOrigen
+                    ? `${inv.nombreAsignado} sacado de ${mesaOrigen.linea1} (sin mesa).`
+                    : `${inv.nombreAsignado} marcado sin mesa.`;
+            }
+
+            ordenarCapasCanvas();
+            canvas.renderAll();
+            actualizarContadorTotal();
+            registrarCambio();
+            mostrarToast(mensajeToast, esAlerta);
+        }
+		
+		// ==================== DRAG & DROP DESDE HUD DERECHO AL PLANO ====================
+        function convertirClienteAMundoCanvas(clientX, clientY) {
+            const rect = canvas.upperCanvasEl.getBoundingClientRect();
+            const ptPantalla = new fabric.Point(clientX - rect.left, clientY - rect.top);
+            const invVpt = fabric.util.invertTransform(canvas.viewportTransform);
+            return fabric.util.transformPoint(ptPantalla, invVpt);
+        }
+
+        function crearFantasmaArrastreInvitado(inv) {
+            const ghost = document.createElement('div');
+            ghost.className = 'drag-ghost-pill';
+
+            const colorDot = obtenerColorLadoInvitado(inv.lado, inv.edad);
+            const dotHTML = colorDot
+                ? `<span class="right-guest-dot" style="background:${colorDot};"></span>`
+                : '';
+            const cant = inv.cantidad > 1 ? ` (${inv.cantidad})` : '';
+
+            ghost.innerHTML = `${dotHTML}<span>${escaparHTML(inv.nombreAsignado)}${cant}</span>`;
+            document.body.appendChild(ghost);
+            return ghost;
+        }
+
+        function iniciarArrastreInvitadoDerecho(evento, idx) {
+            if (evento.target && evento.target.closest('select, button, input, option')) {
+                evento.preventDefault();
+                return;
+            }
+
+            const item = listaInvitadosDerecho[idx];
+            if (!item || !item.inv) {
+                evento.preventDefault();
+                return;
+            }
+
+            invitadoArrastradoDesdeDerecho = item.inv;
+            ocultarTooltip();
+            limpiarGuiasActivas();
+
+            if (evento.currentTarget) {
+                evento.currentTarget.classList.add('is-dragging');
+            }
+
+            if (evento.dataTransfer) {
+                evento.dataTransfer.effectAllowed = 'move';
+                evento.dataTransfer.setData('text/plain', item.inv.nombreAsignado || '');
+
+                const ghost = crearFantasmaArrastreInvitado(item.inv);
+                evento.dataTransfer.setDragImage(ghost, ghost.offsetWidth / 2, ghost.offsetHeight / 2);
+                requestAnimationFrame(() => ghost.remove());
+            }
+        }
+
+        function finalizarArrastreInvitadoDerecho(evento) {
+            if (evento && evento.currentTarget) {
+                evento.currentTarget.classList.remove('is-dragging');
+            }
+            invitadoArrastradoDesdeDerecho = null;
+            wrapperEl.classList.remove('is-drop-active');
+            limpiarResaltadoMesaDestino();
+        }
+
+        wrapperEl.addEventListener('dragover', function(evento) {
+            if (!invitadoArrastradoDesdeDerecho) return;
+            evento.preventDefault();
+            if (evento.dataTransfer) evento.dataTransfer.dropEffect = 'move';
+            wrapperEl.classList.add('is-drop-active');
+
+            const inv = invitadoArrastradoDesdeDerecho;
+            const puntoMundo = convertirClienteAMundoCanvas(evento.clientX, evento.clientY);
+
+            // Evalúa la mesa y el hueco exacto sin desplazar visualmente la pastilla real
+            const origX = inv.left;
+            const origY = inv.top;
+            inv.set({ left: puntoMundo.x, top: puntoMundo.y });
+            inv.setCoords();
+
+            actualizarResaltadoMesaDestino(inv);
+
+            inv.set({ left: origX, top: origY });
+            inv.setCoords();
+        });
+
+        wrapperEl.addEventListener('dragleave', function(evento) {
+            if (!invitadoArrastradoDesdeDerecho) return;
+            if (!wrapperEl.contains(evento.relatedTarget)) {
+                wrapperEl.classList.remove('is-drop-active');
+                limpiarResaltadoMesaDestino();
             }
         });
+
+        wrapperEl.addEventListener('drop', function(evento) {
+            if (!invitadoArrastradoDesdeDerecho) return;
+            evento.preventDefault();
+
+            const inv = invitadoArrastradoDesdeDerecho;
+            const puntoMundo = convertirClienteAMundoCanvas(evento.clientX, evento.clientY);
+            const origX = inv.left;
+            const origY = inv.top;
+
+            inv.set({ left: puntoMundo.x, top: puntoMundo.y });
+            inv.setCoords();
+
+            const mesaDestino = encontrarMesaDestino(inv);
+            const indiceInsercion = mesaDestino
+                ? calcularIndiceInsercionEnMesa(mesaDestino, inv)
+                : -1;
+
+            // Limpia el estado del arrastre antes de renderizar el resultado
+            invitadoArrastradoDesdeDerecho = null;
+            wrapperEl.classList.remove('is-drop-active');
+            limpiarGuiasActivas();
+            limpiarResaltadoMesaDestino();
+
+            if (!mesaDestino) {
+                inv.set({ left: origX, top: origY });
+                inv.setCoords();
+                mostrarToast("Suelta el invitado sobre una mesa para sentarlo.");
+                return;
+            }
+
+            const mesas = canvas.getObjects().filter(o => o.tipoObjeto === 'mesa' && !o.esTemporal);
+            mesas.forEach(m => {
+                if (m.invitadosSentados.includes(inv)) {
+                    m.invitadosSentados = m.invitadosSentados.filter(i => i !== inv);
+                    if (m !== mesaDestino) {
+                        reposicionarInvitadosEnCirculo(m);
+                    }
+                }
+            });
+
+            mesaDestino.invitadosSentados.splice(indiceInsercion, 0, inv);
+            reposicionarInvitadosEnCirculo(mesaDestino);
+            ordenarCapasCanvas();
+            canvas.setActiveObject(inv);
+            canvas.renderAll();
+
+            actualizarContadorTotal();
+            registrarCambio();
+            resaltarObjetoEnLienzo(inv);
+
+            const ocupacion = mesaDestino.invitadosSentados.reduce((s, i) => s + (i.cantidad || 1), 0);
+            if (ocupacion > mesaDestino.capacidadMax) {
+                mostrarToast(`${inv.nombreAsignado} sentado en ${mesaDestino.linea1} (${ocupacion}/${mesaDestino.capacidadMax} plazas excedidas).`, true);
+            } else {
+                mostrarToast(`${inv.nombreAsignado} sentado en ${mesaDestino.linea1} (asiento #${indiceInsercion + 1}).`);
+            }
+        });
+
+        if (inputBuscador) {
+            inputBuscador.addEventListener('input', renderizarListadoInvitadosDerecho);
+            inputBuscador.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && listaInvitadosDerecho.length > 0) {
+                    e.preventDefault();
+                    seleccionarInvitadoDerecho(0);
+                } else if (e.key === 'Escape') {
+                    limpiarBusqueda();
+                    inputBuscador.blur();
+                }
+            });
+        }
 
         // ==================== MODAL DE EDICIÓN POR DOBLE CLIC ====================
         const modalOverlay = document.getElementById('modalEdicion');
@@ -6343,7 +7510,13 @@
             registrarCambio();
         });
 
-        canvas.on('selection:cleared', () => { limpiarGuiasActivas(); limpiarResaltadoMesaDestino(); });
+        canvas.on('selection:created', () => renderizarListadoInvitadosDerecho());
+        canvas.on('selection:updated', () => renderizarListadoInvitadosDerecho());
+        canvas.on('selection:cleared', () => {
+            limpiarGuiasActivas();
+            limpiarResaltadoMesaDestino();
+            renderizarListadoInvitadosDerecho();
+        });
 
         // ==================== GESTIÓN MANUAL DE MESAS ====================
         function obtenerCentroVisible() {
@@ -7975,6 +9148,8 @@
                 renderizarPanelHud();
             }
 			
+			renderizarListadoInvitadosDerecho();
+			
 			if (filtroVisualActivo) {
                 aplicarFiltroVisualEnCanvas();
             }
@@ -8216,6 +9391,18 @@
                 return;
             }
 			
+			if (modificador && tecla === 'k') {
+                evento.preventDefault();
+                if (rightPanelPlegado) toggleRightPanel(false);
+                setTimeout(() => {
+                    if (inputBuscador) {
+                        inputBuscador.focus();
+                        inputBuscador.select();
+                    }
+                }, 40);
+                return;
+            }
+			
 			if (modificador && tecla === 'd') {
                 evento.preventDefault();
                 duplicarObjetoSeleccionado();
@@ -8272,6 +9459,12 @@
 			try {
                 sidebarPlegado = localStorage.getItem(SIDEBAR_STORAGE_KEY) === '1';
                 actualizarUIEstadoSidebar();
+                ajustarTamanoCanvas();
+            } catch (e) {}
+			
+			try {
+                rightPanelPlegado = localStorage.getItem(RIGHT_PANEL_STORAGE_KEY) === '1';
+                actualizarUIEstadoRightPanel();
                 ajustarTamanoCanvas();
             } catch (e) {}
 			
