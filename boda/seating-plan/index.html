@@ -1403,6 +1403,80 @@
             width: auto;
             padding: 8px 11px;
         }
+		
+		/* ==================== MODAL DE DIÁLOGO (CONFIRM / ALERT) ==================== */
+        .dialog-overlay {
+            z-index: 100;
+        }
+
+        .dialog-card {
+            max-width: 420px;
+        }
+
+        .dialog-message {
+            margin: 0;
+            font-size: 13.5px;
+            line-height: 1.55;
+            color: var(--text-secondary);
+        }
+
+        .dialog-list {
+            margin: 2px 0 0;
+            padding: 10px 12px 10px 26px;
+            background-color: #fffbeb;
+            border: 1px solid var(--warn-border);
+            border-radius: var(--radius-sm);
+            font-size: 12.5px;
+            color: var(--warn-text);
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+
+        .dialog-list.visible {
+            display: flex;
+        }
+
+        .dialog-icon {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .dialog-icon.is-danger {
+            background-color: var(--danger-bg);
+            color: var(--danger-text);
+            border: 1px solid var(--danger-border);
+        }
+
+        .dialog-icon.is-warn {
+            background-color: var(--warn-bg);
+            color: var(--warn-text);
+            border: 1px solid var(--warn-border);
+        }
+
+        .dialog-icon.is-info {
+            background-color: #eef2ff;
+            color: var(--accent-brand);
+            border: 1px solid #c7d2fe;
+        }
+
+        .btn-danger-solid {
+            background-color: var(--danger-hover-bg);
+            color: #ffffff;
+            border-color: var(--danger-hover-bg);
+        }
+
+        .btn-danger-solid:hover {
+            background-color: #be123c;
+            border-color: #be123c;
+        }
 
         /* ==================== VISTA IMPRIMIBLE (RESTAURANTE Y PROTOCOLO A-Z) ==================== */
         .print-overlay {
@@ -2243,6 +2317,7 @@
                         <li><strong>F:</strong> De parte de <em>(Madre o Padre)</em></li>
                         <li><strong>G:</strong> Cantidad <em>(0 para eliminar)</em></li>
                         <li><strong>H (opcional):</strong> Alergias / Menú <em>(ej. Celíaco, Trona)</em></li>
+						<li><strong>I (opcional):</strong> Mesa Asignada <em>(ej. Mesa 1, Presidencial o Sin asignar)</em></li>
                     </ul>
                 </div>
 
@@ -2388,6 +2463,28 @@
                     </div>
                 </div>
             </form>
+        </div>
+    </div>
+	
+	<!-- MODAL INTEGRADO DE CONFIRMACIÓN Y AVISOS -->
+    <div id="modalDialogo" class="modal-overlay dialog-overlay" role="alertdialog" aria-modal="true" aria-labelledby="dialogoTitulo" aria-describedby="dialogoMensaje">
+        <div class="modal-card dialog-card">
+            <div class="modal-header">
+                <h2 id="dialogoTitulo" class="modal-title">Aviso</h2>
+                <button type="button" class="modal-close" onclick="cerrarDialogoModal(false)" title="Cerrar (Esc)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p id="dialogoMensaje" class="dialog-message"></p>
+                <ul id="dialogoLista" class="dialog-list"></ul>
+            </div>
+            <div class="modal-footer" style="justify-content: flex-end;">
+                <div class="modal-footer-right">
+                    <button type="button" id="btnDialogoCancelar" class="btn btn-secondary" onclick="cerrarDialogoModal(false)">Cancelar</button>
+                    <button type="button" id="btnDialogoConfirmar" class="btn btn-primary" onclick="cerrarDialogoModal(true)">Aceptar</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -2611,6 +2708,18 @@
                 });
             }
             return limpia;
+        }
+		
+		function generarNombreArchivo(sufijo, extension, nombreDefecto) {
+            const slug = normalizarTexto(tituloEvento)
+                .replace(/[^a-z0-9]+/g, '_')
+                .replace(/^_+|_+$/g, '')
+                .slice(0, 60);
+
+            if (!slug) {
+                return `${nombreDefecto}.${extension}`;
+            }
+            return `${slug}_${sufijo}.${extension}`;
         }
 
         function sincronizarUIEvento() {
@@ -3580,16 +3689,25 @@
             mostrarToast("Cambio rehecho");
         }
 
-        function limpiarPlanoCompleto() {
+        async function limpiarPlanoCompleto() {
             const objetosReales = canvas.getObjects().filter(o => !o.esTemporal);
             if (objetosReales.length === 0) {
                 mostrarToast("El plano ya está vacío.");
                 return;
             }
-            if (!confirm("¿Seguro que quieres vaciar todo el plano? Podrás recuperarlo con Ctrl+Z mientras no cierres la pestaña.")) {
-                return;
-            }
+
+            const confirmado = await mostrarDialogoModal({
+                titulo: 'Vaciar plano completo',
+                mensaje: 'Se eliminarán todas las mesas, invitados y elementos del salón del lienzo actual. Podrás deshacer esta acción con Ctrl+Z mientras no cierres la pestaña.',
+                textoConfirmar: 'Sí, vaciar plano',
+                textoCancelar: 'Cancelar',
+                variante: 'danger'
+            });
+
+            if (!confirmado) return;
+
             limpiarGuiasActivas();
+            limpiarResaltadoMesaDestino();
             cerrarPanelHud();
             canvas.clear();
             contadorNuevasMesas = 1;
@@ -4618,6 +4736,87 @@
         modalOverlay.addEventListener('click', function(e) {
             if (e.target === modalOverlay) cerrarModalEdicion();
         });
+		
+		// ==================== MODAL INTEGRADO DE CONFIRMACIÓN Y AVISOS ====================
+        const dialogoOverlay = document.getElementById('modalDialogo');
+        const dialogoTituloEl = document.getElementById('dialogoTitulo');
+        const dialogoMensajeEl = document.getElementById('dialogoMensaje');
+        const dialogoListaEl = document.getElementById('dialogoLista');
+        const btnDialogoCancelar = document.getElementById('btnDialogoCancelar');
+        const btnDialogoConfirmar = document.getElementById('btnDialogoConfirmar');
+        let resolverDialogoModal = null;
+
+        function mostrarDialogoModal({
+            titulo = 'Aviso',
+            mensaje = '',
+            lista = [],
+            textoConfirmar = 'Aceptar',
+            textoCancelar = null,
+            variante = 'info' // 'info' | 'warn' | 'danger'
+        }) {
+            ocultarTooltip();
+            limpiarGuiasActivas();
+            limpiarResaltadoMesaDestino();
+
+            if (resolverDialogoModal) {
+                resolverDialogoModal(false);
+                resolverDialogoModal = null;
+            }
+
+            const iconos = {
+                danger: `<span class="dialog-icon is-danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></span>`,
+                warn:   `<span class="dialog-icon is-warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="14" height="14"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>`,
+                info:   `<span class="dialog-icon is-info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="14" height="14"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></span>`
+            };
+
+            dialogoTituloEl.innerHTML = `${iconos[variante] || iconos.info}<span>${escaparHTML(titulo)}</span>`;
+            dialogoMensajeEl.textContent = mensaje;
+
+            if (Array.isArray(lista) && lista.length > 0) {
+                dialogoListaEl.innerHTML = lista.map(item => `<li>${escaparHTML(item)}</li>`).join('');
+                dialogoListaEl.classList.add('visible');
+            } else {
+                dialogoListaEl.innerHTML = '';
+                dialogoListaEl.classList.remove('visible');
+            }
+
+            if (textoCancelar) {
+                btnDialogoCancelar.textContent = textoCancelar;
+                btnDialogoCancelar.style.display = 'inline-flex';
+            } else {
+                btnDialogoCancelar.style.display = 'none';
+            }
+
+            btnDialogoConfirmar.textContent = textoConfirmar;
+            btnDialogoConfirmar.className = variante === 'danger' ? 'btn btn-danger-solid' : 'btn btn-primary';
+
+            dialogoOverlay.classList.add('open');
+
+            setTimeout(() => {
+                if (variante === 'danger' && textoCancelar) {
+                    btnDialogoCancelar.focus();
+                } else {
+                    btnDialogoConfirmar.focus();
+                }
+            }, 30);
+
+            return new Promise(resolve => {
+                resolverDialogoModal = resolve;
+            });
+        }
+
+        function cerrarDialogoModal(resultado = false) {
+            dialogoOverlay.classList.remove('open');
+            if (resolverDialogoModal) {
+                const fn = resolverDialogoModal;
+                resolverDialogoModal = null;
+                fn(Boolean(resultado));
+            }
+        }
+
+        dialogoOverlay.addEventListener('click', function(e) {
+            if (e.target === dialogoOverlay) cerrarDialogoModal(false);
+        });
 
         canvas.on('mouse:dblclick', function(opt) {
             if (opt.target && !opt.target.esTemporal) {
@@ -5640,6 +5839,43 @@
             }
             return -1;
         }
+		
+		function detectarIndiceColumnaMesa(cabeceras, idxAlergias = -1) {
+            if (!Array.isArray(cabeceras)) return -1;
+            const idxExplicito = cabeceras.findIndex(h => normalizarTexto(h).includes('mesa'));
+            if (idxExplicito >= 0) return idxExplicito;
+
+            // Si no hay cabecera explícita pero existe una 9ª columna (I), se toma como mesa
+            if (cabeceras.length > 8 && idxAlergias !== 8) {
+                return 8;
+            }
+            return -1;
+        }
+
+        function interpretarValorMesaExcel(valorRaw) {
+            if (valorRaw === null || valorRaw === undefined) {
+                return { accion: 'mantener', nombre: '' };
+            }
+            const limpio = String(valorRaw).trim();
+            if (!limpio) {
+                return { accion: 'mantener', nombre: '' };
+            }
+
+            const norm = normalizarTexto(limpio);
+            if (
+                norm === 'sin asignar' ||
+                norm === 'sin mesa' ||
+                norm === 'pendiente' ||
+                norm === 'ninguna' ||
+                norm === '-'
+            ) {
+                return { accion: 'desasignar', nombre: '' };
+            }
+
+            // Si en Excel pusieron solo un número (ej. "3"), se normaliza a "Mesa 3"
+            const nombreNormalizado = /^\d+$/.test(limpio) ? `Mesa ${limpio}` : limpio;
+            return { accion: 'asignar', nombre: nombreNormalizado };
+        }
 
         document.getElementById('inputExcel').addEventListener('change', function(evento) {
             const archivo = evento.target.files[0];
@@ -5652,11 +5888,66 @@
 
                 const primeraHoja = workbook.Sheets[workbook.SheetNames[0]];
                 const filas = XLSX.utils.sheet_to_json(primeraHoja, { header: 1 });
-                const idxAlergias = detectarIndiceColumnaAlergias(filas[0]);
+                const cabeceras = filas[0] || [];
+                const idxAlergias = detectarIndiceColumnaAlergias(cabeceras);
+                const idxMesa = detectarIndiceColumnaMesa(cabeceras, idxAlergias);
 
                 let contadorY = 70;
                 let contadorX = 110;
                 const invitadosActuales = canvas.getObjects().filter(obj => obj.tipoObjeto === 'invitado' && !obj.esTemporal);
+                const mesasActuales = canvas.getObjects().filter(obj => obj.tipoObjeto === 'mesa' && !obj.esTemporal);
+                const mesasAfectadas = new Set();
+
+                const capacidadPorDefecto = parseInt(document.getElementById('capacidadAuto')?.value, 10) || 10;
+                const columnasPorFila = 4;
+                const pasoX = 420;
+                const pasoY = 360;
+                const baseYMesas = mesasActuales.length > 0
+                    ? Math.max(...mesasActuales.map(m => m.top)) + pasoY
+                    : 220;
+
+                let mesasCreadas = 0;
+                let invitadosAsignados = 0;
+
+                const obtenerOCrearMesaPorNombre = (nombreMesa) => {
+                    const objetivoNorm = normalizarTexto(nombreMesa);
+                    let mesa = mesasActuales.find(m => normalizarTexto(m.linea1) === objetivoNorm);
+                    if (mesa) return mesa;
+
+                    const esPresidencial = objetivoNorm.includes('presidencial') || objetivoNorm.includes('novios');
+                    const forma = esPresidencial ? 'presidencial' : 'redonda';
+                    const col = mesasCreadas % columnasPorFila;
+                    const fil = Math.floor(mesasCreadas / columnasPorFila);
+                    const xMesa = 280 + (col * pasoX);
+                    const yMesa = baseYMesas + (fil * pasoY);
+
+                    const idUnico = `mesa_excel_${Date.now()}_${mesasCreadas}`;
+                    mesa = crearMesa(xMesa, yMesa, idUnico, nombreMesa, '', capacidadPorDefecto, forma, 'horizontal');
+                    canvas.add(mesa);
+                    mesasActuales.push(mesa);
+                    mesasAfectadas.add(mesa);
+                    mesasCreadas++;
+
+                    const matchNum = nombreMesa.match(/(?:#|Mesa\s+)(\d+)/i);
+                    if (matchNum) {
+                        const num = parseInt(matchNum[1], 10);
+                        if (num >= contadorNuevasMesas) contadorNuevasMesas = num + 1;
+                    } else if (!esPresidencial) {
+                        contadorNuevasMesas++;
+                    }
+
+                    return mesa;
+                };
+
+                const colocarEnColumnaSinMesa = (invObj) => {
+                    invObj.set({ left: contadorX, top: contadorY });
+                    invObj.setCoords();
+                    contadorY += 42;
+                    if (contadorY > canvas.height - 80) {
+                        contadorY = 70;
+                        contadorX += 180;
+                    }
+                };
 
                 for (let i = 1; i < filas.length; i++) {
                     const fila = filas[i];
@@ -5664,7 +5955,7 @@
                     const nombre = fila[0];
 
                     if (nombre && typeof nombre === 'string' && nombre.trim() !== '') {
-                        let cantidad = parseInt(fila[6]);
+                        let cantidad = parseInt(fila[6], 10);
                         const nombreLimpio = nombre.trim();
 
                         const invitadoExistente = invitadosActuales.find(
@@ -5673,14 +5964,15 @@
 
                         if (cantidad === 0) {
                             if (invitadoExistente) {
-                                const mesas = canvas.getObjects().filter(m => m.tipoObjeto === 'mesa' && !m.esTemporal);
-                                mesas.forEach(m => {
+                                mesasActuales.forEach(m => {
                                     if (m.invitadosSentados.includes(invitadoExistente)) {
                                         m.invitadosSentados = m.invitadosSentados.filter(inv => inv !== invitadoExistente);
-                                        reposicionarInvitadosEnCirculo(m);
+                                        mesasAfectadas.add(m);
                                     }
                                 });
                                 canvas.remove(invitadoExistente);
+                                const idxLista = invitadosActuales.indexOf(invitadoExistente);
+                                if (idxLista >= 0) invitadosActuales.splice(idxLista, 1);
                             }
                             continue;
                         }
@@ -5696,50 +5988,112 @@
                             ? String(fila[idxAlergias]).trim()
                             : null;
 
-                        if (invitadoExistente) {
-                            invitadoExistente.cantidad = cantidad;
-                            invitadoExistente.lado = lado;
-                            invitadoExistente.relacion = relacion;
-                            invitadoExistente.origen = origen;
-                            invitadoExistente.edad = edad;
-                            invitadoExistente.deParteDe = deParteDe;
+                        let invObjetivo = invitadoExistente;
+
+                        if (invObjetivo) {
+                            invObjetivo.cantidad = cantidad;
+                            invObjetivo.lado = lado;
+                            invObjetivo.relacion = relacion;
+                            invObjetivo.origen = origen;
+                            invObjetivo.edad = edad;
+                            invObjetivo.deParteDe = deParteDe;
                             if (idxAlergias >= 0 && alergiasRaw !== null) {
-                                invitadoExistente.alergias = alergiasRaw;
+                                invObjetivo.alergias = alergiasRaw;
                             }
 
-                            actualizarVisualInvitado(invitadoExistente);
+                            actualizarVisualInvitado(invObjetivo);
 
-                            const mesas = canvas.getObjects().filter(m => m.tipoObjeto === 'mesa' && !m.esTemporal);
-                            mesas.forEach(m => {
-                                if (m.invitadosSentados.includes(invitadoExistente)) {
-                                    reposicionarInvitadosEnCirculo(m);
+                            mesasActuales.forEach(m => {
+                                if (m.invitadosSentados.includes(invObjetivo)) {
+                                    mesasAfectadas.add(m);
                                 }
                             });
                         } else {
-							const nuevoInvitado = crearInvitado(contadorX, contadorY, nombreLimpio, cantidad, alergiasRaw || '', lado, edad);
-                            nuevoInvitado.lado = lado;
-                            nuevoInvitado.relacion = relacion;
-                            nuevoInvitado.origen = origen;
-                            nuevoInvitado.edad = edad;
-                            nuevoInvitado.deParteDe = deParteDe;
+                            invObjetivo = crearInvitado(
+                                contadorX,
+                                contadorY,
+                                nombreLimpio,
+                                cantidad,
+                                alergiasRaw || '',
+                                lado,
+                                edad
+                            );
+                            invObjetivo.lado = lado;
+                            invObjetivo.relacion = relacion;
+                            invObjetivo.origen = origen;
+                            invObjetivo.edad = edad;
+                            invObjetivo.deParteDe = deParteDe;
 
-                            canvas.add(nuevoInvitado);
+                            canvas.add(invObjetivo);
+                            invitadosActuales.push(invObjetivo);
 
-                            contadorY += 42;
-                            if (contadorY > canvas.height - 80) {
-                                contadorY = 70;
-                                contadorX += 180;
+                            // Solo avanza la columna de sin asignar si no va directo a una mesa
+                            const infoMesaPreview = idxMesa >= 0 ? interpretarValorMesaExcel(fila[idxMesa]) : { accion: 'mantener' };
+                            if (infoMesaPreview.accion !== 'asignar') {
+                                colocarEnColumnaSinMesa(invObjetivo);
+                            }
+                        }
+
+                        // Sincronización de mesa asignada desde el Excel
+                        if (idxMesa >= 0) {
+                            const { accion, nombre: nombreMesaExcel } = interpretarValorMesaExcel(fila[idxMesa]);
+
+                            if (accion === 'asignar') {
+                                const mesaDestino = obtenerOCrearMesaPorNombre(nombreMesaExcel);
+                                const yaEnDestino = mesaDestino.invitadosSentados.includes(invObjetivo);
+
+                                if (!yaEnDestino) {
+                                    mesasActuales.forEach(m => {
+                                        if (m !== mesaDestino && m.invitadosSentados.includes(invObjetivo)) {
+                                            m.invitadosSentados = m.invitadosSentados.filter(inv => inv !== invObjetivo);
+                                            mesasAfectadas.add(m);
+                                        }
+                                    });
+                                    mesaDestino.invitadosSentados.push(invObjetivo);
+                                    mesasAfectadas.add(mesaDestino);
+                                    invitadosAsignados++;
+                                }
+                            } else if (accion === 'desasignar') {
+                                let estabaSentado = false;
+                                mesasActuales.forEach(m => {
+                                    if (m.invitadosSentados.includes(invObjetivo)) {
+                                        m.invitadosSentados = m.invitadosSentados.filter(inv => inv !== invObjetivo);
+                                        mesasAfectadas.add(m);
+                                        estabaSentado = true;
+                                    }
+                                });
+                                if (estabaSentado) {
+                                    estilizarInvitado(invObjetivo, false);
+                                    colocarEnColumnaSinMesa(invObjetivo);
+                                }
                             }
                         }
                     }
                 }
 
+                mesasAfectadas.forEach(mesa => {
+                    reposicionarInvitadosEnCirculo(mesa);
+                });
+
                 ordenarCapasCanvas();
                 evento.target.value = '';
                 canvas.renderAll();
                 actualizarContadorTotal();
+
+                if (mesasCreadas > 0) {
+                    encuadrarPlano();
+                }
+
                 registrarCambio();
-                mostrarToast("Invitados sincronizados desde Excel.");
+
+                if (mesasCreadas > 0 || invitadosAsignados > 0) {
+                    const partes = [];
+                    if (mesasCreadas > 0) partes.push(`${mesasCreadas} ${mesasCreadas === 1 ? 'mesa creada' : 'mesas creadas'}`);
+                    if (invitadosAsignados > 0) partes.push(`${invitadosAsignados} ${invitadosAsignados === 1 ? 'asignación' : 'asignaciones'}`);
+                    mostrarToast(`Excel sincronizado: ${partes.join(' · ')}.`);
+                } else {
+                    mostrarToast("Invitados sincronizados desde Excel.");
+                }
             };
             lector.readAsArrayBuffer(archivo);
         });
@@ -5914,7 +6268,8 @@
 
             XLSX.utils.book_append_sheet(workbook, wsInvitados, "Invitados Actualizados");
             XLSX.utils.book_append_sheet(workbook, wsCatering, "Resumen Catering");
-            XLSX.writeFile(workbook, "listado_invitados_boda.xlsx");
+            const nombreExcel = generarNombreArchivo('invitados', 'xlsx', 'listado_invitados_boda');
+            XLSX.writeFile(workbook, nombreExcel);
             mostrarToast("Excel exportado con totales de cocina.");
         }
 
@@ -6327,7 +6682,7 @@
             const url = URL.createObjectURL(blob);
             const enlace = document.createElement('a');
             enlace.href = url;
-            enlace.download = 'seating_plan_boda.json';
+            enlace.download = generarNombreArchivo('proyecto', 'json', 'seating_plan_boda');
             enlace.click();
             URL.revokeObjectURL(url);
             mostrarToast("Plano guardado en JSON.");
@@ -6607,13 +6962,13 @@
 
             const enlace = document.createElement('a');
             enlace.href = dataURL;
-            enlace.download = 'plano_salon.png';
+            enlace.download = generarNombreArchivo('plano', 'png', 'plano_salon');
             enlace.click();
             mostrarToast("Imagen PNG generada.");
         }
 
         // ==================== AUTO-ASIGNACIÓN ====================
-        function autoAsignarMesas() {
+        async function autoAsignarMesas() {
             const todosLosInvitados = canvas.getObjects().filter(obj => obj.tipoObjeto === 'invitado' && !obj.esTemporal);
             const mesasExistentes = canvas.getObjects().filter(m => m.tipoObjeto === 'mesa' && !m.esTemporal);
             const invitadosPendientes = todosLosInvitados.filter(inv => {
@@ -6640,6 +6995,7 @@
             const pasoX = 370;
             const pasoY = 350;
             let indiceMesaNueva = 0;
+            const gruposOmitidos = [];
 
             let baseY = 200;
             if (mesasExistentes.length > 0) {
@@ -6652,8 +7008,8 @@
 
                 while (bloquePersonas.length > 0) {
                     if (bloquePersonas[0].cantidad > capacidadEstandar) {
-                        alert(`El grupo '${bloquePersonas[0].nombreAsignado}' (${bloquePersonas[0].cantidad} pers.) supera la capacidad de la mesa (${capacidadEstandar}).`);
-                        bloquePersonas.shift();
+                        const grupoGrande = bloquePersonas.shift();
+                        gruposOmitidos.push(`${grupoGrande.nombreAsignado} (${grupoGrande.cantidad} pers.)`);
                         continue;
                     }
 
@@ -6693,12 +7049,28 @@
                 }
             });
 
-            ordenarCapasCanvas();
-            canvas.renderAll();
-            actualizarContadorTotal();
-            encuadrarPlano();
-            registrarCambio();
-            mostrarToast("Mesas organizadas automáticamente.");
+            if (indiceMesaNueva > 0) {
+                ordenarCapasCanvas();
+                canvas.renderAll();
+                actualizarContadorTotal();
+                encuadrarPlano();
+                registrarCambio();
+                mostrarToast(
+                    gruposOmitidos.length > 0
+                        ? `Se organizaron ${indiceMesaNueva} mesas (con ${gruposOmitidos.length} grupo(s) omitido(s)).`
+                        : "Mesas organizadas automáticamente."
+                );
+            }
+
+            if (gruposOmitidos.length > 0) {
+                await mostrarDialogoModal({
+                    titulo: 'Grupos demasiado grandes para esta capacidad',
+                    mensaje: `Los siguientes grupos superan las ${capacidadEstandar} plazas por mesa y quedaron sin asignar. Puedes ampliar la capacidad de una mesa o dividir el grupo:`,
+                    lista: gruposOmitidos,
+                    textoConfirmar: 'Entendido',
+                    variante: 'warn'
+                });
+            }
         }
 
         // ==================== NAVEGACIÓN: ZOOM, PAN Y ENCUADRE ====================
@@ -7069,8 +7441,11 @@
 
         // ==================== ATAJOS DE TECLADO ====================
         window.addEventListener('keydown', function(evento) {
-            if (printOverlay.classList.contains('open')) {
-                if (evento.key === 'Escape') cerrarVistaImprimible();
+            if (dialogoOverlay.classList.contains('open')) {
+                if (evento.key === 'Escape') {
+                    evento.preventDefault();
+                    cerrarDialogoModal(false);
+                }
                 return;
             }
 
