@@ -66,6 +66,14 @@
             flex-direction: column;
             z-index: 20;
             box-shadow: 4px 0 20px -8px rgba(15, 23, 42, 0.06);
+            transition: margin-left 0.22s ease, box-shadow 0.22s ease;
+        }
+
+        .sidebar.is-collapsed {
+            margin-left: -320px;
+            box-shadow: none;
+            border-right-color: transparent;
+            pointer-events: none;
         }
 
         .sidebar-header {
@@ -750,6 +758,56 @@
             font-size: 11px;
             margin-bottom: 2px;
         }
+		
+		/* Botón flotante para plegar / desplegar el sidebar */
+        .sidebar-toggle-btn {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            height: 36px;
+            padding: 0 12px;
+            border-radius: var(--radius-pill);
+            border: 1px solid var(--border-subtle);
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: var(--text-secondary);
+            box-shadow: var(--shadow-float);
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            z-index: 25;
+            user-select: none;
+            transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+        }
+
+        .sidebar-toggle-btn:hover {
+            background-color: #ffffff;
+            border-color: #94a3b8;
+            color: var(--text-primary);
+        }
+
+        .sidebar-toggle-btn.is-collapsed {
+            background-color: var(--accent-dark);
+            border-color: var(--accent-dark);
+            color: #ffffff;
+        }
+
+        .sidebar-toggle-btn.is-collapsed:hover {
+            background-color: var(--accent-dark-hover);
+            border-color: var(--accent-dark-hover);
+            color: #ffffff;
+        }
+
+        .sidebar-toggle-btn svg {
+            width: 15px;
+            height: 15px;
+            flex-shrink: 0;
+        }
 
         /* ==================== HUD FLOTANTE SUPERIOR Y DESPLEGABLE RÁPIDO ==================== */
         .hud-stats {
@@ -1328,6 +1386,12 @@
             justify-content: space-between;
             gap: 10px;
         }
+		
+		.modal-footer-left {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
 
         .modal-footer-right {
             display: flex;
@@ -1337,7 +1401,7 @@
 
         .modal-footer .btn {
             width: auto;
-            padding: 8px 14px;
+            padding: 8px 11px;
         }
 
         /* ==================== VISTA IMPRIMIBLE (RESTAURANTE Y PROTOCOLO A-Z) ==================== */
@@ -1469,6 +1533,18 @@
             border-bottom: 2px solid #0f172a;
             margin-bottom: 22px;
         }
+		
+		.print-event-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0 0 6px;
+            font-size: 11.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #4f46e5;
+        }
 
         .print-doc-header h2 {
             margin: 0;
@@ -1529,6 +1605,42 @@
             text-transform: uppercase;
             letter-spacing: 0.05em;
             color: #92400e;
+        }
+		
+		.print-kitchen-totals {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #fde68a;
+        }
+
+        .print-kitchen-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background-color: #ffffff;
+            border: 1px solid #f59e0b;
+            border-radius: 999px;
+            padding: 3px 10px 3px 4px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #78350f;
+        }
+
+        .print-kitchen-pill-qty {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 24px;
+            height: 20px;
+            padding: 0 6px;
+            border-radius: 999px;
+            background-color: #d97706;
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 800;
         }
 
         .print-kitchen-list {
@@ -1891,6 +2003,8 @@
             }
 
             .print-kitchen-box,
+            .print-kitchen-pill,
+            .print-kitchen-pill-qty,
             .print-card,
             .print-unassigned,
             .protocol-letter-badge,
@@ -1932,7 +2046,7 @@
 <body>
 
     <!-- SIDEBAR: Panel Izquierdo -->
-    <aside class="sidebar">
+	<aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="brand-row">
                 <div class="brand-icon">
@@ -1944,9 +2058,9 @@
                         <circle cx="21" cy="12" r="1.5"></circle>
                     </svg>
                 </div>
-                <div>
-                    <h1>Seating Plan</h1>
-                    <p class="sidebar-subtitle">Organizador visual de mesas</p>
+                <<div>
+                    <h1 id="tituloSidebar">Seating Plan</h1>
+                    <p class="sidebar-subtitle" id="subtituloSidebar">Organizador visual de mesas</p>
                 </div>
             </div>
             <div class="autosave-pill" id="autosave-status">
@@ -2082,6 +2196,19 @@
                     </button>
                 </div>
             </section>
+			
+			<!-- SECCIÓN: Datos del evento -->
+            <section class="section">
+                <h3 class="section-title">Datos del evento</h3>
+                <div class="field-group">
+                    <label class="field-label" for="tituloEvento">Título (PDF y PNG)</label>
+                    <input type="text" id="tituloEvento" class="input-text" placeholder="Ej. Boda de Manuel y Gemma" autocomplete="off">
+                </div>
+                <div class="field-group">
+                    <label class="field-label" for="fechaEvento">Fecha del evento</label>
+                    <input type="date" id="fechaEvento" class="input-text">
+                </div>
+            </section>
 
             <!-- SECCIÓN: Datos (Excel y Proyecto) -->
             <section class="section">
@@ -2153,6 +2280,16 @@
 
     <!-- ÁREA PRINCIPAL: Lienzo con cuadrícula -->
     <main class="canvas-wrapper" id="canvas-wrapper">
+		<!-- Botón flotante para plegar o desplegar el sidebar -->
+        <button type="button" id="btnToggleSidebar" class="sidebar-toggle-btn" onclick="toggleSidebar()" title="Ocultar panel lateral (Ctrl+B)" aria-expanded="true" aria-controls="sidebar">
+            <svg id="iconToggleSidebar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <line x1="9" y1="3" x2="9" y2="21"/>
+                <polyline points="15 9 12 12 15 15"/>
+            </svg>
+            <span id="textToggleSidebar">Ocultar panel</span>
+        </button>
+		
         <!-- Contador flotante superior (con filtros clicables) -->
         <div id="contador-total" class="hud-stats"></div>
 
@@ -2216,7 +2353,7 @@
 			<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#db2777;margin:0 3px;"></span>Gemma ·
 			<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#eab308;margin:0 3px;"></span>Infantil ·
 			<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f97316;margin:0 3px;"></span>Alergia ·
-			Doble clic: editar · <kbd>Ctrl+Z</kbd> deshacer · <kbd>Supr</kbd> eliminar
+			Doble clic: editar · <kbd>Ctrl+D</kbd> duplicar · <kbd>Ctrl+Z</kbd> deshacer · <kbd>Supr</kbd> eliminar <kbd>↑↓←→</kbd> mover (<kbd>Shift</kbd> ×10) <kbd>R</kbd> rotar · <kbd>RePág/AvPág</kbd> capa
         </div>
     </main>
 
@@ -2235,10 +2372,16 @@
             <form id="formEdicion" onsubmit="guardarEdicionModal(event)">
                 <div class="modal-body" id="modalCampos"></div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-danger-soft" onclick="eliminarDesdeModal()" title="Eliminar elemento">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-                        Eliminar
-                    </button>
+                    <div class="modal-footer-left">
+                        <button type="button" class="btn btn-danger-soft" onclick="eliminarDesdeModal()" title="Eliminar elemento">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                            Eliminar
+                        </button>
+                        <button type="button" id="btnDuplicarModal" class="btn btn-secondary" onclick="duplicarDesdeModal()" title="Crear una copia con el mismo tamaño y estilo">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                            Duplicar
+                        </button>
+                    </div>
                     <div class="modal-footer-right">
                         <button type="button" class="btn btn-secondary" onclick="cerrarModalEdicion()">Cancelar</button>
                         <button type="submit" class="btn btn-primary">Guardar cambios</button>
@@ -2350,6 +2493,8 @@
         const STORAGE_KEY = 'seating_plan_boda_autosave_v1';
         const LOCK_STORAGE_KEY = 'seating_plan_boda_lock_v1';
         const SNAP_STORAGE_KEY = 'seating_plan_boda_snap_v1';
+		const SIDEBAR_STORAGE_KEY = 'seating_plan_boda_sidebar_v1';
+        let sidebarPlegado = false;
         const MAX_HISTORIAL = 30;
         let historial = [];
         let indiceHistorial = -1;
@@ -2367,6 +2512,10 @@
         let modoVistaImprimible = 'restaurante';
         let panelHudActivo = null; // null | 'pendientes' | 'alergias'
         let listaInvitadosHud = [];
+		let tituloEvento = '';
+        let fechaEvento = '';
+        let timerGuardadoEvento = null;
+		let timerGuardadoFlechas = null;
 
         const CHIPS_ALERGIAS = [
             'Celíaco',
@@ -2447,6 +2596,59 @@
         function esNino(edad) {
             const norm = normalizarTexto(edad);
             return norm.includes('nin') || norm.includes('infantil') || norm.includes('bebe');
+        }
+		
+		function formatearFechaEvento(fechaStr) {
+            const limpia = (fechaStr || '').trim();
+            if (!limpia) return '';
+            const match = limpia.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (match) {
+                const fecha = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+                return fecha.toLocaleDateString('es-ES', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                });
+            }
+            return limpia;
+        }
+
+        function sincronizarUIEvento() {
+            const inputTitulo = document.getElementById('tituloEvento');
+            const inputFecha = document.getElementById('fechaEvento');
+            const h1Sidebar = document.getElementById('tituloSidebar');
+            const subSidebar = document.getElementById('subtituloSidebar');
+
+            if (inputTitulo && inputTitulo.value !== tituloEvento) {
+                inputTitulo.value = tituloEvento;
+            }
+            if (inputFecha && inputFecha.value !== fechaEvento) {
+                inputFecha.value = fechaEvento;
+            }
+
+            const fechaBonita = formatearFechaEvento(fechaEvento);
+            if (h1Sidebar) {
+                h1Sidebar.textContent = tituloEvento || 'Seating Plan';
+            }
+            if (subSidebar) {
+                subSidebar.textContent = fechaBonita || 'Organizador visual de mesas';
+            }
+            document.title = tituloEvento ? `${tituloEvento} — Seating Plan` : 'Seating Plan';
+        }
+
+        function manejarCambioDatosEvento(inmediato = false) {
+            const inputTitulo = document.getElementById('tituloEvento');
+            const inputFecha = document.getElementById('fechaEvento');
+            tituloEvento = inputTitulo ? inputTitulo.value.trim() : '';
+            fechaEvento = inputFecha ? inputFecha.value.trim() : '';
+            sincronizarUIEvento();
+
+            clearTimeout(timerGuardadoEvento);
+            if (inmediato) {
+                registrarCambio();
+            } else {
+                timerGuardadoEvento = setTimeout(() => registrarCambio(), 500);
+            }
         }
 
         // ==================== MOTOR DE GUÍAS MAGNÉTICAS (SNAP) ====================
@@ -3010,6 +3212,39 @@
             canvas.renderAll();
             actualizarCuadricula();
         }
+		
+		// ==================== PLEGAR / DESPLEGAR SIDEBAR ====================
+        function actualizarUIEstadoSidebar() {
+            const sidebarEl = document.getElementById('sidebar');
+            const btnToggle = document.getElementById('btnToggleSidebar');
+            const iconToggle = document.getElementById('iconToggleSidebar');
+            const textToggle = document.getElementById('textToggleSidebar');
+            if (!sidebarEl || !btnToggle) return;
+
+            sidebarEl.classList.toggle('is-collapsed', sidebarPlegado);
+            btnToggle.classList.toggle('is-collapsed', sidebarPlegado);
+            btnToggle.setAttribute('aria-expanded', sidebarPlegado ? 'false' : 'true');
+
+            if (sidebarPlegado) {
+                btnToggle.title = 'Mostrar panel lateral (Ctrl+B)';
+                textToggle.textContent = 'Mostrar panel';
+                iconToggle.innerHTML = `<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><polyline points="13 9 16 12 13 15"/>`;
+            } else {
+                btnToggle.title = 'Ocultar panel lateral (Ctrl+B)';
+                textToggle.textContent = 'Ocultar panel';
+                iconToggle.innerHTML = `<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><polyline points="15 9 12 12 15 15"/>`;
+            }
+        }
+
+        function toggleSidebar() {
+            sidebarPlegado = !sidebarPlegado;
+            try {
+                localStorage.setItem(SIDEBAR_STORAGE_KEY, sidebarPlegado ? '1' : '0');
+            } catch (e) {}
+            actualizarUIEstadoSidebar();
+            // Ajuste final exacto tras completar la transición CSS
+            setTimeout(ajustarTamanoCanvas, 240);
+        }
 
         const resizeObserver = new ResizeObserver(() => ajustarTamanoCanvas());
         resizeObserver.observe(wrapperEl);
@@ -3121,12 +3356,16 @@
 
         // ==================== MOTOR DE ESTADO, AUTOGUARDADO E HISTORIAL ====================
         function obtenerEstadoPlano() {
-            const estado = {
-                mesas: [],
-                invitados: [],
-                elementosSalon: [],
-                contadorNuevasMesas: contadorNuevasMesas
-            };
+			const estado = {
+			   evento: {
+				   titulo: tituloEvento,
+				   fecha: fechaEvento
+			   },
+			   mesas: [],
+			   invitados: [],
+			   elementosSalon: [],
+			   contadorNuevasMesas: contadorNuevasMesas
+			};
             const mesas = canvas.getObjects().filter(o => o.tipoObjeto === 'mesa' && !o.esTemporal);
 
             canvas.getObjects().forEach(obj => {
@@ -3184,6 +3423,9 @@
             const vptActual = [...canvas.viewportTransform];
 
             canvas.clear();
+			tituloEvento = (estado.evento && typeof estado.evento.titulo === 'string') ? estado.evento.titulo : '';
+			fechaEvento = (estado.evento && typeof estado.evento.fecha === 'string') ? estado.evento.fecha : '';
+			sincronizarUIEvento();
             const diccionarioMesas = {};
 
             if (estado.elementosSalon) {
@@ -3375,6 +3617,16 @@
             hudPopoverEl.classList.remove('open');
             actualizarContadorTotal();
         }
+		
+		document.addEventListener('pointerdown', function(evento) {
+            if (!panelHudActivo) return;
+            const hudStatsEl = document.getElementById('contador-total');
+            const clicEnPopover = hudPopoverEl && hudPopoverEl.contains(evento.target);
+            const clicEnHud = hudStatsEl && hudStatsEl.contains(evento.target);
+            if (!clicEnPopover && !clicEnHud) {
+                cerrarPanelHud();
+            }
+        }, true);
 
         function renderizarPanelHud() {
             if (!panelHudActivo) return;
@@ -4037,6 +4289,12 @@
             } else {
                 return;
             }
+			
+			const btnDuplicar = document.getElementById('btnDuplicarModal');
+            if (btnDuplicar) {
+                const esDuplicable = objeto.tipoObjeto === 'mesa' || objeto.tipoObjeto === 'elementoSalon';
+                btnDuplicar.style.display = esDuplicable ? 'inline-flex' : 'none';
+            }
 
             modalOverlay.classList.add('open');
             setTimeout(() => {
@@ -4195,6 +4453,166 @@
             } else if (objetivo.tipoObjeto === 'elementoSalon') {
                 eliminarElementoSalon({ forzar: true });
             }
+        }
+		
+		function obtenerSiguienteNombreMesaDuplicada(nombreBase) {
+            const mesas = canvas.getObjects().filter(o => o.tipoObjeto === 'mesa' && !o.esTemporal);
+            let maxNum = contadorNuevasMesas - 1;
+
+            mesas.forEach(m => {
+                const match = (m.linea1 || '').match(/(?:#|Mesa\s+)(\d+)/i);
+                if (match) {
+                    const n = parseInt(match[1], 10);
+                    if (n > maxNum) maxNum = n;
+                }
+            });
+
+            const siguiente = maxNum + 1;
+
+            if (nombreBase.includes('#')) {
+                contadorNuevasMesas = siguiente + 1;
+                return nombreBase.replace(/#\d+/, `#${siguiente}`);
+            }
+            if (/Mesa\s+\d+/i.test(nombreBase)) {
+                contadorNuevasMesas = siguiente + 1;
+                return nombreBase.replace(/Mesa\s+\d+/i, `Mesa ${siguiente}`);
+            }
+            return `${nombreBase} (copia)`;
+        }
+
+        function duplicarDesdeModal() {
+            if (!objetoEnEdicion) return;
+
+            if (objetoEnEdicion.tipoObjeto === 'mesa') {
+                const baseL1 = document.getElementById('editMesaL1').value.trim() || objetoEnEdicion.linea1 || 'Mesa';
+                const nuevaL2 = document.getElementById('editMesaL2').value.trim();
+                const nuevaCap = Math.max(1, parseInt(document.getElementById('editMesaCap').value, 10) || objetoEnEdicion.capacidadMax || 10);
+                const nuevaForma = document.getElementById('editMesaForma').value || objetoEnEdicion.forma || 'redonda';
+                const nuevaOrientacion = document.getElementById('editMesaOrientacion').value || objetoEnEdicion.orientacion || 'horizontal';
+
+                const nombreClon = obtenerSiguienteNombreMesaDuplicada(baseL1);
+                const idUnico = `mesa_clon_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+
+                const mesaClon = crearMesa(
+                    objetoEnEdicion.left + 44,
+                    objetoEnEdicion.top + 44,
+                    idUnico,
+                    nombreClon,
+                    nuevaL2,
+                    nuevaCap,
+                    nuevaForma,
+                    nuevaOrientacion
+                );
+
+                canvas.add(mesaClon);
+                ordenarCapasCanvas();
+                canvas.setActiveObject(mesaClon);
+                canvas.renderAll();
+                actualizarContadorTotal();
+                registrarCambio();
+                cerrarModalEdicion();
+                mostrarToast(`${nombreClon} creada.`);
+
+            } else if (objetoEnEdicion.tipoObjeto === 'elementoSalon') {
+                const nuevaEtiqueta = document.getElementById('editSalonEtiqueta').value.trim();
+                const nuevoAncho = Math.max(10, Math.min(2400, parseInt(document.getElementById('editSalonAncho').value, 10) || objetoEnEdicion.anchoBloque || 200));
+                const nuevoAlto = Math.max(10, Math.min(2000, parseInt(document.getElementById('editSalonAlto').value, 10) || objetoEnEdicion.altoBloque || 80));
+                const nuevoTema = document.getElementById('editSalonTema').value || objetoEnEdicion.temaBloque || 'slate';
+                const nuevoBorde = document.getElementById('editSalonBorde').value || objetoEnEdicion.tipoBorde || 'discontinuo';
+                const esTransparente = document.getElementById('editSalonTransparente').checked;
+                const nuevoAngulo = parseFloat(document.getElementById('editSalonAngulo').value) || 0;
+                const nuevoZIndex = (parseInt(document.getElementById('editSalonZIndex').value, 10) || 0) + 1;
+
+                const idUnico = `salon_clon_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+
+                const bloqueClon = crearElementoSalon(
+                    objetoEnEdicion.left + 30,
+                    objetoEnEdicion.top + 30,
+                    idUnico,
+                    nuevaEtiqueta,
+                    nuevoAncho,
+                    nuevoAlto,
+                    nuevoTema,
+                    nuevoAngulo,
+                    nuevoZIndex,
+                    nuevoBorde,
+                    esTransparente
+                );
+
+                canvas.add(bloqueClon);
+                ordenarCapasCanvas();
+                canvas.setActiveObject(bloqueClon);
+                canvas.renderAll();
+                registrarCambio();
+                cerrarModalEdicion();
+                mostrarToast("Elemento del salón duplicado.");
+            }
+        }
+		
+		function duplicarObjetoSeleccionado() {
+            const objetoActivo = canvas.getActiveObject();
+            if (!objetoActivo || objetoActivo.esTemporal) {
+                mostrarToast("Selecciona primero una mesa o un elemento del salón para duplicar.", true);
+                return;
+            }
+
+            if (objetoActivo.tipoObjeto === 'mesa') {
+                limpiarGuiasActivas();
+                limpiarResaltadoMesaDestino();
+
+                const nombreClon = obtenerSiguienteNombreMesaDuplicada(objetoActivo.linea1 || 'Mesa');
+                const idUnico = `mesa_clon_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+
+                const mesaClon = crearMesa(
+                    objetoActivo.left + 44,
+                    objetoActivo.top + 44,
+                    idUnico,
+                    nombreClon,
+                    objetoActivo.linea2 || '',
+                    objetoActivo.capacidadMax || 10,
+                    objetoActivo.forma || 'redonda',
+                    objetoActivo.orientacion || 'horizontal'
+                );
+
+                canvas.add(mesaClon);
+                ordenarCapasCanvas();
+                canvas.setActiveObject(mesaClon);
+                canvas.renderAll();
+                actualizarContadorTotal();
+                registrarCambio();
+                mostrarToast(`${nombreClon} creada.`);
+                return;
+            }
+
+            if (objetoActivo.tipoObjeto === 'elementoSalon') {
+                limpiarGuiasActivas();
+                limpiarResaltadoMesaDestino();
+
+                const idUnico = `salon_clon_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+                const bloqueClon = crearElementoSalon(
+                    objetoActivo.left + 30,
+                    objetoActivo.top + 30,
+                    idUnico,
+                    objetoActivo.etiqueta || '',
+                    objetoActivo.anchoBloque || 200,
+                    objetoActivo.altoBloque || 80,
+                    objetoActivo.temaBloque || 'slate',
+                    objetoActivo.angle || 0,
+                    (objetoActivo.zIndex ?? 0) + 1,
+                    objetoActivo.tipoBorde || 'discontinuo',
+                    Boolean(objetoActivo.fondoTransparente)
+                );
+
+                canvas.add(bloqueClon);
+                ordenarCapasCanvas();
+                canvas.setActiveObject(bloqueClon);
+                canvas.renderAll();
+                registrarCambio();
+                mostrarToast("Elemento del salón duplicado.");
+                return;
+            }
+
+            mostrarToast("Solo se pueden duplicar mesas y elementos del salón.", true);
         }
 
         modalOverlay.addEventListener('click', function(e) {
@@ -5350,6 +5768,8 @@
                 ["Nombre", "Lado", "Relación", "Origen", "Edad", "De parte de", "Cantidad", "Alergias / Menú", "Mesa Asignada"]
             ];
 
+            const listaCocina = [];
+
             invitados.forEach(inv => {
                 const mesaAsignada = mesas.find(m => m.invitadosSentados.includes(inv));
                 const nombreMesa = mesaAsignada ? mesaAsignada.linea1.split('\n')[0] : "Sin asignar";
@@ -5365,11 +5785,24 @@
                     inv.alergias || '',
                     nombreMesa
                 ]);
+
+                if (inv.alergias && inv.alergias.trim() !== '') {
+                    listaCocina.push({
+                        nombre: inv.nombreAsignado,
+                        cantidad: inv.cantidad || 1,
+                        alergias: inv.alergias,
+                        mesa: nombreMesa
+                    });
+                }
             });
 
             const datosCatering = [
                 ["Mesa", "Etiqueta", "Total Personas", "Adultos", "Niños", "Alergias / Menús Especiales", "Listado de Invitados"]
             ];
+
+            let sumaTotal = 0;
+            let sumaAdultos = 0;
+            let sumaNinos = 0;
 
             mesas.forEach(m => {
                 let total = 0, adultos = 0, ninos = 0;
@@ -5388,6 +5821,10 @@
                     }
                 });
 
+                sumaTotal += total;
+                sumaAdultos += adultos;
+                sumaNinos += ninos;
+
                 datosCatering.push([
                     m.linea1,
                     m.linea2 || '',
@@ -5399,6 +5836,69 @@
                 ]);
             });
 
+            // Fila opcional para invitados aún sin asignar mesa
+            const sinAsignar = invitados.filter(inv => !mesas.some(m => m.invitadosSentados.includes(inv)));
+            if (sinAsignar.length > 0) {
+                let totalSin = 0, adultosSin = 0, ninosSin = 0;
+                const notasSin = [];
+                const nombresSin = [];
+
+                sinAsignar.forEach(inv => {
+                    const cant = inv.cantidad || 1;
+                    totalSin += cant;
+                    if (esNino(inv.edad)) ninosSin += cant;
+                    else adultosSin += cant;
+
+                    nombresSin.push(cant > 1 ? `${inv.nombreAsignado} (${cant})` : inv.nombreAsignado);
+                    if (inv.alergias) {
+                        notasSin.push(`${inv.nombreAsignado}: ${inv.alergias}`);
+                    }
+                });
+
+                sumaTotal += totalSin;
+                sumaAdultos += adultosSin;
+                sumaNinos += ninosSin;
+
+                datosCatering.push([
+                    "Sin asignar",
+                    "Pendientes de mesa",
+                    totalSin,
+                    adultosSin,
+                    ninosSin,
+                    notasSin.join(' | '),
+                    nombresSin.join(', ')
+                ]);
+            }
+
+            // Fila de totales generales de comensales
+            datosCatering.push([
+                "TOTAL GENERAL",
+                `${mesas.length} mesas`,
+                sumaTotal,
+                sumaAdultos,
+                sumaNinos,
+                `${listaCocina.length} nota(s) de menú`,
+                ""
+            ]);
+
+            // Bloque separado con los totales agrupados para cocina
+            datosCatering.push([]);
+            datosCatering.push([]);
+            datosCatering.push(["RESUMEN COCINA: ALERGIAS Y MENÚS ESPECIALES", "Total unidades"]);
+
+            if (listaCocina.length > 0) {
+                const totalesAgrupados = calcularTotalesCocina(listaCocina);
+                const totalPorciones = totalesAgrupados.reduce((s, t) => s + t.total, 0);
+
+                totalesAgrupados.forEach(t => {
+                    datosCatering.push([t.etiqueta, t.total]);
+                });
+
+                datosCatering.push(["TOTAL MENÚS ESPECIALES / AVISOS", totalPorciones]);
+            } else {
+                datosCatering.push(["Sin alergias ni menús especiales registrados", 0]);
+            }
+
             const workbook = XLSX.utils.book_new();
             const wsInvitados = XLSX.utils.aoa_to_sheet(datosInvitados);
             const wsCatering = XLSX.utils.aoa_to_sheet(datosCatering);
@@ -5408,14 +5908,14 @@
                 { wch: 10 }, { wch: 14 }, { wch: 10 }, { wch: 24 }, { wch: 20 }
             ];
             wsCatering['!cols'] = [
-                { wch: 20 }, { wch: 22 }, { wch: 14 }, { wch: 10 },
+                { wch: 38 }, { wch: 22 }, { wch: 15 }, { wch: 10 },
                 { wch: 10 }, { wch: 36 }, { wch: 52 }
             ];
 
             XLSX.utils.book_append_sheet(workbook, wsInvitados, "Invitados Actualizados");
             XLSX.utils.book_append_sheet(workbook, wsCatering, "Resumen Catering");
             XLSX.writeFile(workbook, "listado_invitados_boda.xlsx");
-            mostrarToast("Excel exportado con hoja de catering.");
+            mostrarToast("Excel exportado con totales de cocina.");
         }
 
         // ==================== VISTA IMPRIMIBLE (TARJETAS RESTAURANTE + PROTOCOLO A-Z) ====================
@@ -5474,6 +5974,61 @@
                 renderizarTarjetasRestaurante();
             }
         }
+		
+		function calcularTotalesCocina(listaCocina) {
+            const mapa = new Map();
+            const chipsCanonicos = new Map(
+                CHIPS_ALERGIAS.map(tag => [normalizarTexto(tag), tag])
+            );
+
+            listaCocina.forEach(item => {
+                const fragmentos = (item.alergias || '')
+                    .split(/[,;|\n]+/)
+                    .map(s => s.trim())
+                    .filter(Boolean);
+
+                fragmentos.forEach(raw => {
+                    let cantidad = 1;
+                    let etiqueta = raw;
+
+                    // Detecta prefijos: "2 Celíaco", "2x Trona", "3× Menú infantil"
+                    const matchPrefijo = raw.match(/^(\d+)\s*[x×]?\s+(.+)$/i);
+                    // Detecta sufijos: "Celíaco (2)", "Trona x2"
+                    const matchSufijo = raw.match(/^(.+?)\s*(?:\((\d+)\)|[x×]\s*(\d+))$/i);
+
+                    if (matchPrefijo) {
+                        cantidad = Math.max(1, parseInt(matchPrefijo[1], 10));
+                        etiqueta = matchPrefijo[2].trim();
+                    } else if (matchSufijo) {
+                        cantidad = Math.max(1, parseInt(matchSufijo[2] || matchSufijo[3], 10));
+                        etiqueta = matchSufijo[1].trim();
+                    }
+
+                    const clave = normalizarTexto(etiqueta);
+                    if (!clave) return;
+
+                    const etiquetaVisible = chipsCanonicos.get(clave)
+                        || (etiqueta.charAt(0).toUpperCase() + etiqueta.slice(1));
+
+                    if (mapa.has(clave)) {
+                        mapa.get(clave).total += cantidad;
+                    } else {
+                        mapa.set(clave, { etiqueta: etiquetaVisible, total: cantidad });
+                    }
+                });
+            });
+
+            return Array.from(mapa.values()).sort((a, b) => {
+                if (b.total !== a.total) return b.total - a.total;
+                return a.etiqueta.localeCompare(b.etiqueta, 'es', { sensitivity: 'base' });
+            });
+        }
+		
+		function obtenerKickerEventoHTML() {
+            const partes = [tituloEvento, formatearFechaEvento(fechaEvento)].filter(Boolean);
+            if (partes.length === 0) return '';
+            return `<div class="print-event-kicker">${escaparHTML(partes.join(' · '))}</div>`;
+        }
 
         function renderizarTarjetasRestaurante() {
             const mostrarCocina = document.getElementById('chkMostrarCocina').checked;
@@ -5511,6 +6066,7 @@
             let html = `
                 <header class="print-doc-header">
                     <div>
+                        ${obtenerKickerEventoHTML()}
                         <h2>Distribución de Mesas — Listado para Sala</h2>
                         <p class="print-doc-sub">Generado el ${fechaStr} · Resumen operativo para maître y cocina</p>
                     </div>
@@ -5537,6 +6093,16 @@
 
             if (mostrarCocina) {
                 if (listaCocina.length > 0) {
+                    const totalesAgrupados = calcularTotalesCocina(listaCocina);
+                    const totalPorciones = totalesAgrupados.reduce((s, t) => s + t.total, 0);
+
+                    const pillsTotales = totalesAgrupados.map(t => `
+                        <span class="print-kitchen-pill">
+                            <span class="print-kitchen-pill-qty">${t.total}×</span>
+                            <span>${escaparHTML(t.etiqueta)}</span>
+                        </span>
+                    `).join('');
+
                     const itemsCocina = listaCocina.map(item => `
                         <li>
                             <span><strong>${escaparHTML(item.mesa)}</strong> · ${escaparHTML(item.nombre)}${item.cantidad > 1 ? ` (${item.cantidad})` : ''}</span>
@@ -5546,7 +6112,8 @@
 
                     html += `
                         <section class="print-kitchen-box">
-                            <h3 class="print-kitchen-title">Resumen para cocina: alergias y menús especiales (${listaCocina.length})</h3>
+                            <h3 class="print-kitchen-title">Resumen para cocina: totales (${totalPorciones}) y detalle por mesa</h3>
+                            <div class="print-kitchen-totals">${pillsTotales}</div>
                             <ul class="print-kitchen-list">${itemsCocina}</ul>
                         </section>
                     `;
@@ -5673,6 +6240,7 @@
             let html = `
                 <header class="print-doc-header">
                     <div>
+                        ${obtenerKickerEventoHTML()}
                         <h2>Protocolo Alfabético de Invitados (A–Z)</h2>
                         <p class="print-doc-sub">Generado el ${fechaStr} · Listado de bienvenida y consulta rápida en entrada</p>
                     </div>
@@ -5794,7 +6362,7 @@
         function exportarImagen() {
             ocultarTooltip();
             limpiarGuiasActivas();
-			limpiarResaltadoMesaDestino();
+            limpiarResaltadoMesaDestino();
             canvas.discardActiveObject();
             canvas.getObjects().forEach(obj => {
                 if (obj.esTemporal) canvas.remove(obj);
@@ -5827,39 +6395,197 @@
             maxX += margen;
             maxY += margen;
 
+            const fuenteUI = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+
+            // 1. Cabecera opcional del evento (título y fecha)
+            const fechaBonita = formatearFechaEvento(fechaEvento);
+            const tieneCabecera = Boolean(tituloEvento || fechaBonita);
+            const nodosCabecera = [];
+            let anchoCabecera = 0;
+            let altoCabecera = 0;
+
+            if (tieneCabecera) {
+                let cursorY = 0;
+                if (tituloEvento) {
+                    const txtTitulo = new fabric.Text(tituloEvento, {
+                        fontSize: 22,
+                        fontFamily: fuenteUI,
+                        fontWeight: '700',
+                        fill: '#0f172a',
+                        left: 0,
+                        top: cursorY,
+                        originX: 'center',
+                        originY: 'top'
+                    });
+                    nodosCabecera.push(txtTitulo);
+                    anchoCabecera = Math.max(anchoCabecera, Math.ceil(txtTitulo.width));
+                    cursorY += Math.ceil(txtTitulo.height) + 4;
+                }
+                if (fechaBonita) {
+                    const txtFecha = new fabric.Text(fechaBonita, {
+                        fontSize: 13.5,
+                        fontFamily: fuenteUI,
+                        fontWeight: '600',
+                        fill: '#475569',
+                        left: 0,
+                        top: cursorY,
+                        originX: 'center',
+                        originY: 'top'
+                    });
+                    nodosCabecera.push(txtFecha);
+                    anchoCabecera = Math.max(anchoCabecera, Math.ceil(txtFecha.width));
+                    cursorY += Math.ceil(txtFecha.height);
+                }
+                altoCabecera = cursorY;
+            }
+
+            // 2. Contador superior derecho
             const stats = obtenerEstadisticas();
             const textoContador = `Asistentes: ${stats.totalPersonas}  ·  Sentados: ${stats.sentados}  ·  Mesas: ${stats.mesasTotales}  ·  Menús esp.: ${stats.conAlergias}`;
 
             const tempText = new fabric.Text(textoContador, {
                 fontSize: 14,
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                fontFamily: fuenteUI,
                 fontWeight: '600',
                 fill: '#0f172a',
                 left: 16,
-                top: 11
+                originX: 'left',
+                originY: 'center'
             });
 
+            const altoBarra = Math.max(38, Math.ceil(tempText.height) + 22);
+            const centroY = altoBarra / 2;
+            tempText.set({ top: centroY });
+
             const tempRect = new fabric.Rect({
-                width: tempText.width + 32,
-                height: tempText.height + 22,
+                width: Math.ceil(tempText.width) + 32,
+                height: altoBarra,
                 fill: '#f8fafc',
                 stroke: '#cbd5e1',
                 strokeWidth: 1,
                 rx: 8,
                 ry: 8,
                 left: 0,
-                top: 0
+                top: 0,
+                originX: 'left',
+                originY: 'top'
             });
 
-            const badgeGroup = new fabric.Group([tempRect, tempText], {
-                left: maxX - tempRect.width - 36,
-                top: minY + 32,
+            // 3. Leyenda superior izquierda (Manuel, Gemma, Infantil y Alergia)
+            const itemsLeyenda = [
+                { label: 'Manuel', color: '#2563eb' },
+                { label: 'Gemma', color: '#db2777' },
+                { label: 'Infantil', color: '#eab308' },
+                { label: 'Alergia', color: '#f97316' }
+            ];
+
+            const elementosLeyenda = [];
+            let cursorX = 16;
+
+            itemsLeyenda.forEach((item, idx) => {
+                const punto = new fabric.Circle({
+                    radius: 5,
+                    fill: item.color,
+                    stroke: '#ffffff',
+                    strokeWidth: 1.5,
+                    left: cursorX + 5,
+                    top: centroY,
+                    originX: 'center',
+                    originY: 'center'
+                });
+
+                const texto = new fabric.Text(item.label, {
+                    fontSize: 13.5,
+                    fontFamily: fuenteUI,
+                    fontWeight: '600',
+                    fill: '#0f172a',
+                    left: cursorX + 16,
+                    top: centroY,
+                    originX: 'left',
+                    originY: 'center'
+                });
+
+                elementosLeyenda.push(punto, texto);
+                cursorX += 16 + Math.ceil(texto.width);
+
+                if (idx < itemsLeyenda.length - 1) {
+                    const separador = new fabric.Text('·', {
+                        fontSize: 14,
+                        fontFamily: fuenteUI,
+                        fontWeight: '700',
+                        fill: '#94a3b8',
+                        left: cursorX + 9,
+                        top: centroY,
+                        originX: 'center',
+                        originY: 'center'
+                    });
+                    elementosLeyenda.push(separador);
+                    cursorX += 18;
+                }
+            });
+
+            const anchoLeyenda = cursorX + 16;
+            const fondoLeyenda = new fabric.Rect({
+                width: anchoLeyenda,
+                height: altoBarra,
+                fill: '#f8fafc',
+                stroke: '#cbd5e1',
+                strokeWidth: 1,
+                rx: 8,
+                ry: 8,
+                left: 0,
+                top: 0,
+                originX: 'left',
+                originY: 'top'
+            });
+
+            // Ajusta ancho y alto del encuadre para evitar cualquier solapamiento
+            const anchoMinimoNecesario = Math.max(anchoLeyenda + tempRect.width + 96, anchoCabecera + 72);
+            if ((maxX - minX) < anchoMinimoNecesario) {
+                const extra = (anchoMinimoNecesario - (maxX - minX)) / 2;
+                minX -= extra;
+                maxX += extra;
+            }
+
+            if (tieneCabecera) {
+                minY -= (altoCabecera + 24);
+            }
+
+            const topBarras = tieneCabecera ? (minY + 26 + altoCabecera + 14) : (minY + 32);
+            const temporales = [];
+
+            if (tieneCabecera) {
+                const cabeceraGroup = new fabric.Group(nodosCabecera, {
+                    left: (minX + maxX) / 2,
+                    top: minY + 26,
+                    originX: 'center',
+                    originY: 'top',
+                    selectable: false,
+                    evented: false,
+                    esTemporal: true
+                });
+                temporales.push(cabeceraGroup);
+            }
+
+            const leyendaGroup = new fabric.Group([fondoLeyenda, ...elementosLeyenda], {
+                left: minX + 36,
+                top: topBarras,
                 selectable: false,
                 evented: false,
                 esTemporal: true
             });
 
-            canvas.add(badgeGroup);
+            const badgeGroup = new fabric.Group([tempRect, tempText], {
+                left: maxX - tempRect.width - 36,
+                top: topBarras,
+                selectable: false,
+                evented: false,
+                esTemporal: true
+            });
+
+            temporales.push(leyendaGroup, badgeGroup);
+
+            canvas.add(...temporales);
             canvas.backgroundColor = '#ffffff';
             canvas.renderAll();
 
@@ -5873,7 +6599,7 @@
                 height: (maxY - minY)
             });
 
-            canvas.remove(badgeGroup);
+            temporales.forEach(t => canvas.remove(t));
             canvas.backgroundColor = null;
             canvas.setViewportTransform(vptOriginal);
             canvas.getObjects().forEach(obj => obj.setCoords());
@@ -6158,6 +6884,188 @@
                 renderizarPanelHud();
             }
         }
+		
+		function moverObjetoConFlechas(evento) {
+            const objetoActivo = canvas.getActiveObject();
+            if (!objetoActivo || objetoActivo.esTemporal) return false;
+
+            const esMovible = objetoActivo.tipoObjeto === 'mesa' || objetoActivo.tipoObjeto === 'elementoSalon';
+            if (!esMovible) return false;
+
+            evento.preventDefault();
+
+            if (mesasBloqueadas) {
+                if (!evento.repeat) {
+                    mostrarToast("Mesas y salón bloqueados. Desbloquéalos con el candado para moverlos.", true);
+                }
+                return true;
+            }
+
+            const paso = evento.shiftKey ? 10 : 1;
+            let dx = 0;
+            let dy = 0;
+
+            if (evento.key === 'ArrowLeft') dx = -paso;
+            else if (evento.key === 'ArrowRight') dx = paso;
+            else if (evento.key === 'ArrowUp') dy = -paso;
+            else if (evento.key === 'ArrowDown') dy = paso;
+
+            ocultarTooltip();
+            limpiarGuiasActivas();
+            limpiarResaltadoMesaDestino();
+
+            objetoActivo.set({
+                left: objetoActivo.left + dx,
+                top: objetoActivo.top + dy
+            });
+            objetoActivo.setCoords();
+
+            if (objetoActivo.tipoObjeto === 'mesa' && objetoActivo.invitadosSentados.length > 0) {
+                posicionarInvitadosSegunForma(objetoActivo);
+            }
+
+            canvas.requestRenderAll();
+
+            // Agrupa varias pulsaciones seguidas en un solo paso del historial Ctrl+Z
+            clearTimeout(timerGuardadoFlechas);
+            timerGuardadoFlechas = setTimeout(() => {
+                registrarCambio();
+            }, 400);
+
+            return true;
+        }
+		
+		function rotarObjetoConTeclado(evento) {
+            const objetoActivo = canvas.getActiveObject();
+            if (!objetoActivo || objetoActivo.esTemporal) return false;
+
+            // 1. Elementos del salón: rotar +/- 15 grados
+            if (objetoActivo.tipoObjeto === 'elementoSalon') {
+                evento.preventDefault();
+
+                if (mesasBloqueadas) {
+                    if (!evento.repeat) {
+                        mostrarToast("Elementos del salón bloqueados. Desbloquéalos con el candado para rotar.", true);
+                    }
+                    return true;
+                }
+
+                const delta = evento.shiftKey ? -15 : 15;
+                let nuevoAngulo = (Math.round(objetoActivo.angle || 0) + delta) % 360;
+                if (nuevoAngulo > 180) nuevoAngulo -= 360;
+                if (nuevoAngulo < -180) nuevoAngulo += 360;
+
+                ocultarTooltip();
+                limpiarGuiasActivas();
+                limpiarResaltadoMesaDestino();
+
+                objetoActivo.rotate(nuevoAngulo);
+                objetoActivo.setCoords();
+                canvas.requestRenderAll();
+                mostrarToast(`Rotación: ${nuevoAngulo}°`);
+
+                clearTimeout(timerGuardadoFlechas);
+                timerGuardadoFlechas = setTimeout(() => {
+                    registrarCambio();
+                }, 400);
+
+                return true;
+            }
+
+            // 2. Mesas rectangulares o presidenciales: alternar horizontal / vertical
+            if (objetoActivo.tipoObjeto === 'mesa') {
+                const forma = objetoActivo.forma || 'redonda';
+                if (forma !== 'rectangular' && forma !== 'presidencial') {
+                    return false;
+                }
+
+                evento.preventDefault();
+                if (evento.repeat) return true;
+
+                if (mesasBloqueadas) {
+                    mostrarToast("Mesas bloqueadas. Desbloquéalas con el candado para cambiar su orientación.", true);
+                    return true;
+                }
+
+                const orientacionActual = objetoActivo.orientacion || 'horizontal';
+                const nuevaOrientacion = orientacionActual === 'horizontal' ? 'vertical' : 'horizontal';
+
+                ocultarTooltip();
+                limpiarGuiasActivas();
+                limpiarResaltadoMesaDestino();
+                clearTimeout(timerGuardadoFlechas);
+
+                const nuevaMesa = crearMesa(
+                    objetoActivo.left,
+                    objetoActivo.top,
+                    objetoActivo.nombreAsignado,
+                    objetoActivo.linea1,
+                    objetoActivo.linea2,
+                    objetoActivo.capacidadMax,
+                    forma,
+                    nuevaOrientacion
+                );
+                nuevaMesa.invitadosSentados = [...objetoActivo.invitadosSentados];
+
+                canvas.remove(objetoActivo);
+                canvas.add(nuevaMesa);
+                reposicionarInvitadosEnCirculo(nuevaMesa);
+                ordenarCapasCanvas();
+                canvas.setActiveObject(nuevaMesa);
+                canvas.renderAll();
+
+                actualizarContadorTotal();
+                registrarCambio();
+                mostrarToast(`Orientación: ${nuevaOrientacion}`);
+                return true;
+            }
+
+            return false;
+        }
+
+        function cambiarZIndexElementoSalonConTeclado(evento) {
+            const objetoActivo = canvas.getActiveObject();
+            if (!objetoActivo || objetoActivo.esTemporal || objetoActivo.tipoObjeto !== 'elementoSalon') {
+                return false;
+            }
+
+            evento.preventDefault();
+
+            if (mesasBloqueadas) {
+                if (!evento.repeat) {
+                    mostrarToast("Elementos del salón bloqueados. Desbloquéalos con el candado para cambiar de capa.", true);
+                }
+                return true;
+            }
+
+            const subir = evento.key === 'PageUp';
+            let nuevoZ = (objetoActivo.zIndex ?? 0) + (subir ? 1 : -1);
+
+            if (evento.shiftKey) {
+                const otros = canvas.getObjects().filter(o =>
+                    o !== objetoActivo && !o.esTemporal && o.tipoObjeto === 'elementoSalon'
+                );
+                const valores = otros.map(o => o.zIndex ?? 0);
+                if (subir) {
+                    nuevoZ = (valores.length > 0 ? Math.max(...valores) : 0) + 1;
+                } else {
+                    nuevoZ = (valores.length > 0 ? Math.min(...valores) : 0) - 1;
+                }
+            }
+
+            objetoActivo.zIndex = nuevoZ;
+            ordenarCapasCanvas();
+            canvas.setActiveObject(objetoActivo);
+            canvas.requestRenderAll();
+            mostrarToast(`Capa (Z-Index): ${nuevoZ}`);
+
+            clearTimeout(timerGuardadoFlechas);
+            timerGuardadoFlechas = setTimeout(() => {
+                registrarCambio();
+            }, 400);
+
+            return true;
+        }
 
         // ==================== ATAJOS DE TECLADO ====================
         window.addEventListener('keydown', function(evento) {
@@ -6193,6 +7101,30 @@
                 rehacer();
                 return;
             }
+			
+			if (modificador && tecla === 'b') {
+                evento.preventDefault();
+                toggleSidebar();
+                return;
+            }
+			
+			if (modificador && tecla === 'd') {
+                evento.preventDefault();
+                duplicarObjetoSeleccionado();
+                return;
+            }
+			
+			if (!modificador && !evento.altKey && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(evento.key)) {
+                if (moverObjetoConFlechas(evento)) return;
+            }
+			
+			if (!modificador && !evento.altKey && tecla === 'r') {
+                if (rotarObjetoConTeclado(evento)) return;
+            }
+
+            if (!modificador && !evento.altKey && (evento.key === 'PageUp' || evento.key === 'PageDown')) {
+                if (cambiarZIndexElementoSalonConTeclado(evento)) return;
+            }
 
             if (evento.key === 'Delete' || evento.key === 'Backspace') {
                 const objetoActivo = canvas.getActiveObject();
@@ -6218,9 +7150,19 @@
         document.getElementById('alergiasInvitado').addEventListener('keydown', e => {
             if (e.key === 'Enter') agregarInvitado();
         });
+		document.getElementById('tituloEvento').addEventListener('input', () => manejarCambioDatosEvento(false));
+        document.getElementById('tituloEvento').addEventListener('change', () => manejarCambioDatosEvento(true));
+        document.getElementById('fechaEvento').addEventListener('input', () => manejarCambioDatosEvento(true));
+        document.getElementById('fechaEvento').addEventListener('change', () => manejarCambioDatosEvento(true));
 
         // ==================== INICIALIZACIÓN Y RESTAURACIÓN ====================
         (function inicializarAplicacion() {
+			try {
+                sidebarPlegado = localStorage.getItem(SIDEBAR_STORAGE_KEY) === '1';
+                actualizarUIEstadoSidebar();
+                ajustarTamanoCanvas();
+            } catch (e) {}
+			
             try {
                 mesasBloqueadas = localStorage.getItem(LOCK_STORAGE_KEY) === '1';
                 actualizarUIEstadoBloqueo();
@@ -6253,6 +7195,7 @@
             }
 
             actualizarContadorTotal();
+			sincronizarUIEvento();
             registrarCambio({ guardarLocal: restaurado });
         })();
     </script>
