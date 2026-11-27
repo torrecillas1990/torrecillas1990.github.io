@@ -2,7 +2,12 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Seating Plan">
     <title>Seating Plan</title>
     <!-- Librerías -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
@@ -36,7 +41,7 @@
             --shadow-float: 0 8px 24px -4px rgba(15, 23, 42, 0.10), 0 2px 6px -1px rgba(15, 23, 42, 0.05);
             --shadow-modal: 0 24px 48px -12px rgba(15, 23, 42, 0.25);
         }
-
+		
         * {
             box-sizing: border-box;
         }
@@ -50,16 +55,19 @@
             padding: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             height: 100vh;
+			height: 100dvh;
             width: 100vw;
             overflow: hidden;
             -webkit-font-smoothing: antialiased;
         }
+		
 
         /* ==================== SIDEBAR ==================== */
         .sidebar {
             width: 320px;
             min-width: 320px;
             height: 100vh;
+			height: 100dvh;
             background-color: var(--bg-sidebar);
             border-right: 1px solid var(--border-subtle);
             display: flex;
@@ -144,6 +152,7 @@
             width: 332px;
             min-width: 332px;
             height: 100vh;
+			height: 100dvh;
             background-color: var(--bg-sidebar);
             border-left: 1px solid var(--border-subtle);
             display: flex;
@@ -1233,6 +1242,7 @@
         .canvas-wrapper {
             flex-grow: 1;
             height: 100vh;
+			height: 100dvh;
             position: relative;
             overflow: hidden;
             background-color: var(--bg-canvas);
@@ -1241,6 +1251,8 @@
             background-position: 0px 0px;
             cursor: grab;
 			min-width: 0;
+			touch-action: none; 
+			overscroll-behavior: none;
         }
 
         .canvas-wrapper.is-panning {
@@ -1275,11 +1287,24 @@
             margin-bottom: 2px;
         }
 		
-		/* Botón flotante para plegar / desplegar el sidebar */
-        .sidebar-toggle-btn {
+		/* Contenedor superior único: impide solapamientos entre panel izquierdo y HUD derecho */
+        .canvas-top-bar {
             position: absolute;
             top: 16px;
             left: 16px;
+            right: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px 12px;
+            pointer-events: none;
+            z-index: 25;
+            container-type: inline-size;
+        }
+
+        /* Botón flotante para plegar / desplegar el sidebar */
+        .sidebar-toggle-btn {
             height: 36px;
             padding: 0 12px;
             border-radius: var(--radius-pill);
@@ -1296,7 +1321,8 @@
             align-items: center;
             gap: 6px;
             cursor: pointer;
-            z-index: 25;
+            pointer-events: auto;
+            flex-shrink: 0;
             user-select: none;
             transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
         }
@@ -1327,19 +1353,23 @@
 
         /* ==================== HUD FLOTANTE SUPERIOR Y DESPLEGABLE RÁPIDO ==================== */
         .hud-top-right {
-            position: absolute;
-            top: 16px;
-            right: 16px;
+            margin-left: auto;
+            position: relative;
             display: flex;
             align-items: center;
+            justify-content: flex-end;
+            flex-wrap: wrap;
             gap: 8px;
-            z-index: 25;
+            max-width: 100%;
+            pointer-events: none;
         }
 
         .hud-stats {
             display: flex;
             align-items: center;
-            gap: 8px;
+            flex-wrap: wrap;
+            gap: 4px 8px;
+            max-width: 100%;
             background: rgba(255, 255, 255, 0.94);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
@@ -1370,6 +1400,8 @@
             align-items: center;
             gap: 6px;
             cursor: pointer;
+            pointer-events: auto;
+            flex-shrink: 0;
             user-select: none;
             transition: all 0.15s ease;
         }
@@ -1396,6 +1428,54 @@
             width: 15px;
             height: 15px;
             flex-shrink: 0;
+        }
+
+        /* Panel desplegable del HUD (anclado a .hud-top-right para seguir su altura real) */
+        .hud-popover {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            width: min(336px, 100cqi);
+            max-height: 390px;
+            background: rgba(255, 255, 255, 0.97);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-modal);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            pointer-events: auto;
+            z-index: 26;
+        }
+
+        /* Lienzo mediano (ambos paneles abiertos): compacta los botones de panel a solo icono */
+        @container (max-width: 860px) {
+            .sidebar-toggle-btn,
+            .right-panel-toggle-btn {
+                width: 36px;
+                padding: 0;
+                justify-content: center;
+            }
+
+            #textToggleSidebar,
+            #textToggleRightPanel {
+                display: none;
+            }
+        }
+
+        /* Lienzo muy estrecho: permite envolver las estadísticas en 2 líneas limpias */
+        @container (max-width: 620px) {
+            .hud-stats {
+                border-radius: var(--radius-md);
+                padding: 5px 10px;
+                gap: 4px 6px;
+            }
+
+            .stat-divider {
+                display: none;
+            }
         }
 
         .stat-item {
@@ -1487,25 +1567,6 @@
             background-color: var(--border-subtle);
         }
 
-        /* Panel desplegable del HUD */
-        .hud-popover {
-            position: absolute;
-            top: 60px;
-            right: 16px;
-            width: 336px;
-            max-height: 390px;
-            background: rgba(255, 255, 255, 0.97);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-md);
-            box-shadow: var(--shadow-modal);
-            display: none;
-            flex-direction: column;
-            overflow: hidden;
-            z-index: 26;
-        }
-
         .hud-popover.open {
             display: flex;
             animation: popoverDrop 0.14s ease-out;
@@ -1580,13 +1641,28 @@
         }
 
         /* ==================== BARRA FLOTANTE DE HISTORIAL, GUÍAS, CANDADO Y ZOOM ==================== */
-        .zoom-toolbar {
+        /* Contenedor inferior único: impide solapamientos entre controles y filtros */
+        .canvas-bottom-bar {
             position: absolute;
-            bottom: 20px;
-            left: 20px;
+            bottom: 16px;
+            left: 16px;
+            right: 16px;
+            display: flex;
+            flex-wrap: wrap-reverse;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px 12px;
+            pointer-events: none;
+            z-index: 15;
+            container-type: inline-size;
+        }
+
+        .zoom-toolbar {
             display: flex;
             align-items: center;
+            flex-wrap: wrap;
             gap: 4px;
+            max-width: 100%;
             background: rgba(255, 255, 255, 0.94);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
@@ -1594,7 +1670,7 @@
             border-radius: var(--radius-md);
             box-shadow: var(--shadow-float);
             border: 1px solid var(--border-subtle);
-            z-index: 15;
+            pointer-events: auto;
         }
 
         .zoom-btn {
@@ -1667,26 +1743,114 @@
             margin: 0 3px;
         }
 
-        /* Ayuda sutil y filtro rápido por bando en esquina inferior derecha */
+        /* Ayuda sutil y filtro rápido por bando */
         .canvas-hint {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
+            margin-left: auto;
+            max-width: 100%;
             display: flex;
             align-items: center;
+            flex-wrap: wrap;
             gap: 6px;
             background: rgba(255, 255, 255, 0.92);
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
             border: 1px solid var(--border-subtle);
             box-shadow: var(--shadow-float);
-            padding: 4px 10px 4px 6px;
+            padding: 4px 8px 4px 6px;
             border-radius: var(--radius-pill);
             font-size: 11.5px;
             color: var(--text-muted);
             pointer-events: auto;
             user-select: none;
-            z-index: 15;
+        }
+
+        .hint-shortcuts-inline {
+            white-space: nowrap;
+        }
+
+        /* Botón ? y popover de atajos cuando el lienzo es estrecho */
+        .hint-help-wrap {
+            position: relative;
+            display: none;
+            align-items: center;
+        }
+
+        .hint-help-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 1px solid var(--border-strong);
+            background-color: #ffffff;
+            color: var(--text-secondary);
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            transition: all 0.14s ease;
+        }
+
+        .hint-help-btn:hover,
+        .hint-help-wrap:focus-within .hint-help-btn {
+            background-color: #eef2ff;
+            border-color: #c7d2fe;
+            color: var(--accent-brand);
+        }
+
+        .hint-help-popover {
+            position: absolute;
+            bottom: calc(100% + 10px);
+            right: 0;
+            width: 275px;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-modal);
+            padding: 10px 12px;
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            font-size: 11.5px;
+            color: var(--text-secondary);
+            z-index: 30;
+        }
+
+        .hint-help-wrap:hover .hint-help-popover,
+        .hint-help-wrap:focus-within .hint-help-popover {
+            display: flex;
+        }
+
+        .hint-help-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .canvas-hint kbd,
+        .right-panel-footer kbd {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            padding: 1px 5px;
+            font-size: 10.5px;
+            font-family: inherit;
+            color: var(--text-secondary);
+        }
+
+        /* Si el lienzo mide menos de 1220px, oculta el texto largo y muestra el botón ? */
+        @container (max-width: 1220px) {
+            .hint-shortcuts-inline {
+                display: none;
+            }
+            .hint-help-wrap {
+                display: inline-flex;
+            }
         }
 
         .hint-filters {
@@ -1784,16 +1948,6 @@
             height: 14px;
             background-color: var(--border-subtle);
             flex-shrink: 0;
-        }
-
-        .canvas-hint kbd, .right-panel-footer kbd {
-            background: #f1f5f9;
-            border: 1px solid #cbd5e1;
-            border-radius: 4px;
-            padding: 1px 5px;
-            font-size: 10.5px;
-            font-family: inherit;
-            color: var(--text-secondary);
         }
 
         /* ==================== MODAL DE EDICIÓN (DOBLE CLIC) ==================== */
@@ -2716,12 +2870,6 @@
                 padding: 0 !important;
             }
 
-            .sidebar,
-            .canvas-wrapper,
-            .modal-overlay,
-            .toast,
-            .canvas-tooltip,
-
             .print-overlay {
                 position: static !important;
                 display: block !important;
@@ -2760,7 +2908,7 @@
             .modal-overlay,
             .toast,
             .canvas-tooltip,
-            .print-toolbar {
+            .print-toolbar, .mobile-backdrop, .mobile-selection-bar {
                 display: none !important;
             }
         }
@@ -2792,11 +2940,309 @@
         .toast.error {
             background-color: #be123c;
         }
+		
+		/* ==================== SOPORTE MÓVIL Y TÁCTIL ==================== */
+        .mobile-backdrop {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(15, 23, 42, 0.36);
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+            z-index: 40;
+            display: none;
+        }
+
+        .mobile-backdrop.open {
+            display: block;
+        }
+
+        /* Barra contextual flotante al seleccionar un elemento en pantalla táctil */
+        .mobile-selection-bar {
+            display: none;
+            flex-basis: 100%;
+            order: 10;
+            justify-content: center;
+            pointer-events: none;
+        }
+
+        .mobile-selection-bar.visible {
+            display: flex;
+        }
+
+        .mobile-selection-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            max-width: 100%;
+            background: rgba(15, 23, 42, 0.94);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: #ffffff;
+            padding: 5px 7px 5px 12px;
+            border-radius: var(--radius-pill);
+            box-shadow: var(--shadow-modal);
+            pointer-events: auto;
+        }
+
+        .mobile-selection-label {
+            font-size: 12px;
+            font-weight: 600;
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            margin-right: 4px;
+        }
+
+        .mobile-sel-btn {
+            height: 30px;
+            padding: 0 9px;
+            border-radius: var(--radius-pill);
+            border: none;
+            background: rgba(255, 255, 255, 0.14);
+            color: #ffffff;
+            font-family: inherit;
+            font-size: 11.5px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .mobile-sel-btn:active {
+            background: rgba(255, 255, 255, 0.28);
+        }
+
+        .mobile-sel-btn.is-danger {
+            background: rgba(225, 29, 72, 0.85);
+        }
+
+        .mobile-sel-btn.is-close {
+            width: 30px;
+            padding: 0;
+            justify-content: center;
+            background: transparent;
+            color: #cbd5e1;
+        }
+
+        /* Oculta la barra contextual en escritorio con ratón */
+        @media (hover: hover) and (pointer: fine) and (min-width: 901px) {
+            .mobile-selection-bar {
+                display: none !important;
+            }
+        }
+
+        /* Tablet y móvil (≤ 900px): ambos paneles pasan a ser cajones superpuestos */
+        @media (max-width: 900px) {
+            html, body {
+                overscroll-behavior: none;
+            }
+
+            .sidebar,
+            .right-panel {
+                position: fixed;
+                top: 0;
+                bottom: 0;
+                height: 100dvh;
+                width: min(88vw, 340px);
+                min-width: 0;
+                z-index: 45;
+                box-shadow: var(--shadow-modal);
+            }
+
+            .sidebar {
+                left: 0;
+                margin-left: 0;
+                transform: translateX(0);
+                transition: transform 0.22s ease;
+            }
+
+            .sidebar.is-collapsed {
+                margin-left: 0;
+                transform: translateX(-105%);
+                pointer-events: none;
+                box-shadow: none;
+            }
+
+            .right-panel {
+                right: 0;
+                margin-right: 0;
+                transform: translateX(0);
+                transition: transform 0.22s ease;
+            }
+
+            .right-panel.is-collapsed {
+                margin-right: 0;
+                transform: translateX(105%);
+                pointer-events: none;
+                box-shadow: none;
+            }
+
+            .sidebar-footer,
+            .right-panel-footer {
+                padding-bottom: calc(10px + env(safe-area-inset-bottom));
+            }
+
+            /* En táctil el Drag & Drop HTML5 no aplica; el selector de mesa hace ese papel */
+            .right-drag-handle {
+                display: none;
+            }
+
+            .canvas-top-bar {
+                top: calc(10px + env(safe-area-inset-top));
+                left: 10px;
+                right: 10px;
+            }
+
+            .canvas-bottom-bar {
+                bottom: calc(10px + env(safe-area-inset-bottom));
+                left: 10px;
+                right: 10px;
+                gap: 6px;
+            }
+
+            /* Evita el auto-zoom forzado de iOS Safari al enfocar campos */
+            .input-text,
+            .input-select,
+            .search-input {
+                font-size: 16px;
+            }
+
+            .right-seat-select {
+                height: 28px;
+                font-size: 12px;
+                max-width: 190px;
+            }
+
+            .btn,
+            .venue-chip,
+            .seg-btn,
+            .side-seg-btn {
+                min-height: 36px;
+            }
+        }
+
+        /* Pantallas de móvil estrechas (≤ 600px) */
+        @media (max-width: 600px) {
+            .hud-stats {
+                padding: 4px 8px;
+                font-size: 11px;
+                gap: 2px 5px;
+            }
+
+            .stat-item {
+                padding: 2px 3px;
+            }
+
+            .stat-btn {
+                padding: 3px 6px;
+                font-size: 11px;
+            }
+
+            .zoom-toolbar {
+                width: 100%;
+                justify-content: space-between;
+                padding: 4px;
+            }
+
+            .zoom-btn {
+                height: 36px;
+                min-width: 34px;
+                padding: 0 7px;
+            }
+
+            #text-snap,
+            #text-lock,
+            .zoom-fit-label {
+                display: none;
+            }
+
+            .canvas-hint {
+                width: 100%;
+                margin-left: 0;
+                border-radius: var(--radius-md);
+                padding: 4px 6px;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .canvas-hint::-webkit-scrollbar {
+                display: none;
+            }
+
+            .hint-sep,
+            .hint-help-wrap,
+            .hint-shortcuts-inline {
+                display: none !important;
+            }
+
+            .modal-overlay {
+                padding: 10px;
+                align-items: flex-end;
+            }
+
+            .modal-card {
+                max-height: 88dvh;
+                border-radius: var(--radius-lg) var(--radius-lg) 10px 10px;
+            }
+
+            .modal-grid-2 {
+                grid-template-columns: 1fr;
+            }
+
+            .modal-footer {
+                flex-wrap: wrap;
+                gap: 8px;
+                padding-bottom: calc(14px + env(safe-area-inset-bottom));
+            }
+
+            .modal-footer-left,
+            .modal-footer-right {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .modal-footer .btn {
+                flex: 1;
+            }
+
+            .print-toolbar {
+                padding: 10px 12px;
+            }
+
+            .print-scroll {
+                padding: 12px 10px 28px;
+            }
+
+            .print-sheet {
+                padding: 18px 14px;
+            }
+
+            .print-doc-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .print-cards-grid,
+            .print-kitchen-list {
+                grid-template-columns: 1fr;
+            }
+
+            .protocol-columns {
+                column-count: 1;
+            }
+        }
     </style>
 </head>
 <body>
 
-    <!-- SIDEBAR: Panel Izquierdo -->
+	<!-- Fondo semitransparente para cerrar paneles en móvil -->
+    <div id="mobileBackdrop" class="mobile-backdrop" onclick="cerrarPanelesMovil()"></div>
+    
+	<!-- SIDEBAR: Panel Izquierdo -->
 	<aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="brand-row">
@@ -2809,10 +3255,13 @@
                         <circle cx="21" cy="12" r="1.5"></circle>
                     </svg>
                 </div>
-                <div>
+                <div style="flex: 1; min-width: 0;">
                     <h1 id="tituloSidebar">Seating Plan</h1>
                     <p class="sidebar-subtitle" id="subtituloSidebar">Organizador visual de mesas</p>
                 </div>
+                <button type="button" class="modal-close" style="margin-left: auto;" onclick="toggleSidebar()" title="Ocultar panel izquierdo (Ctrl+B)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="16" height="16"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
+                </button>
             </div>
             <div class="autosave-pill" id="autosave-status">
                 <span class="autosave-dot"></span>
@@ -3066,104 +3515,138 @@
 
     <!-- ÁREA PRINCIPAL: Lienzo con cuadrícula -->
     <main class="canvas-wrapper" id="canvas-wrapper">
-		<!-- Botón flotante para plegar o desplegar el sidebar -->
-        <button type="button" id="btnToggleSidebar" class="sidebar-toggle-btn" onclick="toggleSidebar()" title="Ocultar panel lateral (Ctrl+B)" aria-expanded="true" aria-controls="sidebar">
-            <svg id="iconToggleSidebar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2"/>
-                <line x1="9" y1="3" x2="9" y2="21"/>
-                <polyline points="15 9 12 12 15 15"/>
-            </svg>
-            <span id="textToggleSidebar">Ocultar panel</span>
-        </button>
-		
-        <!-- HUD superior derecho: estadísticas + botón de listado de invitados -->
-        <div class="hud-top-right">
-            <div id="contador-total" class="hud-stats"></div>
-            <button type="button" id="btnToggleRightPanel" class="right-panel-toggle-btn" onclick="toggleRightPanel()" title="Ocultar listado de invitados (Ctrl+K para buscar)" aria-expanded="true" aria-controls="rightPanel">
-                <svg id="iconToggleRightPanel" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+		<!-- Dock superior: evita solapamientos entre controles de panel y estadísticas -->
+        <div class="canvas-top-bar">
+            <!-- Botón flotante para plegar o desplegar el sidebar -->
+            <button type="button" id="btnToggleSidebar" class="sidebar-toggle-btn" onclick="toggleSidebar()" title="Ocultar panel lateral (Ctrl+B)" aria-expanded="true" aria-controls="sidebar">
+                <svg id="iconToggleSidebar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="3" width="18" height="18" rx="2"/>
-                    <line x1="15" y1="3" x2="15" y2="21"/>
-                    <polyline points="10 9 13 12 10 15"/>
+                    <line x1="9" y1="3" x2="9" y2="21"/>
+                    <polyline points="15 9 12 12 15 15"/>
                 </svg>
-                <span id="textToggleRightPanel">Invitados</span>
+                <span id="textToggleSidebar">Ocultar panel</span>
             </button>
-        </div>
 
-        <!-- Panel desplegable rápido para Sin mesa / Menús especiales -->
-        <div id="hudPopover" class="hud-popover" role="dialog" aria-label="Listado rápido de invitados">
-            <div class="hud-popover-header">
-                <div class="hud-popover-title-wrap">
-                    <h3 id="hudPopoverTitle" class="hud-popover-title"></h3>
-                    <span id="hudPopoverSub" class="hud-popover-sub"></span>
-                </div>
-                <button type="button" class="modal-close" onclick="cerrarPanelHud()" title="Cerrar panel (Esc)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="15" height="15"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <!-- HUD superior derecho: estadísticas + botón de listado de invitados -->
+            <div class="hud-top-right">
+                <div id="contador-total" class="hud-stats"></div>
+                <button type="button" id="btnToggleRightPanel" class="right-panel-toggle-btn" onclick="toggleRightPanel()" title="Ocultar listado de invitados (Ctrl+K para buscar)" aria-expanded="true" aria-controls="rightPanel">
+                    <svg id="iconToggleRightPanel" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <line x1="15" y1="3" x2="15" y2="21"/>
+                        <polyline points="10 9 13 12 10 15"/>
+                    </svg>
+                    <span id="textToggleRightPanel">Invitados</span>
                 </button>
-            </div>
-            <div id="hudPopoverList" class="hud-popover-list"></div>
-            <div class="hud-popover-footer">
-                <span>Clic para centrar · Lápiz para editar</span>
-                <span>En vivo</span>
+
+                <!-- Panel desplegable rápido para Sin mesa / Menús especiales -->
+                <div id="hudPopover" class="hud-popover" role="dialog" aria-label="Listado rápido de invitados">
+                    <div class="hud-popover-header">
+                        <div class="hud-popover-title-wrap">
+                            <h3 id="hudPopoverTitle" class="hud-popover-title"></h3>
+                            <span id="hudPopoverSub" class="hud-popover-sub"></span>
+                        </div>
+                        <button type="button" class="modal-close" onclick="cerrarPanelHud()" title="Cerrar panel (Esc)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="15" height="15"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                    </div>
+                    <div id="hudPopoverList" class="hud-popover-list"></div>
+                    <div class="hud-popover-footer">
+                        <span>Clic para centrar · Lápiz para editar</span>
+                        <span>En vivo</span>
+                    </div>
+                </div>
             </div>
         </div>
 
         <canvas id="lienzo-boda"></canvas>
-
-        <!-- Barra flotante de historial, guías, candado, zoom y vista -->
-        <div class="zoom-toolbar" role="toolbar" aria-label="Controles de historial, guías, bloqueo, vista y zoom">
-            <button class="zoom-btn" id="btn-undo" onclick="deshacer()" title="Deshacer (Ctrl+Z)" disabled>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
-            </button>
-            <button class="zoom-btn" id="btn-redo" onclick="rehacer()" title="Rehacer (Ctrl+Y)" disabled>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"/></svg>
-            </button>
-            <span class="zoom-divider"></span>
-            <button class="zoom-btn is-active" id="btn-snap" onclick="toggleGuiasMagneticas()" title="Activar o desactivar guías magnéticas (mantén Alt para mover libremente)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15v-5a6 6 0 1 1 12 0v5"/><path d="M6 15v3a2 2 0 0 0 2 2h1v-5H6z"/><path d="M18 15v3a2 2 0 0 1-2 2h-1v-5h3z"/></svg>
-                <span id="text-snap">Guías</span>
-            </button>
-            <button class="zoom-btn" id="btn-lock" onclick="toggleBloqueoMesas()" title="Bloquear o desbloquear la posición de mesas y elementos del salón">
-                <svg id="icon-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
-                <span id="text-lock">Bloquear</span>
-            </button>
-            <span class="zoom-divider"></span>
-            <button class="zoom-btn" onclick="hacerZoom(0.85)" title="Alejar">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            </button>
-            <button class="zoom-btn zoom-readout" id="zoom-level" onclick="resetearVista()" title="Restablecer al 100%">
-                100%
-            </button>
-            <button class="zoom-btn" onclick="hacerZoom(1.18)" title="Acercar">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            </button>
-            <span class="zoom-divider"></span>
-            <button class="zoom-btn" onclick="encuadrarPlano()" title="Ajustar zoom para ver todo el plano">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>
-                Encuadrar
-            </button>
-        </div>
-
-        <!-- Ayuda rápida y filtros por bando -->
-        <div class="canvas-hint">
-            <div class="hint-filters" role="group" aria-label="Filtrar invitados en el plano">
-                <button type="button" class="hint-filter-btn" data-filtro="novio" onclick="toggleFiltroVisual('novio')" title="Resaltar solo invitados de este bando">
-                    <span class="hint-dot" style="background:#2563eb;"></span><span id="hintNovio">Novio</span>
+		
+		<!-- Dock inferior: evita solapamientos entre controles y filtros -->
+        <div class="canvas-bottom-bar">
+            <!-- Barra flotante de historial, guías, candado, zoom y vista -->
+            <div class="zoom-toolbar" role="toolbar" aria-label="Controles de historial, guías, bloqueo, vista y zoom">
+				<button class="zoom-btn" id="btn-undo" onclick="deshacer()" title="Deshacer (Ctrl+Z)" disabled>
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+				</button>
+				<button class="zoom-btn" id="btn-redo" onclick="rehacer()" title="Rehacer (Ctrl+Y)" disabled>
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"/></svg>
+				</button>
+				<span class="zoom-divider"></span>
+				<button class="zoom-btn is-active" id="btn-snap" onclick="toggleGuiasMagneticas()" title="Activar o desactivar guías magnéticas (mantén Alt para mover libremente)">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15v-5a6 6 0 1 1 12 0v5"/><path d="M6 15v3a2 2 0 0 0 2 2h1v-5H6z"/><path d="M18 15v3a2 2 0 0 1-2 2h-1v-5h3z"/></svg>
+					<span id="text-snap">Guías</span>
+				</button>
+				<button class="zoom-btn" id="btn-lock" onclick="toggleBloqueoMesas()" title="Bloquear o desbloquear la posición de mesas y elementos del salón">
+					<svg id="icon-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+					<span id="text-lock">Bloquear</span>
+				</button>
+				<span class="zoom-divider"></span>
+				<button class="zoom-btn" onclick="hacerZoom(0.85)" title="Alejar">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+				</button>
+				<button class="zoom-btn zoom-readout" id="zoom-level" onclick="resetearVista()" title="Restablecer al 100%">
+					100%
+				</button>
+				<button class="zoom-btn" onclick="hacerZoom(1.18)" title="Acercar">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+				</button>
+				<span class="zoom-divider"></span>
+				<button class="zoom-btn" onclick="encuadrarPlano()" title="Ajustar zoom para ver todo el plano">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>
+                    <span class="zoom-fit-label">Encuadrar</span>
                 </button>
-                <button type="button" class="hint-filter-btn" data-filtro="novia" onclick="toggleFiltroVisual('novia')" title="Resaltar solo invitados de este bando">
-                    <span class="hint-dot" style="background:#db2777;"></span><span id="hintNovia">Novia</span>
-                </button>
-                <button type="button" class="hint-filter-btn" data-filtro="infantil" onclick="toggleFiltroVisual('infantil')" title="Resaltar solo invitados infantiles">
-                    <span class="hint-dot" style="background:#eab308;"></span><span>Infantil</span>
-                </button>
-                <button type="button" class="hint-filter-btn" data-filtro="alergia" onclick="toggleFiltroVisual('alergia')" title="Resaltar solo invitados con alergias o menús especiales">
-                    <span class="hint-dot" style="background:#f97316;"></span><span>Alergia</span>
-                </button>
-                <button type="button" id="btnLimpiarFiltroVisual" class="hint-filter-clear" onclick="limpiarFiltroVisual()" title="Mostrar todos los invitados (Esc)">
-                    × Todos
-                </button>
+			</div>
+			
+			<!-- Ayuda rápida y filtros por bando -->
+            <div class="canvas-hint">
+                <div class="hint-filters" role="group" aria-label="Filtrar invitados en el plano">
+                    <button type="button" class="hint-filter-btn" data-filtro="novio" onclick="toggleFiltroVisual('novio')" title="Resaltar solo invitados de este bando">
+                        <span class="hint-dot" style="background:#2563eb;"></span><span id="hintNovio">Novio</span>
+                    </button>
+                    <button type="button" class="hint-filter-btn" data-filtro="novia" onclick="toggleFiltroVisual('novia')" title="Resaltar solo invitados de este bando">
+                        <span class="hint-dot" style="background:#db2777;"></span><span id="hintNovia">Novia</span>
+                    </button>
+                    <button type="button" class="hint-filter-btn" data-filtro="infantil" onclick="toggleFiltroVisual('infantil')" title="Resaltar solo invitados infantiles">
+                        <span class="hint-dot" style="background:#eab308;"></span><span>Infantil</span>
+                    </button>
+                    <button type="button" class="hint-filter-btn" data-filtro="alergia" onclick="toggleFiltroVisual('alergia')" title="Resaltar solo invitados con alergias o menús especiales">
+                        <span class="hint-dot" style="background:#f97316;"></span><span>Alergia</span>
+                    </button>
+                    <button type="button" id="btnLimpiarFiltroVisual" class="hint-filter-clear" onclick="limpiarFiltroVisual()" title="Mostrar todos los invitados (Esc)">
+                        × Todos
+                    </button>
+                </div>
+                <span class="hint-sep"></span>
+                <span class="hint-shortcuts-inline">
+                    2×clic editar · <kbd>Ctrl+D</kbd> duplicar · <kbd>↑↓←→</kbd> mover · <kbd>R</kbd> rotar · <kbd>Re/AvPág</kbd> capa · <kbd>Supr</kbd> borrar
+                </span>
+                <div class="hint-help-wrap">
+                    <button type="button" class="hint-help-btn" aria-label="Ver atajos de teclado" title="Atajos de teclado">?</button>
+                    <div class="hint-help-popover" role="tooltip">
+                        <div class="hint-help-row"><span>Editar elemento</span><span><strong>Doble clic</strong></span></div>
+                        <div class="hint-help-row"><span>Duplicar mesa / bloque</span><span><kbd>Ctrl+D</kbd></span></div>
+                        <div class="hint-help-row"><span>Deshacer / Rehacer</span><span><kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Y</kbd></span></div>
+                        <div class="hint-help-row"><span>Mover precisión (×10)</span><span><kbd>↑↓←→</kbd> (+<kbd>Shift</kbd>)</span></div>
+                        <div class="hint-help-row"><span>Rotar / Girar mesa</span><span><kbd>R</kbd> (+<kbd>Shift</kbd>)</span></div>
+                        <div class="hint-help-row"><span>Subir / Bajar capa</span><span><kbd>RePág</kbd> / <kbd>AvPág</kbd></span></div>
+                        <div class="hint-help-row"><span>Eliminar seleccionado</span><span><kbd>Supr</kbd></span></div>
+                        <div class="hint-help-row"><span>Paneles / Buscar</span><span><kbd>Ctrl+B</kbd> / <kbd>Ctrl+K</kbd></span></div>
+						<div class="hint-help-row"><span>Lienzo completo</span><span><kbd>Ctrl+Shift+F</kbd></span></div>
+                    </div>
+                </div>
             </div>
-            <span class="hint-sep"></span>
-            <span>Doble clic: editar · <kbd>Ctrl+D</kbd> duplicar · <kbd>Ctrl+Z</kbd> deshacer · <kbd>Supr</kbd> eliminar <kbd>↑↓←→</kbd> mover (<kbd>Shift</kbd> ×10) <kbd>R</kbd> rotar · <kbd>RePág/AvPág</kbd> capa</span>
+			
+			<!-- Barra contextual táctil para el elemento seleccionado -->
+            <div id="mobileSelectionBar" class="mobile-selection-bar" role="toolbar" aria-label="Acciones del elemento seleccionado">
+                <div class="mobile-selection-pill">
+                    <span id="mobileSelectionLabel" class="mobile-selection-label"></span>
+                    <button type="button" class="mobile-sel-btn" onclick="editarObjetoSeleccionadoMovil()">Editar</button>
+                    <button type="button" id="btnMobileRotar" class="mobile-sel-btn" onclick="rotarObjetoSeleccionadoMovil()">Rotar</button>
+                    <button type="button" id="btnMobileDuplicar" class="mobile-sel-btn" onclick="duplicarObjetoSeleccionado()">Duplicar</button>
+                    <button type="button" class="mobile-sel-btn is-danger" onclick="eliminarObjetoSeleccionadoMovil()">Borrar</button>
+                    <button type="button" class="mobile-sel-btn is-close" onclick="deseleccionarEnMovil()" aria-label="Deseleccionar">×</button>
+                </div>
+            </div>
         </div>
     </main>
 	
@@ -3256,7 +3739,7 @@
 
         <div class="right-panel-footer">
             <span id="resumenListadoDerecho">0 grupos</span>
-            <span>Clic: centrar · Arrastra a una mesa · <kbd>Ctrl+K</kbd> buscar</span>
+            <span>Arrastra a una mesa · <kbd>Ctrl+K</kbd></span>
         </div>
     </aside>
 
@@ -3455,6 +3938,7 @@
         let filtroAlergiaDerecho = false;
         let listaInvitadosDerecho = [];
 		let invitadoArrastradoDesdeDerecho = null;
+		let estadoPrevioPaneles = null;
 
         const CHIPS_ALERGIAS = [
             'Celíaco',
@@ -3894,7 +4378,7 @@
 
             const anchoContenido = Math.max(140, maxX - minX);
             const altoContenido = Math.max(140, maxY - minY);
-            const padding = 95;
+            const padding = esPantallaMovil() ? 44 : 95;
             const anchoDisp = Math.max(150, canvas.width - padding * 2);
             const altoDisp = Math.max(150, canvas.height - padding * 2);
 
@@ -3917,6 +4401,7 @@
             } else {
                 mostrarToast("Mesa seleccionada encuadrada.");
             }
+			if (esPantallaMovil()) cerrarPanelesMovil();
         }
 
         function sincronizarUIEvento() {
@@ -4638,6 +5123,7 @@
             canvas.setHeight(wrapperEl.clientHeight);
             canvas.renderAll();
             actualizarCuadricula();
+			actualizarBackdropMovil();	
         }
 		
 		// ==================== PLEGAR / DESPLEGAR SIDEBAR ====================
@@ -4664,12 +5150,17 @@
         }
 
         function toggleSidebar() {
+            estadoPrevioPaneles = null;
             sidebarPlegado = !sidebarPlegado;
-            try {
-                localStorage.setItem(SIDEBAR_STORAGE_KEY, sidebarPlegado ? '1' : '0');
-            } catch (e) {}
+            if (esPantallaMovil() && !sidebarPlegado) {
+                rightPanelPlegado = true;
+                actualizarUIEstadoRightPanel();
+            }
+            if (!esPantallaMovil()) {
+                try { localStorage.setItem(SIDEBAR_STORAGE_KEY, sidebarPlegado ? '1' : '0'); } catch (e) {}
+            }
             actualizarUIEstadoSidebar();
-            // Ajuste final exacto tras completar la transición CSS
+            actualizarBackdropMovil();
             setTimeout(ajustarTamanoCanvas, 240);
         }
 		
@@ -4697,12 +5188,144 @@
         }
 
         function toggleRightPanel(forzarEstado = null) {
+            estadoPrevioPaneles = null;
             rightPanelPlegado = forzarEstado !== null ? Boolean(forzarEstado) : !rightPanelPlegado;
+            if (esPantallaMovil() && !rightPanelPlegado) {
+                sidebarPlegado = true;
+                actualizarUIEstadoSidebar();
+            }
+            if (!esPantallaMovil()) {
+                try { localStorage.setItem(RIGHT_PANEL_STORAGE_KEY, rightPanelPlegado ? '1' : '0'); } catch (e) {}
+            }
+            actualizarUIEstadoRightPanel();
+            actualizarBackdropMovil();
+            setTimeout(ajustarTamanoCanvas, 240);
+        }
+		
+		function toggleModoLienzoCompleto() {
+            const ambosPlegados = sidebarPlegado && rightPanelPlegado;
+
+            if (!ambosPlegados) {
+                estadoPrevioPaneles = {
+                    izq: sidebarPlegado,
+                    der: rightPanelPlegado
+                };
+                sidebarPlegado = true;
+                rightPanelPlegado = true;
+            } else {
+                if (estadoPrevioPaneles && (!estadoPrevioPaneles.izq || !estadoPrevioPaneles.der)) {
+                    sidebarPlegado = estadoPrevioPaneles.izq;
+                    rightPanelPlegado = estadoPrevioPaneles.der;
+                } else {
+                    sidebarPlegado = false;
+                    rightPanelPlegado = false;
+                }
+                estadoPrevioPaneles = null;
+            }
+
             try {
+                localStorage.setItem(SIDEBAR_STORAGE_KEY, sidebarPlegado ? '1' : '0');
                 localStorage.setItem(RIGHT_PANEL_STORAGE_KEY, rightPanelPlegado ? '1' : '0');
             } catch (e) {}
+
+            actualizarUIEstadoSidebar();
             actualizarUIEstadoRightPanel();
+			actualizarBackdropMovil();
             setTimeout(ajustarTamanoCanvas, 240);
+
+            mostrarToast(
+                sidebarPlegado && rightPanelPlegado
+                    ? 'Vista completa del plano (Ctrl+Shift+F para volver).'
+                    : 'Paneles restaurados.'
+            );
+        }
+		
+		// ==================== SOPORTE MÓVIL: CAJONES Y BARRA CONTEXTUAL ====================
+        function esPantallaMovil() {
+            return window.matchMedia('(max-width: 900px)').matches;
+        }
+
+        function actualizarBackdropMovil() {
+            const backdrop = document.getElementById('mobileBackdrop');
+            if (!backdrop) return;
+            const mostrar = esPantallaMovil() && (!sidebarPlegado || !rightPanelPlegado);
+            backdrop.classList.toggle('open', mostrar);
+        }
+
+        function cerrarPanelesMovil() {
+            if (!esPantallaMovil()) return;
+            sidebarPlegado = true;
+            rightPanelPlegado = true;
+            actualizarUIEstadoSidebar();
+            actualizarUIEstadoRightPanel();
+            actualizarBackdropMovil();
+        }
+
+        function actualizarBarraSeleccionMovil() {
+            const bar = document.getElementById('mobileSelectionBar');
+            const labelEl = document.getElementById('mobileSelectionLabel');
+            const btnRotar = document.getElementById('btnMobileRotar');
+            const btnDuplicar = document.getElementById('btnMobileDuplicar');
+            if (!bar) return;
+
+            const obj = canvas.getActiveObject();
+            if (!obj || obj.esTemporal) {
+                bar.classList.remove('visible');
+                return;
+            }
+
+            let titulo = '';
+            let puedeRotar = false;
+            let puedeDuplicar = false;
+
+            if (obj.tipoObjeto === 'mesa') {
+                titulo = obj.linea1 || 'Mesa';
+                puedeRotar = (obj.forma === 'rectangular' || obj.forma === 'presidencial');
+                puedeDuplicar = true;
+            } else if (obj.tipoObjeto === 'invitado') {
+                titulo = obj.nombreAsignado || 'Invitado';
+            } else if (obj.tipoObjeto === 'elementoSalon') {
+                titulo = obj.etiqueta || 'Elemento salón';
+                puedeRotar = true;
+                puedeDuplicar = true;
+            } else {
+                bar.classList.remove('visible');
+                return;
+            }
+
+            labelEl.textContent = titulo;
+            btnRotar.style.display = puedeRotar ? 'inline-flex' : 'none';
+            btnDuplicar.style.display = puedeDuplicar ? 'inline-flex' : 'none';
+            bar.classList.add('visible');
+        }
+
+        function editarObjetoSeleccionadoMovil() {
+            const obj = canvas.getActiveObject();
+            if (obj && !obj.esTemporal) abrirModalEdicion(obj);
+        }
+
+        function rotarObjetoSeleccionadoMovil() {
+            rotarObjetoConTeclado({
+                preventDefault() {},
+                shiftKey: false,
+                repeat: false
+            });
+            actualizarBarraSeleccionMovil();
+        }
+
+        function eliminarObjetoSeleccionadoMovil() {
+            const obj = canvas.getActiveObject();
+            if (!obj || obj.esTemporal) return;
+            if (obj.tipoObjeto === 'mesa') eliminarMesa();
+            else if (obj.tipoObjeto === 'invitado') eliminarInvitado();
+            else if (obj.tipoObjeto === 'elementoSalon') eliminarElementoSalon();
+            actualizarBarraSeleccionMovil();
+        }
+
+        function deseleccionarEnMovil() {
+            canvas.discardActiveObject();
+            canvas.requestRenderAll();
+            actualizarBarraSeleccionMovil();
         }
 
         const resizeObserver = new ResizeObserver(() => ajustarTamanoCanvas());
@@ -5248,6 +5871,7 @@
             const inv = listaInvitadosHud[idx];
             if (!inv) return;
             centrarEnObjeto(inv);
+			if (esPantallaMovil()) cerrarPanelHud();
         }
 
         function editarDesdeHud(idx) {
@@ -5575,6 +6199,8 @@
             canvas.renderAll();
             actualizarCuadricula();
             resaltarObjetoEnLienzo(objeto);
+			cerrarPanelesMovil();
+			actualizarBarraSeleccionMovil();
         }
 
         function resaltarObjetoEnLienzo(objeto) {
@@ -6299,6 +6925,7 @@
                 canvas.renderAll();
                 actualizarContadorTotal();
                 registrarCambio();
+				actualizarBarraSeleccionMovil();
                 cerrarModalEdicion();
                 mostrarToast("Mesa actualizada.");
 
@@ -6329,6 +6956,7 @@
                 canvas.renderAll();
                 actualizarContadorTotal();
                 registrarCambio();
+				actualizarBarraSeleccionMovil();
                 cerrarModalEdicion();
                 mostrarToast("Invitado actualizado.");
 
@@ -6361,6 +6989,7 @@
                 canvas.setActiveObject(nuevoBloque);
                 canvas.renderAll();
                 registrarCambio();
+				actualizarBarraSeleccionMovil();
                 cerrarModalEdicion();
                 mostrarToast("Elemento del salón actualizado.");
             }
@@ -6810,6 +7439,7 @@
                 const nombreVisible = preset.nombreToast || preset.etiqueta || 'Elemento del salón';
                 mostrarToast(`${nombreVisible} añadido al plano.`);
             }
+			if (esPantallaMovil()) cerrarPanelesMovil();
         }
 
         function eliminarElementoSalon({ forzar = false } = {}) {
@@ -7510,14 +8140,6 @@
             registrarCambio();
         });
 
-        canvas.on('selection:created', () => renderizarListadoInvitadosDerecho());
-        canvas.on('selection:updated', () => renderizarListadoInvitadosDerecho());
-        canvas.on('selection:cleared', () => {
-            limpiarGuiasActivas();
-            limpiarResaltadoMesaDestino();
-            renderizarListadoInvitadosDerecho();
-        });
-
         // ==================== GESTIÓN MANUAL DE MESAS ====================
         function obtenerCentroVisible() {
             const vpt = canvas.viewportTransform;
@@ -7557,6 +8179,7 @@
             canvas.renderAll();
             actualizarContadorTotal();
             registrarCambio();
+			if (esPantallaMovil()) cerrarPanelesMovil();
         }
 
         function eliminarMesa({ forzar = false } = {}) {
@@ -7651,6 +8274,7 @@
             inputCantidad.value = '1';
             inputAlergias.value = '';
             inputNombre.focus();
+			if (esPantallaMovil()) cerrarPanelesMovil();
         }
 
         function eliminarInvitado() {
@@ -7977,6 +8601,7 @@
                 } else {
                     mostrarToast("Invitados sincronizados desde Excel.");
                 }
+				if (esPantallaMovil()) cerrarPanelesMovil();
             };
             lector.readAsArrayBuffer(archivo);
         });
@@ -8173,6 +8798,7 @@
             sincronizarUITabsImprimible();
             renderizarVistaImprimible();
             printOverlay.classList.add('open');
+			if (esPantallaMovil()) cerrarPanelesMovil();
         }
 
         function cerrarVistaImprimible() {
@@ -8587,6 +9213,7 @@
                     console.error(error);
                     mostrarToast("Error al procesar el archivo JSON.", true);
                 }
+				if (esPantallaMovil()) cerrarPanelesMovil();centrarDesdeHud(idx)
             };
             lector.readAsText(archivo);
         });
@@ -8952,6 +9579,7 @@
                         ? `Se organizaron ${indiceMesaNueva} mesas (con ${gruposOmitidos.length} grupo(s) omitido(s)).`
                         : "Mesas organizadas automáticamente."
                 );
+				if (esPantallaMovil()) cerrarPanelesMovil();
             }
 
             if (gruposOmitidos.length > 0) {
@@ -8981,34 +9609,80 @@
             opt.e.stopPropagation();
         });
 
+        let ultimoToque = { tiempo: 0, objetivo: null, x: 0, y: 0 };
+        let pinchEstado = { activo: false, distPrev: 0, centroPrev: null };
+
+        function obtenerCoordsPuntero(evt) {
+            if (!evt) return { x: 0, y: 0 };
+            if (evt.touches && evt.touches.length > 0) {
+                return { x: evt.touches[0].clientX, y: evt.touches[0].clientY };
+            }
+            if (evt.changedTouches && evt.changedTouches.length > 0) {
+                return { x: evt.changedTouches[0].clientX, y: evt.changedTouches[0].clientY };
+            }
+            return { x: evt.clientX ?? 0, y: evt.clientY ?? 0 };
+        }
+
         canvas.on('mouse:down', function(opt) {
             ocultarTooltip();
             const evt = opt.e;
+
+            if (pinchEstado.activo) return;
+            if (evt && evt.touches && evt.touches.length > 1) {
+                this.isDragging = false;
+                wrapperEl.classList.remove('is-panning');
+                return;
+            }
+
+            const pt = obtenerCoordsPuntero(evt);
+            const esToque = Boolean(evt && (evt.pointerType === 'touch' || evt.type === 'touchstart'));
+
+            // Detección fiable de doble toque para abrir el modal de edición en móvil
+            if (esToque && opt.target && !opt.target.esTemporal) {
+                const ahora = Date.now();
+                const dist = Math.hypot(pt.x - ultimoToque.x, pt.y - ultimoToque.y);
+                if (
+                    ultimoToque.objetivo === opt.target &&
+                    (ahora - ultimoToque.tiempo) < 330 &&
+                    dist < 28 &&
+                    ['mesa', 'invitado', 'elementoSalon'].includes(opt.target.tipoObjeto)
+                ) {
+                    ultimoToque = { tiempo: 0, objetivo: null, x: 0, y: 0 };
+                    abrirModalEdicion(opt.target);
+                    return;
+                }
+                ultimoToque = { tiempo: ahora, objetivo: opt.target, x: pt.x, y: pt.y };
+            }
+
             if (!opt.target) {
                 this.isDragging = true;
-                this.lastPosX = evt.clientX;
-                this.lastPosY = evt.clientY;
+                this.lastPosX = pt.x;
+                this.lastPosY = pt.y;
                 wrapperEl.classList.add('is-panning');
             }
         });
 
         canvas.on('mouse:move', function(opt) {
-            posicionarTooltip(opt.e);
+            if (pinchEstado.activo) return;
+            const evt = opt.e;
+            if (evt && evt.touches && evt.touches.length > 1) return;
+
+            posicionarTooltip(evt);
             if (this.isDragging) {
-                const e = opt.e;
+                const pt = obtenerCoordsPuntero(evt);
                 const vpt = this.viewportTransform;
-                vpt[4] += e.clientX - this.lastPosX;
-                vpt[5] += e.clientY - this.lastPosY;
+                vpt[4] += pt.x - this.lastPosX;
+                vpt[5] += pt.y - this.lastPosY;
                 this.requestRenderAll();
                 actualizarCuadricula();
-                this.lastPosX = e.clientX;
-                this.lastPosY = e.clientY;
+                this.lastPosX = pt.x;
+                this.lastPosY = pt.y;
             }
         });
 
         canvas.on('mouse:up', function() {
             limpiarGuiasActivas();
-			limpiarResaltadoMesaDestino();
+            limpiarResaltadoMesaDestino();
             if (this.isDragging) {
                 this.setViewportTransform(this.viewportTransform);
                 this.isDragging = false;
@@ -9016,6 +9690,82 @@
                 actualizarCuadricula();
             }
         });
+
+        // Gestos multitáctiles (pellizco para zoom + desplazamiento con 2 dedos)
+        function obtenerMetricasPinch(touches) {
+            const dx = touches[1].clientX - touches[0].clientX;
+            const dy = touches[1].clientY - touches[0].clientY;
+            return {
+                dist: Math.hypot(dx, dy) || 1,
+                cx: (touches[0].clientX + touches[1].clientX) / 2,
+                cy: (touches[0].clientY + touches[1].clientY) / 2
+            };
+        }
+
+        canvas.upperCanvasEl.addEventListener('touchstart', function(e) {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                ocultarTooltip();
+                limpiarGuiasActivas();
+                limpiarResaltadoMesaDestino();
+
+                canvas.isDragging = false;
+                wrapperEl.classList.remove('is-panning');
+                if (canvas.getActiveObject()) {
+                    canvas.discardActiveObject();
+                    actualizarBarraSeleccionMovil();
+                }
+                canvas.skipTargetFind = true;
+
+                const m = obtenerMetricasPinch(e.touches);
+                pinchEstado = {
+                    activo: true,
+                    distPrev: m.dist,
+                    centroPrev: { x: m.cx, y: m.cy }
+                };
+            }
+        }, { passive: false });
+
+        canvas.upperCanvasEl.addEventListener('touchmove', function(e) {
+            if (!pinchEstado.activo || e.touches.length !== 2) return;
+            e.preventDefault();
+
+            const m = obtenerMetricasPinch(e.touches);
+            const rect = canvas.upperCanvasEl.getBoundingClientRect();
+
+            // Desplaza según el movimiento del punto medio de ambos dedos
+            const vpt = canvas.viewportTransform;
+            vpt[4] += m.cx - pinchEstado.centroPrev.x;
+            vpt[5] += m.cy - pinchEstado.centroPrev.y;
+
+            // Aplica el zoom centrado exactamente entre ambos dedos
+            const factor = m.dist / pinchEstado.distPrev;
+            const nuevoZoom = Math.min(4, Math.max(0.15, canvas.getZoom() * factor));
+            canvas.zoomToPoint(
+                new fabric.Point(m.cx - rect.left, m.cy - rect.top),
+                nuevoZoom
+            );
+
+            pinchEstado.distPrev = m.dist;
+            pinchEstado.centroPrev = { x: m.cx, y: m.cy };
+            actualizarCuadricula();
+        }, { passive: false });
+
+        function finalizarPinch(e) {
+            if (!pinchEstado.activo) return;
+            if (!e.touches || e.touches.length < 2) {
+                pinchEstado.activo = false;
+                pinchEstado.centroPrev = null;
+                canvas.skipTargetFind = false;
+                canvas.setViewportTransform(canvas.viewportTransform);
+                canvas.getObjects().forEach(obj => obj.setCoords());
+                canvas.requestRenderAll();
+                actualizarCuadricula();
+            }
+        }
+
+        canvas.upperCanvasEl.addEventListener('touchend', finalizarPinch);
+        canvas.upperCanvasEl.addEventListener('touchcancel', finalizarPinch);
 
         function hacerZoom(factor) {
             let zoom = canvas.getZoom() * factor;
@@ -9053,7 +9803,7 @@
 
             const anchoContenido = Math.max(120, maxX - minX);
             const altoContenido = Math.max(120, maxY - minY);
-            const padding = 85;
+			const padding = esPantallaMovil() ? 38 : 85;
             const anchoDisp = Math.max(150, canvas.width - padding * 2);
             const altoDisp = Math.max(150, canvas.height - padding * 2);
 
@@ -9403,6 +10153,12 @@
                 return;
             }
 			
+			if (modificador && evento.shiftKey && tecla === 'f') {
+                evento.preventDefault();
+                toggleModoLienzoCompleto();
+                return;
+            }
+			
 			if (modificador && tecla === 'd') {
                 evento.preventDefault();
                 duplicarObjetoSeleccionado();
@@ -9453,18 +10209,28 @@
         document.getElementById('nombreNovio').addEventListener('change', () => manejarCambioDatosEvento(true, 'novios'));
         document.getElementById('nombreNovia').addEventListener('input', () => manejarCambioDatosEvento(false, 'novios'));
         document.getElementById('nombreNovia').addEventListener('change', () => manejarCambioDatosEvento(true, 'novios'));
+		canvas.on('selection:created', () => { renderizarListadoInvitadosDerecho(); actualizarBarraSeleccionMovil(); });
+		canvas.on('selection:updated', () => { renderizarListadoInvitadosDerecho(); actualizarBarraSeleccionMovil(); });
+		canvas.on('selection:cleared', () => {
+			limpiarGuiasActivas();
+			limpiarResaltadoMesaDestino();
+			renderizarListadoInvitadosDerecho();
+			actualizarBarraSeleccionMovil();
+		});
 
         // ==================== INICIALIZACIÓN Y RESTAURACIÓN ====================
         (function inicializarAplicacion() {
 			try {
-                sidebarPlegado = localStorage.getItem(SIDEBAR_STORAGE_KEY) === '1';
+                if (esPantallaMovil()) {
+                    sidebarPlegado = true;
+                    rightPanelPlegado = true;
+                } else {
+                    sidebarPlegado = localStorage.getItem(SIDEBAR_STORAGE_KEY) === '1';
+                    rightPanelPlegado = localStorage.getItem(RIGHT_PANEL_STORAGE_KEY) === '1';
+                }
                 actualizarUIEstadoSidebar();
-                ajustarTamanoCanvas();
-            } catch (e) {}
-			
-			try {
-                rightPanelPlegado = localStorage.getItem(RIGHT_PANEL_STORAGE_KEY) === '1';
                 actualizarUIEstadoRightPanel();
+                actualizarBackdropMovil();
                 ajustarTamanoCanvas();
             } catch (e) {}
 			
